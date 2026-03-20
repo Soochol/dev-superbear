@@ -41,7 +41,7 @@ services:
       DATABASE_URL: postgresql://nexus:nexus@postgres:5432/nexus_test?sslmode=disable
       PORT: "8080"
       JWT_SECRET: test-secret
-      ALLOWED_ORIGIN: http://localhost:3000
+      ALLOWED_ORIGIN: http://localhost:3001
       APP_ENV: development
       REDIS_ADDR: redis:6379
     depends_on:

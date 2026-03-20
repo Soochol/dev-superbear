@@ -94,8 +94,31 @@ export class SearchPage {
   }
 
   async typeDslCode(code: string) {
-    await this.dslEditorContainer.click();
-    await this.page.keyboard.type(code);
+    // CodeMirror v6 stores EditorView on .cm-editor element as cmView.view.
+    // keyboard.type() doesn't trigger CM6's internal change events,
+    // so we dispatch a transaction directly to update both DOM and state.
+    await this.dslEditorContainer.evaluate((container, text) => {
+      const cmEditor = container.querySelector(".cm-editor") as
+        | (HTMLElement & {
+            cmView?: {
+              view: {
+                state: { doc: { length: number } };
+                dispatch: (tr: {
+                  changes: { from: number; to: number; insert: string };
+                }) => void;
+                focus: () => void;
+              };
+            };
+          })
+        | null;
+      if (cmEditor?.cmView) {
+        const view = cmEditor.cmView.view;
+        view.focus();
+        view.dispatch({
+          changes: { from: 0, to: view.state.doc.length, insert: text },
+        });
+      }
+    }, code);
   }
 
   async clickValidate() {
