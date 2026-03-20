@@ -6,6 +6,7 @@ interface AlertState {
   pendingAlerts: PriceAlert[];
   triggeredAlerts: PriceAlert[];
   loading: boolean;
+  error: string | null;
 
   fetchAlerts: (caseId: string) => Promise<void>;
   addAlert: (caseId: string, condition: string, label: string) => Promise<void>;
@@ -16,9 +17,10 @@ export const useAlertStore = create<AlertState>()((set) => ({
   pendingAlerts: [],
   triggeredAlerts: [],
   loading: false,
+  error: null,
 
   fetchAlerts: async (caseId) => {
-    set({ loading: true });
+    set({ loading: true, error: null });
     try {
       const res = await apiGet<{ data: { pending: PriceAlert[]; triggered: PriceAlert[] } }>(
         `/api/v1/cases/${caseId}/alerts`
@@ -29,15 +31,25 @@ export const useAlertStore = create<AlertState>()((set) => ({
         loading: false,
       });
     } catch {
-      set({ loading: false });
+      set({ loading: false, error: 'Failed to load alerts' });
     }
   },
 
   addAlert: async (caseId, condition, label) => {
-    await apiPost(`/api/v1/cases/${caseId}/alerts`, { condition, label });
+    try {
+      await apiPost(`/api/v1/cases/${caseId}/alerts`, { condition, label });
+    } catch (e) {
+      set({ error: 'Failed to add alert' });
+      throw e;
+    }
   },
 
   deleteAlert: async (caseId, alertId) => {
-    await apiDelete(`/api/v1/cases/${caseId}/alerts/${alertId}`);
+    try {
+      await apiDelete(`/api/v1/cases/${caseId}/alerts/${alertId}`);
+    } catch (e) {
+      set({ error: 'Failed to delete alert' });
+      throw e;
+    }
   },
 }));

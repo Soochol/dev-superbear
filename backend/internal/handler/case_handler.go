@@ -204,6 +204,11 @@ func (h *CaseHandler) Close(c *gin.Context) {
 
 // GetTimeline returns timeline events for a case, with optional type filter and paging.
 func (h *CaseHandler) GetTimeline(c *gin.Context) {
+	userID, err := middleware.GetUserID(c)
+	if err != nil {
+		Error(c, http.StatusUnauthorized, "unauthorized")
+		return
+	}
 	id := c.Param("id")
 
 	caseUUID, err := parseUUID(id)
@@ -211,8 +216,28 @@ func (h *CaseHandler) GetTimeline(c *gin.Context) {
 		Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
+	userUUID, err := parseUUID(userID)
+	if err != nil {
+		Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
 
 	ctx := c.Request.Context()
+
+	_, err = h.queries.GetCase(ctx, sqlc.GetCaseParams{
+		ID:     caseUUID,
+		UserID: userUUID,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			Error(c, http.StatusNotFound, "not found")
+		} else {
+			slog.Error("failed to get case for timeline", "error", err, "userId", userID)
+			Error(c, http.StatusInternalServerError, "internal server error")
+		}
+		return
+	}
+
 	eventType := c.Query("type")
 	limitStr := c.Query("limit")
 	offsetStr := c.Query("offset")
@@ -232,10 +257,24 @@ func (h *CaseHandler) GetTimeline(c *gin.Context) {
 	}
 
 	if limitStr != "" {
-		limit, _ := strconv.Atoi(limitStr)
-		offset, _ := strconv.Atoi(offsetStr)
+		limit, err := strconv.Atoi(limitStr)
+		if err != nil {
+			Error(c, http.StatusBadRequest, "invalid limit parameter")
+			return
+		}
 		if limit < 1 {
 			limit = 20
+		}
+		offset := 0
+		if offsetStr != "" {
+			offset, err = strconv.Atoi(offsetStr)
+			if err != nil {
+				Error(c, http.StatusBadRequest, "invalid offset parameter")
+				return
+			}
+			if offset < 0 {
+				offset = 0
+			}
 		}
 		events, err := h.queries.ListTimelineEventsWithPaging(ctx, sqlc.ListTimelineEventsWithPagingParams{
 			CaseID: caseUUID,

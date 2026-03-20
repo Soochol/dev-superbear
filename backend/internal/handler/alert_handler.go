@@ -1,12 +1,15 @@
 package handler
 
 import (
+	"errors"
 	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
+	"github.com/dev-superbear/nexus-backend/internal/middleware"
 	"github.com/dev-superbear/nexus-backend/internal/repository/sqlc"
 )
 
@@ -22,14 +25,39 @@ func NewAlertHandler(queries *sqlc.Queries) *AlertHandler {
 
 // ListAlerts returns pending and triggered alerts for a case.
 func (h *AlertHandler) ListAlerts(c *gin.Context) {
+	userID, err := middleware.GetUserID(c)
+	if err != nil {
+		Error(c, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
 	caseID := c.Param("id")
 	caseUUID, err := parseUUID(caseID)
 	if err != nil {
 		Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
+	userUUID, err := parseUUID(userID)
+	if err != nil {
+		Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
 
 	ctx := c.Request.Context()
+
+	_, err = h.queries.GetCase(ctx, sqlc.GetCaseParams{
+		ID:     caseUUID,
+		UserID: userUUID,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			Error(c, http.StatusNotFound, "not found")
+		} else {
+			slog.Error("failed to get case for alerts", "error", err, "userId", userID)
+			Error(c, http.StatusInternalServerError, "internal server error")
+		}
+		return
+	}
 
 	pending, err := h.queries.ListPendingAlertsByCase(ctx, caseUUID)
 	if err != nil {
@@ -53,10 +81,37 @@ func (h *AlertHandler) ListAlerts(c *gin.Context) {
 
 // CreateAlert creates a new price alert for a case.
 func (h *AlertHandler) CreateAlert(c *gin.Context) {
+	userID, err := middleware.GetUserID(c)
+	if err != nil {
+		Error(c, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
 	caseID := c.Param("id")
 	caseUUID, err := parseUUID(caseID)
 	if err != nil {
 		Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	userUUID, err := parseUUID(userID)
+	if err != nil {
+		Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	ctx := c.Request.Context()
+
+	_, err = h.queries.GetCase(ctx, sqlc.GetCaseParams{
+		ID:     caseUUID,
+		UserID: userUUID,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			Error(c, http.StatusNotFound, "not found")
+		} else {
+			slog.Error("failed to get case for create alert", "error", err, "userId", userID)
+			Error(c, http.StatusInternalServerError, "internal server error")
+		}
 		return
 	}
 
@@ -75,7 +130,7 @@ func (h *AlertHandler) CreateAlert(c *gin.Context) {
 		}
 	}
 
-	alert, err := h.queries.CreatePriceAlert(c.Request.Context(), sqlc.CreatePriceAlertParams{
+	alert, err := h.queries.CreatePriceAlert(ctx, sqlc.CreatePriceAlertParams{
 		CaseID:     caseUUID,
 		PipelineID: pipelineUUID,
 		Condition:  req.Condition,
@@ -92,10 +147,21 @@ func (h *AlertHandler) CreateAlert(c *gin.Context) {
 
 // DeleteAlert removes a price alert by ID, scoped to the case.
 func (h *AlertHandler) DeleteAlert(c *gin.Context) {
+	userID, err := middleware.GetUserID(c)
+	if err != nil {
+		Error(c, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
 	caseID := c.Param("id")
 	alertID := c.Param("alertId")
 
 	caseUUID, err := parseUUID(caseID)
+	if err != nil {
+		Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	userUUID, err := parseUUID(userID)
 	if err != nil {
 		Error(c, http.StatusBadRequest, err.Error())
 		return
@@ -106,7 +172,23 @@ func (h *AlertHandler) DeleteAlert(c *gin.Context) {
 		return
 	}
 
-	err = h.queries.DeletePriceAlert(c.Request.Context(), sqlc.DeletePriceAlertParams{
+	ctx := c.Request.Context()
+
+	_, err = h.queries.GetCase(ctx, sqlc.GetCaseParams{
+		ID:     caseUUID,
+		UserID: userUUID,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			Error(c, http.StatusNotFound, "not found")
+		} else {
+			slog.Error("failed to get case for delete alert", "error", err, "userId", userID)
+			Error(c, http.StatusInternalServerError, "internal server error")
+		}
+		return
+	}
+
+	err = h.queries.DeletePriceAlert(ctx, sqlc.DeletePriceAlertParams{
 		ID:     alertUUID,
 		CaseID: caseUUID,
 	})
