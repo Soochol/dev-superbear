@@ -1,5 +1,5 @@
 /** @jest-environment jsdom */
-import { render, screen } from "@testing-library/react";
+import { render, screen, act } from "@testing-library/react";
 import { BottomInfoPanel } from "../ui/BottomInfoPanel";
 import { useChartStore } from "@/features/chart";
 
@@ -7,6 +7,11 @@ beforeAll(() => {
   global.fetch = jest.fn(() =>
     Promise.resolve({ json: () => Promise.resolve({ data: null }) })
   ) as jest.Mock;
+});
+
+afterEach(async () => {
+  // Flush pending microtasks to avoid act() warnings
+  await act(async () => {});
 });
 
 beforeEach(() => {

@@ -1,5 +1,6 @@
 import { calculateMA } from "../lib/ma";
 import { calculateBollingerBands } from "../lib/bollinger";
+import { calculateRSI } from "../lib/rsi";
 
 const sampleData = [
   { close: 100 }, { close: 102 }, { close: 98 }, { close: 104 }, { close: 106 },
@@ -45,6 +46,43 @@ describe("Technical Indicators", () => {
         expect(bb.upper[i]!).toBeGreaterThan(bb.middle[i]!);
         expect(bb.middle[i]!).toBeGreaterThan(bb.lower[i]!);
       }
+    });
+  });
+
+  describe("calculateRSI", () => {
+    const closes = [
+      44, 44.34, 44.09, 43.61, 44.33, 44.83, 45.10, 45.42, 45.84,
+      46.08, 45.89, 46.03, 45.61, 46.28, 46.28, 46.00, 46.03, 46.41,
+      46.22, 45.64,
+    ];
+
+    it("returns null for first `period` values", () => {
+      const rsi = calculateRSI(closes, 14);
+      expect(rsi[0]).toBeNull();
+      expect(rsi[13]).toBeNull();
+      expect(rsi[14]).not.toBeNull();
+    });
+
+    it("RSI is between 0 and 100", () => {
+      const rsi = calculateRSI(closes, 14);
+      for (const val of rsi) {
+        if (val !== null) {
+          expect(val).toBeGreaterThanOrEqual(0);
+          expect(val).toBeLessThanOrEqual(100);
+        }
+      }
+    });
+
+    it("returns array of same length as input", () => {
+      const rsi = calculateRSI(closes, 14);
+      expect(rsi).toHaveLength(closes.length);
+    });
+
+    it("handles all-up prices (RSI near 100)", () => {
+      const allUp = [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114];
+      const rsi = calculateRSI(allUp, 14);
+      const lastRSI = rsi[rsi.length - 1];
+      expect(lastRSI).toBe(100);
     });
   });
 });
