@@ -193,6 +193,7 @@ const (
 	TimelineEventTypePRICEALERT     TimelineEventType = "PRICE_ALERT"
 	TimelineEventTypeTRADE          TimelineEventType = "TRADE"
 	TimelineEventTypePIPELINERESULT TimelineEventType = "PIPELINE_RESULT"
+	TimelineEventTypeMONITORRESULT  TimelineEventType = "MONITOR_RESULT"
 )
 
 func (e *TimelineEventType) Scan(src interface{}) error {
@@ -352,6 +353,8 @@ type Case struct {
 	ClosedReason  pgtype.Text        `json:"closed_reason"`
 	CreatedAt     pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+	SymbolName    string             `json:"symbol_name"`
+	Sector        pgtype.Text        `json:"sector"`
 }
 
 type FifoLot struct {
@@ -484,6 +487,17 @@ type RealizedPnl struct {
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 }
 
+type SearchPreset struct {
+	ID        pgtype.UUID        `json:"id"`
+	UserID    pgtype.UUID        `json:"user_id"`
+	Name      string             `json:"name"`
+	Dsl       string             `json:"dsl"`
+	NlQuery   pgtype.Text        `json:"nl_query"`
+	IsPublic  bool               `json:"is_public"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+}
+
 type Stage struct {
 	ID         pgtype.UUID        `json:"id"`
 	PipelineID pgtype.UUID        `json:"pipeline_id"`
@@ -502,6 +516,7 @@ type TimelineEvent struct {
 	AiAnalysis pgtype.Text        `json:"ai_analysis"`
 	Data       []byte             `json:"data"`
 	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+	DayOffset  int32              `json:"day_offset"`
 }
 
 type Trade struct {
@@ -524,4 +539,12 @@ type User struct {
 	Image     pgtype.Text        `json:"image"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+}
+
+type Watchlist struct {
+	ID        int64              `json:"id"`
+	UserID    int64              `json:"user_id"`
+	Symbol    string             `json:"symbol"`
+	Name      string             `json:"name"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
 }

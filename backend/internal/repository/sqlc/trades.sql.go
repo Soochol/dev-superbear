@@ -54,8 +54,31 @@ func (q *Queries) CreateTrade(ctx context.Context, arg CreateTradeParams) (Trade
 	return i, err
 }
 
+const deleteTrade = `-- name: DeleteTrade :exec
+DELETE FROM trades WHERE id = $1 AND case_id = $2
+`
+
+type DeleteTradeParams struct {
+	ID     pgtype.UUID `json:"id"`
+	CaseID pgtype.UUID `json:"case_id"`
+}
+
+func (q *Queries) DeleteTrade(ctx context.Context, arg DeleteTradeParams) error {
+	_, err := q.db.Exec(ctx, deleteTrade, arg.ID, arg.CaseID)
+	return err
+}
+
+const deleteTradesByCase = `-- name: DeleteTradesByCase :exec
+DELETE FROM trades WHERE case_id = $1
+`
+
+func (q *Queries) DeleteTradesByCase(ctx context.Context, caseID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteTradesByCase, caseID)
+	return err
+}
+
 const listTradesByCase = `-- name: ListTradesByCase :many
-SELECT id, case_id, user_id, type, price, quantity, fee, date, note, created_at FROM trades WHERE case_id = $1 ORDER BY date DESC
+SELECT id, case_id, user_id, type, price, quantity, fee, date, note, created_at FROM trades WHERE case_id = $1 ORDER BY date ASC
 `
 
 func (q *Queries) ListTradesByCase(ctx context.Context, caseID pgtype.UUID) ([]Trade, error) {

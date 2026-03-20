@@ -39,14 +39,16 @@ func (q *Queries) CountCasesByUserAndStatus(ctx context.Context, arg CountCasesB
 }
 
 const createCase = `-- name: CreateCase :one
-INSERT INTO cases (user_id, pipeline_id, symbol, event_date, event_snapshot, success_script, failure_script)
-VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, user_id, pipeline_id, symbol, status, event_date, event_snapshot, success_script, failure_script, closed_at, closed_reason, created_at, updated_at
+INSERT INTO cases (user_id, pipeline_id, symbol, symbol_name, sector, event_date, event_snapshot, success_script, failure_script)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, user_id, pipeline_id, symbol, status, event_date, event_snapshot, success_script, failure_script, closed_at, closed_reason, created_at, updated_at, symbol_name, sector
 `
 
 type CreateCaseParams struct {
 	UserID        pgtype.UUID `json:"user_id"`
 	PipelineID    pgtype.UUID `json:"pipeline_id"`
 	Symbol        string      `json:"symbol"`
+	SymbolName    string      `json:"symbol_name"`
+	Sector        pgtype.Text `json:"sector"`
 	EventDate     pgtype.Date `json:"event_date"`
 	EventSnapshot []byte      `json:"event_snapshot"`
 	SuccessScript string      `json:"success_script"`
@@ -58,6 +60,8 @@ func (q *Queries) CreateCase(ctx context.Context, arg CreateCaseParams) (Case, e
 		arg.UserID,
 		arg.PipelineID,
 		arg.Symbol,
+		arg.SymbolName,
+		arg.Sector,
 		arg.EventDate,
 		arg.EventSnapshot,
 		arg.SuccessScript,
@@ -78,6 +82,8 @@ func (q *Queries) CreateCase(ctx context.Context, arg CreateCaseParams) (Case, e
 		&i.ClosedReason,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.SymbolName,
+		&i.Sector,
 	)
 	return i, err
 }
@@ -97,7 +103,7 @@ func (q *Queries) DeleteCase(ctx context.Context, arg DeleteCaseParams) error {
 }
 
 const getCase = `-- name: GetCase :one
-SELECT id, user_id, pipeline_id, symbol, status, event_date, event_snapshot, success_script, failure_script, closed_at, closed_reason, created_at, updated_at FROM cases WHERE id = $1 AND user_id = $2
+SELECT id, user_id, pipeline_id, symbol, status, event_date, event_snapshot, success_script, failure_script, closed_at, closed_reason, created_at, updated_at, symbol_name, sector FROM cases WHERE id = $1 AND user_id = $2
 `
 
 type GetCaseParams struct {
@@ -122,12 +128,14 @@ func (q *Queries) GetCase(ctx context.Context, arg GetCaseParams) (Case, error) 
 		&i.ClosedReason,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.SymbolName,
+		&i.Sector,
 	)
 	return i, err
 }
 
 const listCasesByUser = `-- name: ListCasesByUser :many
-SELECT id, user_id, pipeline_id, symbol, status, event_date, event_snapshot, success_script, failure_script, closed_at, closed_reason, created_at, updated_at FROM cases WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3
+SELECT id, user_id, pipeline_id, symbol, status, event_date, event_snapshot, success_script, failure_script, closed_at, closed_reason, created_at, updated_at, symbol_name, sector FROM cases WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3
 `
 
 type ListCasesByUserParams struct {
@@ -159,6 +167,8 @@ func (q *Queries) ListCasesByUser(ctx context.Context, arg ListCasesByUserParams
 			&i.ClosedReason,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.SymbolName,
+			&i.Sector,
 		); err != nil {
 			return nil, err
 		}
@@ -171,7 +181,7 @@ func (q *Queries) ListCasesByUser(ctx context.Context, arg ListCasesByUserParams
 }
 
 const listCasesByUserAndStatus = `-- name: ListCasesByUserAndStatus :many
-SELECT id, user_id, pipeline_id, symbol, status, event_date, event_snapshot, success_script, failure_script, closed_at, closed_reason, created_at, updated_at FROM cases WHERE user_id = $1 AND status = $2 ORDER BY created_at DESC LIMIT $3 OFFSET $4
+SELECT id, user_id, pipeline_id, symbol, status, event_date, event_snapshot, success_script, failure_script, closed_at, closed_reason, created_at, updated_at, symbol_name, sector FROM cases WHERE user_id = $1 AND status = $2 ORDER BY created_at DESC LIMIT $3 OFFSET $4
 `
 
 type ListCasesByUserAndStatusParams struct {
@@ -209,6 +219,8 @@ func (q *Queries) ListCasesByUserAndStatus(ctx context.Context, arg ListCasesByU
 			&i.ClosedReason,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.SymbolName,
+			&i.Sector,
 		); err != nil {
 			return nil, err
 		}
@@ -221,7 +233,7 @@ func (q *Queries) ListCasesByUserAndStatus(ctx context.Context, arg ListCasesByU
 }
 
 const updateCaseStatus = `-- name: UpdateCaseStatus :one
-UPDATE cases SET status = $2, closed_at = $3, closed_reason = $4 WHERE id = $1 RETURNING id, user_id, pipeline_id, symbol, status, event_date, event_snapshot, success_script, failure_script, closed_at, closed_reason, created_at, updated_at
+UPDATE cases SET status = $2, closed_at = $3, closed_reason = $4 WHERE id = $1 AND user_id = $5 RETURNING id, user_id, pipeline_id, symbol, status, event_date, event_snapshot, success_script, failure_script, closed_at, closed_reason, created_at, updated_at, symbol_name, sector
 `
 
 type UpdateCaseStatusParams struct {
@@ -229,6 +241,7 @@ type UpdateCaseStatusParams struct {
 	Status       CaseStatus  `json:"status"`
 	ClosedAt     pgtype.Date `json:"closed_at"`
 	ClosedReason pgtype.Text `json:"closed_reason"`
+	UserID       pgtype.UUID `json:"user_id"`
 }
 
 func (q *Queries) UpdateCaseStatus(ctx context.Context, arg UpdateCaseStatusParams) (Case, error) {
@@ -237,6 +250,7 @@ func (q *Queries) UpdateCaseStatus(ctx context.Context, arg UpdateCaseStatusPara
 		arg.Status,
 		arg.ClosedAt,
 		arg.ClosedReason,
+		arg.UserID,
 	)
 	var i Case
 	err := row.Scan(
@@ -253,6 +267,8 @@ func (q *Queries) UpdateCaseStatus(ctx context.Context, arg UpdateCaseStatusPara
 		&i.ClosedReason,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.SymbolName,
+		&i.Sector,
 	)
 	return i, err
 }

@@ -44,12 +44,50 @@ func (q *Queries) CreatePriceAlert(ctx context.Context, arg CreatePriceAlertPara
 }
 
 const deletePriceAlert = `-- name: DeletePriceAlert :exec
-DELETE FROM price_alerts WHERE id = $1
+DELETE FROM price_alerts WHERE id = $1 AND case_id = $2
 `
 
-func (q *Queries) DeletePriceAlert(ctx context.Context, id pgtype.UUID) error {
-	_, err := q.db.Exec(ctx, deletePriceAlert, id)
+type DeletePriceAlertParams struct {
+	ID     pgtype.UUID `json:"id"`
+	CaseID pgtype.UUID `json:"case_id"`
+}
+
+func (q *Queries) DeletePriceAlert(ctx context.Context, arg DeletePriceAlertParams) error {
+	_, err := q.db.Exec(ctx, deletePriceAlert, arg.ID, arg.CaseID)
 	return err
+}
+
+const listPendingAlertsByCase = `-- name: ListPendingAlertsByCase :many
+SELECT id, case_id, pipeline_id, condition, label, triggered, triggered_at, created_at FROM price_alerts WHERE case_id = $1 AND triggered = false ORDER BY created_at DESC
+`
+
+func (q *Queries) ListPendingAlertsByCase(ctx context.Context, caseID pgtype.UUID) ([]PriceAlert, error) {
+	rows, err := q.db.Query(ctx, listPendingAlertsByCase, caseID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []PriceAlert{}
+	for rows.Next() {
+		var i PriceAlert
+		if err := rows.Scan(
+			&i.ID,
+			&i.CaseID,
+			&i.PipelineID,
+			&i.Condition,
+			&i.Label,
+			&i.Triggered,
+			&i.TriggeredAt,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listPriceAlertsByCase = `-- name: ListPriceAlertsByCase :many
@@ -91,6 +129,39 @@ SELECT id, case_id, pipeline_id, condition, label, triggered, triggered_at, crea
 
 func (q *Queries) ListPriceAlertsByPipeline(ctx context.Context, pipelineID pgtype.UUID) ([]PriceAlert, error) {
 	rows, err := q.db.Query(ctx, listPriceAlertsByPipeline, pipelineID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []PriceAlert{}
+	for rows.Next() {
+		var i PriceAlert
+		if err := rows.Scan(
+			&i.ID,
+			&i.CaseID,
+			&i.PipelineID,
+			&i.Condition,
+			&i.Label,
+			&i.Triggered,
+			&i.TriggeredAt,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listTriggeredAlertsByCase = `-- name: ListTriggeredAlertsByCase :many
+SELECT id, case_id, pipeline_id, condition, label, triggered, triggered_at, created_at FROM price_alerts WHERE case_id = $1 AND triggered = true ORDER BY triggered_at DESC
+`
+
+func (q *Queries) ListTriggeredAlertsByCase(ctx context.Context, caseID pgtype.UUID) ([]PriceAlert, error) {
+	rows, err := q.db.Query(ctx, listTriggeredAlertsByCase, caseID)
 	if err != nil {
 		return nil, err
 	}

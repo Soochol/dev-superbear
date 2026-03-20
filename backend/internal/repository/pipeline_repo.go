@@ -477,9 +477,12 @@ func (r *PipelineRepository) ListPriceAlerts(ctx context.Context, pipelineID uui
 	return alerts, nil
 }
 
-// DeletePriceAlert deletes a single price alert.
-func (r *PipelineRepository) DeletePriceAlert(ctx context.Context, id uuid.UUID) error {
-	return r.q.DeletePriceAlert(ctx, toPgtypeUUID(id))
+// DeletePriceAlert deletes a single price alert, scoped by case.
+func (r *PipelineRepository) DeletePriceAlert(ctx context.Context, id, caseID uuid.UUID) error {
+	return r.q.DeletePriceAlert(ctx, sqlc.DeletePriceAlertParams{
+		ID:     toPgtypeUUID(id),
+		CaseID: toPgtypeUUID(caseID),
+	})
 }
 
 // DeletePriceAlerts deletes all price alerts for a pipeline in a single query.

@@ -102,4 +102,20 @@ func registerRoutes(rg *gin.RouterGroup, queries *sqlc.Queries, pool *pgxpool.Po
 	nlSvc := service.NewNLToDSLService()
 	searchH := handler.NewSearchHandler(searchSvc, nlSvc)
 	searchH.RegisterRoutes(rg)
+
+	// Case extensions
+	rg.POST("/cases/:id/close", caseH.Close)
+	rg.GET("/cases/:id/timeline", caseH.GetTimeline)
+	rg.GET("/cases/:id/return-tracking", caseH.GetReturnTracking)
+
+	// Trade routes
+	tradeH := handler.NewTradeHandler(queries)
+	rg.POST("/cases/:id/trades", tradeH.CreateTrade)
+	rg.GET("/cases/:id/trades", tradeH.ListTrades)
+
+	// Alert routes
+	alertH := handler.NewAlertHandler(queries)
+	rg.GET("/cases/:id/alerts", alertH.ListAlerts)
+	rg.POST("/cases/:id/alerts", alertH.CreateAlert)
+	rg.DELETE("/cases/:id/alerts/:alertId", alertH.DeleteAlert)
 }

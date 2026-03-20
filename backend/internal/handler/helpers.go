@@ -8,6 +8,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgtype"
+
+	"github.com/dev-superbear/nexus-backend/internal/middleware"
 )
 
 // PaginatedResponse wraps list data with pagination metadata.
@@ -83,4 +85,26 @@ func parseUUID(s string) (pgtype.UUID, error) {
 		return u, fmt.Errorf("invalid UUID: %s", s)
 	}
 	return u, nil
+}
+
+// parseAuthAndCaseID extracts the authenticated user ID and case ID from the
+// request, returning both as pgtype.UUID. Writes HTTP error responses and
+// returns false if any step fails.
+func parseAuthAndCaseID(c *gin.Context) (caseUUID, userUUID pgtype.UUID, ok bool) {
+	userID, err := middleware.GetUserID(c)
+	if err != nil {
+		Error(c, http.StatusUnauthorized, "unauthorized")
+		return pgtype.UUID{}, pgtype.UUID{}, false
+	}
+	caseUUID, err = parseUUID(c.Param("id"))
+	if err != nil {
+		Error(c, http.StatusBadRequest, err.Error())
+		return pgtype.UUID{}, pgtype.UUID{}, false
+	}
+	userUUID, err = parseUUID(userID)
+	if err != nil {
+		Error(c, http.StatusBadRequest, err.Error())
+		return pgtype.UUID{}, pgtype.UUID{}, false
+	}
+	return caseUUID, userUUID, true
 }
