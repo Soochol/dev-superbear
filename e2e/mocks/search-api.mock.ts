@@ -32,19 +32,31 @@ export class SearchApiMock {
 
   async mockNlSearch(response: NlSearchResponse) {
     await this.page.route("**/api/v1/search/nl-to-dsl", async (route) => {
-      await route.fulfill({ json: response });
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(response),
+      });
     });
   }
 
   async mockDslExecute(response: DslExecuteResponse) {
     await this.page.route("**/api/v1/search/execute", async (route) => {
-      await route.fulfill({ json: response });
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(response),
+      });
     });
   }
 
   async mockValidate(response: ValidateResponse) {
     await this.page.route("**/api/v1/search/validate", async (route) => {
-      await route.fulfill({ json: response });
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(response),
+      });
     });
   }
 
@@ -54,7 +66,8 @@ export class SearchApiMock {
         const body = route.request().postDataJSON();
         await route.fulfill({
           status: 201,
-          json: {
+          contentType: "application/json",
+          body: JSON.stringify({
             data: {
               id: "new-preset-1",
               userId: "u1",
@@ -65,7 +78,7 @@ export class SearchApiMock {
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
             },
-          },
+          }),
         });
       } else {
         await route.continue();
