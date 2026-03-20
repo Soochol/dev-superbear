@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/dev-superbear/nexus-backend/internal/service"
@@ -24,7 +25,8 @@ func (h *CandleHandler) GetCandles(c *gin.Context) {
 
 	candles, err := h.candleSvc.GetCandles(c.Request.Context(), symbol, startDate, endDate, period)
 	if err != nil {
-		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
+		slog.Error("failed to fetch candles", "error", err)
+		c.JSON(http.StatusBadGateway, gin.H{"error": "failed to fetch data"})
 		return
 	}
 

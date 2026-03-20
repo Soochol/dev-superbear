@@ -40,6 +40,9 @@ func (r *WatchlistRepo) GetByUser(ctx context.Context, userID int64) ([]Watchlis
 		}
 		items = append(items, item)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	return items, nil
 }
 
@@ -48,7 +51,7 @@ func (r *WatchlistRepo) Add(ctx context.Context, userID int64, symbol, name stri
 	err := r.pool.QueryRow(ctx,
 		`INSERT INTO watchlist (user_id, symbol, name)
 		 VALUES ($1, $2, $3)
-		 ON CONFLICT (user_id, symbol) DO NOTHING
+		 ON CONFLICT (user_id, symbol) DO UPDATE SET name = EXCLUDED.name
 		 RETURNING id, user_id, symbol, name, created_at`,
 		userID, symbol, name).
 		Scan(&item.ID, &item.UserID, &item.Symbol, &item.Name, &item.CreatedAt)

@@ -2,6 +2,7 @@ package kis
 
 import (
 	"fmt"
+	"log/slog"
 	"sort"
 	"strconv"
 )
@@ -17,11 +18,31 @@ func NormalizeKISCandles(raw []KISCandle) []NormalizedCandle {
 	result := make([]NormalizedCandle, 0, len(raw))
 
 	for _, c := range raw {
-		open, _ := strconv.ParseFloat(c.StckOprc, 64)
-		high, _ := strconv.ParseFloat(c.StckHgpr, 64)
-		low, _ := strconv.ParseFloat(c.StckLwpr, 64)
-		closeVal, _ := strconv.ParseFloat(c.StckClpr, 64)
-		volume, _ := strconv.ParseInt(c.AcmlVol, 10, 64)
+		open, err := strconv.ParseFloat(c.StckOprc, 64)
+		if err != nil {
+			slog.Warn("skipping candle: failed to parse open", "value", c.StckOprc, "error", err)
+			continue
+		}
+		high, err := strconv.ParseFloat(c.StckHgpr, 64)
+		if err != nil {
+			slog.Warn("skipping candle: failed to parse high", "value", c.StckHgpr, "error", err)
+			continue
+		}
+		low, err := strconv.ParseFloat(c.StckLwpr, 64)
+		if err != nil {
+			slog.Warn("skipping candle: failed to parse low", "value", c.StckLwpr, "error", err)
+			continue
+		}
+		closeVal, err := strconv.ParseFloat(c.StckClpr, 64)
+		if err != nil {
+			slog.Warn("skipping candle: failed to parse close", "value", c.StckClpr, "error", err)
+			continue
+		}
+		volume, err := strconv.ParseInt(c.AcmlVol, 10, 64)
+		if err != nil {
+			slog.Warn("skipping candle: failed to parse volume", "value", c.AcmlVol, "error", err)
+			continue
+		}
 
 		result = append(result, NormalizedCandle{
 			Time:   formatDate(c.StckBsopDate),

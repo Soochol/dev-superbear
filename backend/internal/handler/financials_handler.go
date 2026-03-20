@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/dev-superbear/nexus-backend/internal/service"
@@ -21,7 +22,8 @@ func (h *FinancialsHandler) GetFinancials(c *gin.Context) {
 
 	data, err := h.financialsSvc.GetFinancials(c.Request.Context(), symbol)
 	if err != nil {
-		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
+		slog.Error("failed to fetch financials", "error", err)
+		c.JSON(http.StatusBadGateway, gin.H{"error": "failed to fetch data"})
 		return
 	}
 

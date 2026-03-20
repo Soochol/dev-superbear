@@ -83,9 +83,17 @@ func (c *Client) FetchFinancialStatements(ctx context.Context, corpCode, year, r
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		return NormalizedFinancials{}, fmt.Errorf("DART request returned status %d", resp.StatusCode)
+	}
+
 	var dartResp DARTFinancialResponse
 	if err := json.NewDecoder(resp.Body).Decode(&dartResp); err != nil {
 		return NormalizedFinancials{}, fmt.Errorf("decode DART response: %w", err)
+	}
+
+	if dartResp.Status != "000" {
+		return NormalizedFinancials{}, fmt.Errorf("DART API error: status=%s message=%s", dartResp.Status, dartResp.Message)
 	}
 
 	raw := RawFinancials{}

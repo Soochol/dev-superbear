@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/dev-superbear/nexus-backend/internal/repository"
@@ -21,7 +22,8 @@ func (h *WatchlistHandler) GetWatchlist(c *gin.Context) {
 
 	items, err := h.repo.GetByUser(c.Request.Context(), userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		slog.Error("failed to fetch watchlist", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch watchlist"})
 		return
 	}
 
@@ -38,13 +40,14 @@ func (h *WatchlistHandler) AddToWatchlist(c *gin.Context) {
 
 	var req addWatchlistRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
 		return
 	}
 
 	item, err := h.repo.Add(c.Request.Context(), userID, req.Symbol, req.Name)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		slog.Error("failed to add to watchlist", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to add to watchlist"})
 		return
 	}
 
@@ -56,7 +59,8 @@ func (h *WatchlistHandler) RemoveFromWatchlist(c *gin.Context) {
 	symbol := c.Param("symbol")
 
 	if err := h.repo.Remove(c.Request.Context(), userID, symbol); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		slog.Error("failed to remove from watchlist", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to remove from watchlist"})
 		return
 	}
 

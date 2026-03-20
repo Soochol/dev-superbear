@@ -61,6 +61,10 @@ func (c *Client) getAccessToken(ctx context.Context) (string, error) {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("token request returned status %d", resp.StatusCode)
+	}
+
 	var tokenResp struct {
 		AccessToken string `json:"access_token"`
 		TokenType   string `json:"token_type"`
@@ -68,6 +72,10 @@ func (c *Client) getAccessToken(ctx context.Context) (string, error) {
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
 		return "", fmt.Errorf("decode token response: %w", err)
+	}
+
+	if tokenResp.AccessToken == "" {
+		return "", fmt.Errorf("token response contained empty access token")
 	}
 
 	if tokenResp.ExpiresIn == 0 {
@@ -126,6 +134,10 @@ func (c *Client) GetCandles(ctx context.Context, symbol, startDate, endDate, per
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("candle request returned status %d", resp.StatusCode)
+	}
+
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("read candle response: %w", err)
@@ -164,6 +176,10 @@ func (c *Client) GetCurrentPrice(ctx context.Context, symbol string) (*KISPriceR
 		return nil, fmt.Errorf("price request failed: %w", err)
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("price request returned status %d", resp.StatusCode)
+	}
 
 	var priceResp PriceResponse
 	if err := json.NewDecoder(resp.Body).Decode(&priceResp); err != nil {
