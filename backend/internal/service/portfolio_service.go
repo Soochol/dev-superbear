@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"time"
 
-	domain "backend/internal/domain/portfolio"
-	"backend/internal/repository"
+	domain "github.com/dev-superbear/nexus-backend/internal/domain/portfolio"
+	"github.com/dev-superbear/nexus-backend/internal/repository"
 )
 
 // ---------------------------------------------------------------------------

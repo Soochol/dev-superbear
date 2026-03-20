@@ -7,8 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
-	mkt "backend/internal/domain/marketplace"
-	"backend/internal/service"
+	mkt "github.com/dev-superbear/nexus-backend/internal/domain/marketplace"
+	"github.com/dev-superbear/nexus-backend/internal/service"
 )
 
 // MarketplaceHandler exposes REST endpoints for the marketplace feature.

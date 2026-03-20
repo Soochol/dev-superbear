@@ -7,8 +7,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	domain "backend/internal/domain/portfolio"
-	"backend/internal/service"
+	domain "github.com/dev-superbear/nexus-backend/internal/domain/portfolio"
+	"github.com/dev-superbear/nexus-backend/internal/middleware"
+	"github.com/dev-superbear/nexus-backend/internal/service"
 )
 
 // ---------------------------------------------------------------------------
@@ -51,9 +52,9 @@ func (h *PortfolioHandler) RegisterRoutes(rg *gin.RouterGroup) {
 
 // GetPortfolio returns the full portfolio summary with live prices.
 func (h *PortfolioHandler) GetPortfolio(c *gin.Context) {
-	userID := c.GetString("userID") // set by auth middleware
-	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+	userID, err := middleware.GetUserID(c)
+	if err != nil {
+		Error(c, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
@@ -72,9 +73,9 @@ func (h *PortfolioHandler) GetPortfolio(c *gin.Context) {
 
 // GetSectorWeights returns sector-grouped portfolio data for donut chart.
 func (h *PortfolioHandler) GetSectorWeights(c *gin.Context) {
-	userID := c.GetString("userID")
-	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+	userID, err := middleware.GetUserID(c)
+	if err != nil {
+		Error(c, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
@@ -101,9 +102,9 @@ func (h *PortfolioHandler) GetSectorWeights(c *gin.Context) {
 //	from=2025-01-01  (default: 1 year ago)
 //	to=2025-12-31    (default: today)
 func (h *PortfolioHandler) GetPnLHistory(c *gin.Context) {
-	userID := c.GetString("userID")
-	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+	userID, err := middleware.GetUserID(c)
+	if err != nil {
+		Error(c, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
@@ -139,9 +140,9 @@ func (h *PortfolioHandler) GetPnLHistory(c *gin.Context) {
 
 // SimulateTax returns the annual tax breakdown (KR + US).
 func (h *PortfolioHandler) SimulateTax(c *gin.Context) {
-	userID := c.GetString("userID")
-	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+	userID, err := middleware.GetUserID(c)
+	if err != nil {
+		Error(c, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
@@ -164,9 +165,9 @@ type rebalanceRequest struct {
 
 // SimulateRebalance computes rebalancing actions for the given targets.
 func (h *PortfolioHandler) SimulateRebalance(c *gin.Context) {
-	userID := c.GetString("userID")
-	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+	userID, err := middleware.GetUserID(c)
+	if err != nil {
+		Error(c, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 

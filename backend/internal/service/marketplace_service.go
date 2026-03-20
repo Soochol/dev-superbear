@@ -8,8 +8,8 @@ import (
 
 	"github.com/google/uuid"
 
-	mkt "backend/internal/domain/marketplace"
-	"backend/internal/repository"
+	mkt "github.com/dev-superbear/nexus-backend/internal/domain/marketplace"
+	"github.com/dev-superbear/nexus-backend/internal/repository"
 )
 
 // MarketplaceService implements marketplace listing, detail, publish, like,
