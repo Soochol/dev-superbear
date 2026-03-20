@@ -1,6 +1,6 @@
 "use client";
 
-import type { SearchModalTab } from "../model/search-modal.store";
+import type { SearchModalTab } from "@/shared/model/search-modal.store";
 
 interface Props {
   activeTab: SearchModalTab;

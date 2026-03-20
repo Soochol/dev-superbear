@@ -1,9 +1,21 @@
 /** @jest-environment jsdom */
 import { render, screen, fireEvent } from "@testing-library/react";
 import { StockSearchModal } from "../ui/StockSearchModal";
-import { useSearchModalStore } from "../model/search-modal.store";
+import { useSearchModalStore } from "@/shared/model/search-modal.store";
 import { useStockListStore } from "@/entities/stock";
 import { useChartStore } from "@/features/chart";
+
+jest.mock("@/features/watchlist", () => ({
+  watchlistApi: {
+    fetchWatchlist: jest.fn().mockResolvedValue([]),
+    addItem: jest.fn().mockResolvedValue(undefined),
+    removeItem: jest.fn().mockResolvedValue(undefined),
+  },
+}));
+
+jest.mock("@/shared/lib/logger", () => ({
+  logger: { error: jest.fn() },
+}));
 
 beforeEach(() => {
   useSearchModalStore.setState({ isOpen: true, activeTab: "search" });
@@ -14,6 +26,7 @@ beforeEach(() => {
     ],
     watchlist: [{ symbol: "000660", name: "SK하이닉스", matchedValue: "000660" }],
     recentStocks: [{ symbol: "035420", name: "NAVER", matchedValue: "035420" }],
+    watchlistLoaded: true,
   });
   useChartStore.setState(useChartStore.getInitialState());
 });

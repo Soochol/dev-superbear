@@ -1,5 +1,5 @@
 /** @jest-environment jsdom */
-import { useSearchModalStore } from "../model/search-modal.store";
+import { useSearchModalStore } from "@/shared/model/search-modal.store";
 
 describe("search-modal.store", () => {
   beforeEach(() => {

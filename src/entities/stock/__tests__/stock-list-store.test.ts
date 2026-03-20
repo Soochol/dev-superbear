@@ -1,13 +1,5 @@
 import { useStockListStore } from "../model/stock-list.store";
 
-jest.mock("@/features/watchlist/api/watchlist-api", () => ({
-  watchlistApi: {
-    fetchWatchlist: jest.fn().mockResolvedValue([]),
-    addItem: jest.fn().mockResolvedValue(undefined),
-    removeItem: jest.fn().mockResolvedValue(undefined),
-  },
-}));
-
 describe("StockListStore", () => {
   beforeEach(() => {
     useStockListStore.setState(useStockListStore.getInitialState());
@@ -26,18 +18,18 @@ describe("StockListStore", () => {
     expect(useStockListStore.getState().selectedSymbol).toBe("005930");
   });
 
-  it("adds and removes from watchlist", async () => {
+  it("adds and removes from watchlist", () => {
     const item = { symbol: "005930", name: "Samsung", matchedValue: 0 };
-    await useStockListStore.getState().addToWatchlist(item);
+    useStockListStore.getState().addToWatchlist(item);
     expect(useStockListStore.getState().isInWatchlist("005930")).toBe(true);
-    await useStockListStore.getState().removeFromWatchlist("005930");
+    useStockListStore.getState().removeFromWatchlist("005930");
     expect(useStockListStore.getState().isInWatchlist("005930")).toBe(false);
   });
 
-  it("prevents duplicate watchlist entries", async () => {
+  it("prevents duplicate watchlist entries", () => {
     const item = { symbol: "005930", name: "Samsung", matchedValue: 0 };
-    await useStockListStore.getState().addToWatchlist(item);
-    await useStockListStore.getState().addToWatchlist(item);
+    useStockListStore.getState().addToWatchlist(item);
+    useStockListStore.getState().addToWatchlist(item);
     expect(useStockListStore.getState().watchlist).toHaveLength(1);
   });
 

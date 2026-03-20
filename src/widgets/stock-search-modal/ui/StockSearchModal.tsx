@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useCallback, useMemo } from "react";
-import { useSearchModalStore } from "../model/search-modal.store";
+import { useSearchModalStore } from "@/shared/model/search-modal.store";
 import { useStockListStore } from "@/entities/stock";
 import { useChartStore } from "@/features/chart";
+import { watchlistApi } from "@/features/watchlist";
 import { SearchSideNav } from "./SearchSideNav";
 import { SearchContent } from "./SearchContent";
 import type { SearchResult } from "@/entities/search-result";
+import { logger } from "@/shared/lib/logger";
 
 const TAB_TITLES = {
   search: "종목 검색",
@@ -16,7 +18,7 @@ const TAB_TITLES = {
 
 export function StockSearchModal() {
   const { isOpen, activeTab, closeModal, setActiveTab } = useSearchModalStore();
-  const { searchResults, watchlist, recentStocks, addToRecent, isInWatchlist, addToWatchlist, removeFromWatchlist, loadWatchlist } =
+  const { searchResults, watchlist, recentStocks, addToRecent, isInWatchlist, addToWatchlist, removeFromWatchlist, watchlistLoaded, setWatchlist, setWatchlistLoaded } =
     useStockListStore();
   const setCurrentStock = useChartStore((s) => s.setCurrentStock);
 
@@ -35,10 +37,15 @@ export function StockSearchModal() {
   }, [isOpen, handleEscape]);
 
   useEffect(() => {
-    if (isOpen) {
-      loadWatchlist();
+    if (isOpen && !watchlistLoaded) {
+      watchlistApi.fetchWatchlist().then((items) => {
+        setWatchlist(items);
+        setWatchlistLoaded(true);
+      }).catch((err) => {
+        logger.error("Failed to load watchlist", { error: err });
+      });
     }
-  }, [isOpen, loadWatchlist]);
+  }, [isOpen, watchlistLoaded, setWatchlist, setWatchlistLoaded]);
 
   const handleSelect = useCallback(
     (item: SearchResult) => {
@@ -59,8 +66,16 @@ export function StockSearchModal() {
     (item: SearchResult) => {
       if (isInWatchlist(item.symbol)) {
         removeFromWatchlist(item.symbol);
+        watchlistApi.removeItem(item.symbol).catch((err) => {
+          logger.error("Failed to remove from watchlist", { error: err });
+          addToWatchlist(item); // rollback
+        });
       } else {
         addToWatchlist(item);
+        watchlistApi.addItem(item.symbol, item.name).catch((err) => {
+          logger.error("Failed to add to watchlist", { error: err });
+          removeFromWatchlist(item.symbol); // rollback
+        });
       }
     },
     [isInWatchlist, addToWatchlist, removeFromWatchlist],
