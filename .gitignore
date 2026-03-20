@@ -43,6 +43,8 @@ next-env.d.ts
 
 # Go
 backend/bin/
+backend/api
+backend/worker
 backend/coverage.*
 
 # IDE
