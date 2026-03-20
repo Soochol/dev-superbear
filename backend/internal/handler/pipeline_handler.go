@@ -78,7 +78,7 @@ func (h *PipelineHandler) Get(c *gin.Context) {
 		return
 	}
 
-	pipeline, err := h.queries.GetPipeline(c.Request.Context(), sqlc.GetPipelineParams{
+	pipeline, err := h.queries.GetPipelineByID(c.Request.Context(), sqlc.GetPipelineByIDParams{
 		ID:     idUUID,
 		UserID: userUUID,
 	})

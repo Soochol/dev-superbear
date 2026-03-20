@@ -22,14 +22,13 @@ func NewBlockHandler(queries *sqlc.Queries) *BlockHandler {
 	return &BlockHandler{queries: queries}
 }
 
-// List returns a paginated list of agent blocks visible to the authenticated user.
+// List returns standalone agent blocks (not assigned to a stage) for the authenticated user.
 func (h *BlockHandler) List(c *gin.Context) {
 	userID, err := middleware.GetUserID(c)
 	if err != nil {
 		Error(c, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	p := GetPagination(c)
 
 	userUUID, err := parseUUID(userID)
 	if err != nil {
@@ -37,25 +36,14 @@ func (h *BlockHandler) List(c *gin.Context) {
 		return
 	}
 
-	blocks, err := h.queries.ListAgentBlocksByUser(c.Request.Context(), sqlc.ListAgentBlocksByUserParams{
-		UserID: userUUID,
-		Limit:  int32(p.PageSize),
-		Offset: int32(p.Offset),
-	})
+	blocks, err := h.queries.ListBlocksByUser(c.Request.Context(), userUUID)
 	if err != nil {
 		slog.Error("failed to list blocks", "error", err, "userId", userID)
 		Error(c, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
-	count, err := h.queries.CountAgentBlocksByUser(c.Request.Context(), userUUID)
-	if err != nil {
-		slog.Error("failed to count blocks", "error", err, "userId", userID)
-		Error(c, http.StatusInternalServerError, "internal server error")
-		return
-	}
-
-	Paginated(c, blocks, count, p.Page, p.PageSize)
+	Success(c, blocks)
 }
 
 // Get returns a single agent block by ID.
@@ -73,7 +61,7 @@ func (h *BlockHandler) Get(c *gin.Context) {
 		return
 	}
 
-	block, err := h.queries.GetAgentBlock(c.Request.Context(), idUUID)
+	block, err := h.queries.GetBlockByID(c.Request.Context(), idUUID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			Error(c, http.StatusNotFound, "not found")
@@ -106,7 +94,7 @@ func (h *BlockHandler) Create(c *gin.Context) {
 		return
 	}
 
-	// TODO: wire up full CreateAgentBlock with JSON marshalling for allowed_tools/output_schema
+	// TODO: wire up full CreateBlock via service layer (Phase 2)
 	Created(c, gin.H{"message": "block created (placeholder)"})
 }
 
@@ -130,7 +118,7 @@ func (h *BlockHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	err = h.queries.DeleteAgentBlock(c.Request.Context(), sqlc.DeleteAgentBlockParams{
+	err = h.queries.DeleteBlock(c.Request.Context(), sqlc.DeleteBlockParams{
 		ID:     idUUID,
 		UserID: userUUID,
 	})

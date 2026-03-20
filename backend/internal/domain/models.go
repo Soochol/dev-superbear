@@ -83,43 +83,7 @@ type Trade struct {
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 }
 
-type Pipeline struct {
-	ID             pgtype.UUID        `json:"id"`
-	UserID         pgtype.UUID        `json:"user_id"`
-	Name           string             `json:"name"`
-	Description    string             `json:"description"`
-	AnalysisStages json.RawMessage    `json:"analysis_stages"`
-	Monitors       json.RawMessage    `json:"monitors"`
-	SuccessScript  string             `json:"success_script"`
-	FailureScript  string             `json:"failure_script"`
-	IsPublic       bool               `json:"is_public"`
-	CreatedAt      pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
-}
-
-type AgentBlock struct {
-	ID           pgtype.UUID        `json:"id"`
-	UserID       pgtype.UUID        `json:"user_id"`
-	Name         string             `json:"name"`
-	Instruction  string             `json:"instruction"`
-	SystemPrompt *string            `json:"system_prompt,omitempty"`
-	AllowedTools json.RawMessage    `json:"allowed_tools,omitempty"`
-	OutputSchema json.RawMessage    `json:"output_schema,omitempty"`
-	IsPublic     bool               `json:"is_public"`
-	CreatedAt    pgtype.Timestamptz `json:"created_at"`
-}
-
-type PriceAlert struct {
-	ID          pgtype.UUID        `json:"id"`
-	CaseID      pgtype.UUID        `json:"case_id"`
-	PipelineID  pgtype.UUID        `json:"pipeline_id,omitempty"`
-	Condition   string             `json:"condition"`
-	Label       string             `json:"label"`
-	Triggered   bool               `json:"triggered"`
-	TriggeredAt pgtype.Date        `json:"triggered_at,omitempty"`
-	CreatedAt   pgtype.Timestamptz `json:"created_at"`
-}
-
+// EventSnapshot is the price data snapshot at case creation time.
 type EventSnapshot struct {
 	High       float64         `json:"high"`
 	Low        float64         `json:"low"`
@@ -127,15 +91,4 @@ type EventSnapshot struct {
 	Volume     float64         `json:"volume"`
 	TradeValue float64         `json:"trade_value"`
 	PreMA      map[int]float64 `json:"pre_ma"`
-}
-
-type AnalysisStage struct {
-	Order    int      `json:"order"`
-	BlockIDs []string `json:"blockIds"`
-}
-
-type MonitorConfig struct {
-	BlockID string `json:"blockId"`
-	Cron    string `json:"cron"`
-	Enabled bool   `json:"enabled"`
 }

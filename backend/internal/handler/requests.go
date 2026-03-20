@@ -12,22 +12,20 @@ type CreateCaseRequest struct {
 
 // CreatePipelineRequest is the JSON body for POST /pipelines.
 type CreatePipelineRequest struct {
-	Name           string        `json:"name" binding:"required,min=1,max=200"`
-	Description    string        `json:"description"`
-	AnalysisStages []interface{} `json:"analysis_stages"`
-	Monitors       []interface{} `json:"monitors"`
-	SuccessScript  string        `json:"success_script"`
-	FailureScript  string        `json:"failure_script"`
+	Name          string  `json:"name" binding:"required,min=1,max=200"`
+	Description   string  `json:"description"`
+	SuccessScript *string `json:"success_script"`
+	FailureScript *string `json:"failure_script"`
+	IsPublic      bool    `json:"is_public"`
 }
 
 // UpdatePipelineRequest is the JSON body for PUT /pipelines/:id.
 type UpdatePipelineRequest struct {
-	Name           string        `json:"name" binding:"required,min=1,max=200"`
-	Description    string        `json:"description"`
-	AnalysisStages []interface{} `json:"analysis_stages"`
-	Monitors       []interface{} `json:"monitors"`
-	SuccessScript  string        `json:"success_script"`
-	FailureScript  string        `json:"failure_script"`
+	Name          string  `json:"name" binding:"required,min=1,max=200"`
+	Description   string  `json:"description"`
+	SuccessScript *string `json:"success_script"`
+	FailureScript *string `json:"failure_script"`
+	IsPublic      bool    `json:"is_public"`
 }
 
 // CreateBlockRequest is the JSON body for POST /blocks.
