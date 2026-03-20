@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { apiGet } from "@/shared/api/client";
 import { logger } from "@/shared/lib/logger";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
 interface SectorStock {
   symbol: string;
@@ -20,9 +19,8 @@ export function SectorComparePanel({ symbol }: { symbol: string }) {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`${API_BASE}/api/v1/financials/${symbol}/sector`)
-      .then((res) => res.json())
-      .then((json) => setStocks((json as { data?: SectorStock[] }).data ?? []))
+    apiGet<{ data?: SectorStock[] }>(`/api/v1/financials/${symbol}/sector`)
+      .then((json) => setStocks(json.data ?? []))
       .catch((err) => {
         logger.error("Failed to fetch sector data", { symbol, message: String(err) });
         setStocks([]);

@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { createChart, LineSeries, HistogramSeries, type IChartApi, type ISeriesApi } from "lightweight-charts";
 import { useChartStore } from "@/features/chart";
 import { calculateMACD } from "@/entities/indicator";
+import { CHART_THEME, toLineData } from "@/features/chart/lib/chart-theme";
 
 export function MACDChart() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -17,9 +18,7 @@ export function MACDChart() {
     if (!containerRef.current) return;
 
     const chart = createChart(containerRef.current, {
-      layout: { background: { color: "#0a0a0f" }, textColor: "#94a3b8" },
-      grid: { vertLines: { color: "#1e1e2e" }, horzLines: { color: "#1e1e2e" } },
-      rightPriceScale: { borderColor: "#1e1e2e" },
+      ...CHART_THEME,
       timeScale: { visible: false },
       height: 96,
     });
@@ -43,21 +42,8 @@ export function MACDChart() {
     const closes = candles.map((c) => c.close);
     const { macd, signal, histogram } = calculateMACD(closes);
 
-    const macdData = candles
-      .map((c, i) => {
-        const val = macd[i];
-        if (val === null) return null;
-        return { time: c.time, value: val };
-      })
-      .filter((d): d is { time: string; value: number } => d !== null);
-
-    const signalData = candles
-      .map((c, i) => {
-        const val = signal[i];
-        if (val === null) return null;
-        return { time: c.time, value: val };
-      })
-      .filter((d): d is { time: string; value: number } => d !== null);
+    const macdData = toLineData(candles, macd);
+    const signalData = toLineData(candles, signal);
 
     const histogramData = candles
       .map((c, i) => {

@@ -5,10 +5,13 @@ import { useChartStore } from "../model/chart.store";
 import { chartApi } from "../api/chart-api";
 
 export function useChartData() {
-  const { currentStock, timeframe, setCandles, setIsLoading } = useChartStore();
+  const currentStock = useChartStore((s) => s.currentStock);
+  const timeframe = useChartStore((s) => s.timeframe);
 
   useEffect(() => {
     if (!currentStock?.symbol) return;
+
+    const { setCandles, setIsLoading } = useChartStore.getState();
 
     const fetchCandles = async () => {
       setIsLoading(true);
@@ -21,7 +24,5 @@ export function useChartData() {
     };
 
     fetchCandles();
-  }, [currentStock?.symbol, timeframe, setCandles, setIsLoading]);
-
-  return { isLoading: useChartStore((s) => s.isLoading) };
+  }, [currentStock?.symbol, timeframe]);
 }

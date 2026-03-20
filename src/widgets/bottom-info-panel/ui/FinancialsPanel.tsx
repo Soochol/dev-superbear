@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { apiGet } from "@/shared/api/client";
 import { logger } from "@/shared/lib/logger";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
 interface FinancialData {
   revenue: number | null;
@@ -20,9 +19,8 @@ export function FinancialsPanel({ symbol }: { symbol: string }) {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`${API_BASE}/api/v1/financials/${symbol}`)
-      .then((res) => res.json())
-      .then((json) => setData((json as { data?: FinancialData }).data ?? null))
+    apiGet<{ data?: FinancialData }>(`/api/v1/financials/${symbol}`)
+      .then((json) => setData(json.data ?? null))
       .catch((err) => {
         logger.error("Failed to fetch financials", { symbol, message: String(err) });
         setData(null);

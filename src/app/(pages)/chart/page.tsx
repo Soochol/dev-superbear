@@ -9,13 +9,15 @@ import { ChartPageLayout } from "@/widgets/main-chart";
 export default function ChartPage() {
   const searchParams = useSearchParams();
   const symbol = searchParams.get("symbol");
-  const { selectedSymbol, searchResults } = useStockListStore();
+  const { selectedSymbol } = useStockListStore();
   const { setCurrentStock } = useChartStore();
 
   useEffect(() => {
     const targetSymbol = symbol ?? selectedSymbol;
     if (!targetSymbol) return;
+    if (targetSymbol === useChartStore.getState().currentStock?.symbol) return;
 
+    const searchResults = useStockListStore.getState().searchResults;
     const stockInfo = searchResults.find((r) => r.symbol === targetSymbol);
 
     setCurrentStock({
@@ -25,7 +27,7 @@ export default function ChartPage() {
       change: 0,
       changePct: 0,
     });
-  }, [symbol, selectedSymbol, searchResults, setCurrentStock]);
+  }, [symbol, selectedSymbol, setCurrentStock]);
 
   return <ChartPageLayout />;
 }

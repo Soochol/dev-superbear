@@ -5,6 +5,7 @@ import { createChart, CandlestickSeries, LineSeries, type IChartApi, type ISerie
 import { useChartStore } from "../model/chart.store";
 import { useChartData } from "../lib/use-chart-data";
 import { calculateMA } from "@/entities/indicator";
+import { CHART_THEME, toLineData } from "../lib/chart-theme";
 
 export function MainChart() {
   const chartContainerRef = useRef<HTMLDivElement>(null);
@@ -19,17 +20,8 @@ export function MainChart() {
     if (!chartContainerRef.current) return;
 
     const chart = createChart(chartContainerRef.current, {
-      layout: {
-        background: { color: "#0a0a0f" },
-        textColor: "#94a3b8",
-      },
-      grid: {
-        vertLines: { color: "#1e1e2e" },
-        horzLines: { color: "#1e1e2e" },
-      },
+      ...CHART_THEME,
       crosshair: { mode: 0 },
-      rightPriceScale: { borderColor: "#1e1e2e" },
-      timeScale: { borderColor: "#1e1e2e" },
     });
 
     const candleSeries = chart.addSeries(CandlestickSeries, {
@@ -93,13 +85,7 @@ export function MainChart() {
       if (!config) continue;
 
       const maValues = calculateMA(closes, config.period);
-      const lineData = candles
-        .map((c, i) => {
-          const val = maValues[i];
-          if (val === null) return null;
-          return { time: c.time, value: val };
-        })
-        .filter((d): d is { time: string; value: number } => d !== null);
+      const lineData = toLineData(candles, maValues);
 
       const series = chartRef.current!.addSeries(LineSeries, {
         color: config.color,
