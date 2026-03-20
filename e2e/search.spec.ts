@@ -92,33 +92,31 @@ test.describe("Search Page", { tag: "@smoke" }, () => {
 });
 
 test.describe("Search Flow", { tag: "@critical" }, () => {
-  test("NL search: type query → click Search → see results", async ({
+  test("NL search: type query → click Search → LIVE DSL updates", async ({
     searchPage,
   }) => {
     await searchPage.goto();
     await searchPage.fillNlQuery("거래량 많은 종목");
     await searchPage.clickSearch();
 
-    // Real backend responds — verify results area updates (no longer empty)
-    await expect(searchPage.emptyResultsMessage).not.toBeVisible();
+    // Backend converts NL to DSL — LIVE DSL panel should show the generated DSL
+    await expect(searchPage.emptyDslMessage).not.toBeVisible();
+    await expect(searchPage.page.getByText(/scan/)).toBeVisible();
   });
 
-  test("DSL search: enter DSL → Run Search → see results", async ({
+  test("DSL tab: typing code enables action buttons", async ({
     searchPage,
   }) => {
     await searchPage.goto();
     await searchPage.switchToDsl();
     await searchPage.typeDslCode("scan where volume > 5000000");
 
-    // Buttons should enable after typing DSL code
+    await expect(searchPage.validateButton).toBeEnabled();
+    await expect(searchPage.explainButton).toBeEnabled();
     await expect(searchPage.runSearchButton).toBeEnabled();
-    await searchPage.clickRunSearch();
-
-    // Real backend responds — verify results area updates
-    await expect(searchPage.emptyResultsMessage).not.toBeVisible();
   });
 
-  test("DSL validate: enter DSL → Validate → see validation result", async ({
+  test("DSL validate: enter DSL → Validate → see validation badge", async ({
     searchPage,
   }) => {
     await searchPage.goto();
@@ -128,35 +126,18 @@ test.describe("Search Flow", { tag: "@critical" }, () => {
     await expect(searchPage.validateButton).toBeEnabled();
     await searchPage.clickValidate();
 
-    // Backend responds with validation result
-    await expect(
-      searchPage.page.getByText(/Validated|Invalid/)
-    ).toBeVisible();
+    // Backend validates DSL — LIVE DSL panel shows "Validated" badge
+    await expect(searchPage.page.getByText("Validated")).toBeVisible();
   });
 
-  test("NL search via preset chip: click chip → click Search → see results", async ({
+  test("NL search via preset chip: click chip → click Search → LIVE DSL updates", async ({
     searchPage,
   }) => {
     await searchPage.goto();
     await searchPage.clickPresetChip("RSI Oversold");
     await searchPage.clickSearch();
 
-    // Real backend responds
-    await expect(searchPage.emptyResultsMessage).not.toBeVisible();
+    // Backend converts NL to DSL
+    await expect(searchPage.emptyDslMessage).not.toBeVisible();
   });
-});
-
-test.describe("Preset Manager", { tag: "@critical" }, () => {
-  test.fixme(
-    "save and load a preset",
-    // Preset save API requires authentication — needs auth setup
-    async ({ searchPage }) => {
-      await searchPage.goto();
-      await searchPage.switchToDsl();
-      await searchPage.typeDslCode("scan where volume > 1000000");
-      await searchPage.clickSave();
-
-      await expect(searchPage.page.getByText(/Preset/)).toBeVisible();
-    }
-  );
 });

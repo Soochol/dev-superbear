@@ -61,7 +61,7 @@ export function LiveDSLPanel() {
               {copyLabel}
             </button>
             <button
-              aria-label="Run Search"
+              aria-label="Run DSL"
               className={btnMini}
             >
               Run

@@ -94,31 +94,11 @@ export class SearchPage {
   }
 
   async typeDslCode(code: string) {
-    // CodeMirror v6 stores EditorView on .cm-editor element as cmView.view.
-    // keyboard.type() doesn't trigger CM6's internal change events,
-    // so we dispatch a transaction directly to update both DOM and state.
-    await this.dslEditorContainer.evaluate((container, text) => {
-      const cmEditor = container.querySelector(".cm-editor") as
-        | (HTMLElement & {
-            cmView?: {
-              view: {
-                state: { doc: { length: number } };
-                dispatch: (tr: {
-                  changes: { from: number; to: number; insert: string };
-                }) => void;
-                focus: () => void;
-              };
-            };
-          })
-        | null;
-      if (cmEditor?.cmView) {
-        const view = cmEditor.cmView.view;
-        view.focus();
-        view.dispatch({
-          changes: { from: 0, to: view.state.doc.length, insert: text },
-        });
-      }
-    }, code);
+    // Focus the CM6 contenteditable element and use insertText
+    // which fires an InputEvent that CodeMirror processes correctly.
+    const cmContent = this.dslEditorContainer.locator(".cm-content");
+    await cmContent.click();
+    await this.page.keyboard.insertText(code);
   }
 
   async clickValidate() {
