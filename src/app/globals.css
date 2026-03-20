@@ -12,6 +12,7 @@
   --color-nexus-text-secondary: #94a3b8;
   --color-nexus-text-muted: #64748b;
 
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
   --font-mono: "JetBrains Mono", "Fira Code", monospace;
 }
 
