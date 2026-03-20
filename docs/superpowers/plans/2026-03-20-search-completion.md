@@ -281,11 +281,15 @@ export function createSearchActions(getState: GetState, setState: SetState) {
     }
   }
 
-  async function explainDSL(): Promise<string> {
+  async function explainDSL(): Promise<string | null> {
     const { dslCode } = getState();
 
-    const response = await searchApi.explain(dslCode);
-    return response.explanation;
+    try {
+      const response = await searchApi.explain(dslCode);
+      return response.explanation;
+    } catch {
+      return null;
+    }
   }
 
   return { runNLSearch, runDSLSearch, validateDSL, explainDSL };
@@ -441,10 +445,14 @@ git commit -m "feat(search): wire NLTab Search button to API"
 
 - [ ] **Step 11: DSLTab 테스트에 버튼 클릭 테스트 추가**
 
-`src/features/search/__tests__/DSLTab.test.tsx`에 mock + 테스트 추가:
+`src/features/search/__tests__/DSLTab.test.tsx`에 mock + 테스트 추가.
+
+기존 import `import { render, screen } from "@testing-library/react";` 를 다음으로 변경:
+`import { render, screen, fireEvent, waitFor } from "@testing-library/react";`
+
+그리고 기존 import 블록 아래, 기존 `jest.mock("../ui/DSLEditor"` 위에 다음을 추가:
 
 ```typescript
-import { fireEvent, waitFor } from "@testing-library/react";
 import { searchApi } from "../api/search-api";
 
 jest.mock("../api/search-api", () => ({
