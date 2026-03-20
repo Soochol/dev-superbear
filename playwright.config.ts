@@ -49,5 +49,12 @@ export default defineConfig({
       },
       testMatch: /chart.*\.spec\.ts/,
     },
+    {
+      name: "monitoring-api",
+      use: {
+        baseURL: "http://localhost:8080",
+      },
+      testMatch: /monitoring-api\.spec\.ts/,
+    },
   ],
 });
