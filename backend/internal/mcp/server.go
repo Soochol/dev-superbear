@@ -41,6 +41,14 @@ type toolResult struct {
 	IsError bool          `json:"isError,omitempty"`
 }
 
+func textResult(text string) toolResult {
+	return toolResult{Content: []textContent{{Type: "text", Text: text}}}
+}
+
+func errorResult(text string) toolResult {
+	return toolResult{Content: []textContent{{Type: "text", Text: text}}, IsError: true}
+}
+
 // Tool schema types
 
 type toolInputSchema struct {
@@ -141,16 +149,10 @@ func (s *Server) handleToolsCall(req rpcRequest) ([]byte, error) {
 
 	switch params.Name {
 	case "get_dsl_grammar":
-		text := s.HandleGetDSLGrammar()
-		return s.successResponse(req.ID, toolResult{
-			Content: []textContent{{Type: "text", Text: text}},
-		}), nil
+		return s.successResponse(req.ID, textResult(s.HandleGetDSLGrammar())), nil
 
 	case "list_available_fields":
-		text := s.HandleListAvailableFields()
-		return s.successResponse(req.ID, toolResult{
-			Content: []textContent{{Type: "text", Text: text}},
-		}), nil
+		return s.successResponse(req.ID, textResult(s.HandleListAvailableFields())), nil
 
 	case "validate_dsl":
 		var args struct {
@@ -161,14 +163,9 @@ func (s *Server) handleToolsCall(req rpcRequest) ([]byte, error) {
 		}
 		text, err := s.HandleValidateDSL(args.DSL)
 		if err != nil {
-			return s.successResponse(req.ID, toolResult{
-				Content: []textContent{{Type: "text", Text: err.Error()}},
-				IsError: true,
-			}), nil
+			return s.successResponse(req.ID, errorResult(err.Error())), nil
 		}
-		return s.successResponse(req.ID, toolResult{
-			Content: []textContent{{Type: "text", Text: text}},
-		}), nil
+		return s.successResponse(req.ID, textResult(text)), nil
 
 	default:
 		return s.errorResponse(req.ID, -32602, fmt.Sprintf("unknown tool: %s", params.Name)), nil

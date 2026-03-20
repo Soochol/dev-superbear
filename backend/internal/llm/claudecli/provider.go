@@ -50,9 +50,28 @@ func New(cfg config.LLMConfig) *Provider {
 // Name returns the provider identifier.
 func (p *Provider) Name() string { return "claude-cli" }
 
+// newCommand creates a configured exec.Cmd with common options:
+// process-group isolation, signal-based cancellation, and optional MCP config.
+func (p *Provider) newCommand(ctx context.Context, outputFormat string) *exec.Cmd {
+	args := []string{"-p", "--output-format", outputFormat}
+	if p.cfg.MCPConfigPath != "" {
+		args = append(args, "--mcp-config", p.cfg.MCPConfigPath)
+	}
+
+	cmd := exec.CommandContext(ctx, p.cfg.ClaudeCLIPath, args...)
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	cmd.Cancel = func() error {
+		if cmd.Process != nil {
+			return syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
+		}
+		return nil
+	}
+	cmd.WaitDelay = 2 * time.Second
+	return cmd
+}
+
 // NLToDSL streams events converting natural language to DSL via claude -p subprocess.
 func (p *Provider) NLToDSL(ctx context.Context, query string) (<-chan llm.Event, error) {
-	// Acquire semaphore — respect context cancellation while waiting.
 	if err := p.sem.Acquire(ctx, 1); err != nil {
 		return nil, fmt.Errorf("acquiring semaphore: %w", err)
 	}
@@ -60,50 +79,35 @@ func (p *Provider) NLToDSL(ctx context.Context, query string) (<-chan llm.Event,
 	timeout := time.Duration(p.cfg.TimeoutSeconds) * time.Second
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 
-	ch := make(chan llm.Event, 16)
-
-	// Build command args.
-	args := []string{"-p", "--output-format", "stream-json"}
-	if p.cfg.MCPConfigPath != "" {
-		args = append(args, "--mcp-config", p.cfg.MCPConfigPath)
-	}
-
-	cmd := exec.CommandContext(ctx, p.cfg.ClaudeCLIPath, args...)
-
-	// Kill process group on context cancellation so child processes are also killed.
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-	cmd.Cancel = func() error {
-		// Kill the entire process group (negative PID).
-		if cmd.Process != nil {
-			return syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
+	// cleanup releases resources if setup fails before the goroutine takes ownership.
+	started := false
+	cleanup := func() {
+		if !started {
+			cancel()
+			p.sem.Release(1)
 		}
-		return nil
 	}
-	cmd.WaitDelay = 2 * time.Second
+	defer cleanup()
 
-	// Send system prompt + user query via stdin.
-	stdinContent := p.nlPrompt + "\n\n---\nUser query: " + query
-	cmd.Stdin = strings.NewReader(stdinContent)
+	ch := make(chan llm.Event, 16)
+	cmd := p.newCommand(ctx, "stream-json")
+	cmd.Stdin = strings.NewReader(p.nlPrompt + "\n\n---\nUser query: " + query)
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		cancel()
-		p.sem.Release(1)
 		return nil, fmt.Errorf("creating stdout pipe: %w", err)
 	}
 
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
-		cancel()
-		p.sem.Release(1)
 		return nil, fmt.Errorf("creating stderr pipe: %w", err)
 	}
 
 	if err := cmd.Start(); err != nil {
-		cancel()
-		p.sem.Release(1)
 		return nil, fmt.Errorf("starting claude process: %w", err)
 	}
+
+	started = true
 
 	// Emit initial thinking event.
 	ch <- llm.Event{Type: llm.EventThinking, Message: "Analyzing query..."}
@@ -224,20 +228,7 @@ func (p *Provider) Explain(ctx context.Context, dsl string) (string, error) {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	args := []string{"-p", "--output-format", "text"}
-	if p.cfg.MCPConfigPath != "" {
-		args = append(args, "--mcp-config", p.cfg.MCPConfigPath)
-	}
-
-	cmd := exec.CommandContext(ctx, p.cfg.ClaudeCLIPath, args...)
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-	cmd.Cancel = func() error {
-		if cmd.Process != nil {
-			return syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
-		}
-		return nil
-	}
-	cmd.WaitDelay = 2 * time.Second
+	cmd := p.newCommand(ctx, "text")
 	cmd.Stdin = strings.NewReader(p.expPrompt + "\n\n" + dsl)
 
 	out, err := cmd.Output()
@@ -255,10 +246,9 @@ func (p *Provider) Explain(ctx context.Context, dsl string) (string, error) {
 
 // streamMessage represents a claude stream-json line.
 type streamMessage struct {
-	Type    string        `json:"type"`
-	Message *messageBody  `json:"message,omitempty"`
-	Result  string        `json:"result,omitempty"`
-	Content []contentItem `json:"content,omitempty"`
+	Type    string       `json:"type"`
+	Message *messageBody `json:"message,omitempty"`
+	Result  string       `json:"result,omitempty"`
 }
 
 type messageBody struct {

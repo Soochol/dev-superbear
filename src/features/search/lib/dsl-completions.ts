@@ -117,6 +117,7 @@ export function getContextualCompletions(input: string): CompletionItem[] {
 
     case TokenType.ASC:
     case TokenType.DESC:
+      // TODO: only "limit" is valid after sort direction per the DSL grammar
       return AFTER_VALUE_COMPLETIONS;
 
     case TokenType.GT:
@@ -133,6 +134,3 @@ export function getContextualCompletions(input: string): CompletionItem[] {
   }
 }
 
-export function dslAutoComplete(input: string) {
-  return getContextualCompletions(input);
-}
