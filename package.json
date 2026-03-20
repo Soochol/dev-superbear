@@ -15,6 +15,10 @@
     "test:e2e:ui": "npx playwright test --ui"
   },
   "dependencies": {
+    "@codemirror/autocomplete": "^6.20.1",
+    "@codemirror/commands": "^6.10.3",
+    "@codemirror/state": "^6.6.0",
+    "@codemirror/view": "^6.40.0",
     "lightweight-charts": "^5.1.0",
     "next": "16.2.0",
     "react": "19.2.4",

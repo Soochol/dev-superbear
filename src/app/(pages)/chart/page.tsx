@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { useStockListStore } from "@/entities/stock";
 import { useChartStore } from "@/features/chart";
 import { ChartPageLayout } from "@/widgets/main-chart";
 
-export default function ChartPage() {
+function ChartPageInner() {
   const searchParams = useSearchParams();
   const symbol = searchParams.get("symbol");
   const { selectedSymbol } = useStockListStore();
@@ -30,4 +30,12 @@ export default function ChartPage() {
   }, [symbol, selectedSymbol, setCurrentStock]);
 
   return <ChartPageLayout />;
+}
+
+export default function ChartPage() {
+  return (
+    <Suspense>
+      <ChartPageInner />
+    </Suspense>
+  );
 }
