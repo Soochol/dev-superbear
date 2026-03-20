@@ -5,3 +5,9 @@ export interface StockInfo {
   change: number;
   changePct: number;
 }
+
+export interface StockListItem {
+  symbol: string;
+  name: string;
+  matchedValue?: number | string;
+}
