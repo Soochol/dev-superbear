@@ -1,5 +1,6 @@
 "use client";
 
+import { MainChart } from "@/features/chart";
 import { ChartTopbar } from "./ChartTopbar";
 import { StockListSidebar } from "@/widgets/stock-list-sidebar";
 import { SubIndicatorPanel } from "@/widgets/sub-indicator-panel";
@@ -11,8 +12,8 @@ export function ChartPageLayout() {
       <ChartTopbar />
       <div className="flex flex-1 min-h-0">
         <div className="flex-1 flex flex-col min-w-0">
-          <div className="flex-1 min-h-0 flex items-center justify-center text-nexus-text-muted">
-            Main Chart Area
+          <div className="flex-1 min-h-0">
+            <MainChart />
           </div>
           <SubIndicatorPanel />
         </div>

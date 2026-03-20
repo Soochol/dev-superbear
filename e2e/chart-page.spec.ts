@@ -79,4 +79,34 @@ test.describe("Chart Page", () => {
     // Verify sidebar shows empty state text for search results
     await expect(page.getByText("검색 결과가 없습니다")).toBeVisible();
   });
+
+  test("E2E-6: main chart renders canvas (not placeholder)", async ({ page }) => {
+    await page.goto("/chart?symbol=005930");
+
+    // placeholder 텍스트가 사라졌는지 확인
+    await expect(page.getByText("Main Chart Area")).not.toBeVisible();
+
+    // lightweight-charts는 canvas 요소를 생성
+    const canvas = page.locator("canvas").first();
+    await expect(canvas).toBeVisible({ timeout: 10000 });
+  });
+
+  test("E2E-7: sub-indicator toggles show chart areas", async ({ page }) => {
+    await page.goto("/chart?symbol=005930");
+
+    // RSI 토글
+    const rsiButton = page.getByRole("button", { name: "[RSI]" });
+    await rsiButton.click();
+    await expect(rsiButton).toHaveClass(/bg-nexus-accent/);
+
+    // MACD 토글
+    const macdButton = page.getByRole("button", { name: "[MACD]" });
+    await macdButton.click();
+    await expect(macdButton).toHaveClass(/bg-nexus-accent/);
+
+    // Revenue 토글
+    const revenueButton = page.getByRole("button", { name: "[Revenue]" });
+    await revenueButton.click();
+    await expect(revenueButton).toHaveClass(/bg-nexus-accent/);
+  });
 });
