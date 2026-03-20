@@ -31,6 +31,12 @@ export class SearchPage {
   readonly emptyDslMessage: Locator;
   readonly emptyResultsMessage: Locator;
 
+  // Agent status
+  readonly agentPulse: Locator;
+
+  // DSL lint
+  readonly lintError: Locator;
+
   constructor(readonly page: Page) {
     this.nlTabButton = page.getByRole("button", { name: "Natural Language" });
     this.dslTabButton = page.getByRole("button", { name: "DSL" });
@@ -67,6 +73,9 @@ export class SearchPage {
     this.liveDslPanel = page.getByText("LIVE DSL");
     this.emptyDslMessage = page.getByText(/DSL이 없습니다/);
     this.emptyResultsMessage = page.getByText("검색 결과가 없습니다");
+
+    this.agentPulse = page.locator(".animate-pulse");
+    this.lintError = page.locator(".cm-lintRange-error, .cm-lint-marker-error");
   }
 
   async goto() {

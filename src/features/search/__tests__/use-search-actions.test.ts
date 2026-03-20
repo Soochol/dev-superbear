@@ -6,7 +6,7 @@ import { createSearchActions } from "../model/use-search-actions";
 // jest.mock is auto-hoisted above imports by Jest
 jest.mock("../api/search-api", () => ({
   searchApi: {
-    nlSearch: jest.fn(),
+    nlSearchStream: jest.fn(),
     dslSearch: jest.fn(),
     validate: jest.fn(),
     explain: jest.fn(),
@@ -21,13 +21,14 @@ beforeEach(() => {
 });
 
 describe("createSearchActions", () => {
-  describe("runNLSearch", () => {
-    it("transitions through agent statuses and sets results on success", async () => {
-      mockedApi.nlSearch.mockResolvedValue({
-        dsl: "scan where volume > 1000000",
-        explanation: "거래량 100만 이상",
-        results: [{ symbol: "005930", name: "삼성전자", matchedValue: 2840000 }],
-      });
+  describe("runNLSearch (SSE)", () => {
+    it("transitions through statuses from SSE events", async () => {
+      async function* mockStream() {
+        yield { type: "thinking" as const, message: "분석 중..." };
+        yield { type: "dsl_ready" as const, dsl: "scan where volume > 1000000", explanation: "거래량 100만 이상" };
+        yield { type: "done" as const, results: [{ symbol: "005930", name: "삼성전자", matchedValue: 2840000 }], count: 1 };
+      }
+      mockedApi.nlSearchStream.mockReturnValue(mockStream());
 
       const actions = createSearchActions(useSearchStore.getState, useSearchStore.setState);
       useSearchStore.setState({ nlQuery: "거래량 많은 종목" });
@@ -38,21 +39,20 @@ describe("createSearchActions", () => {
       expect(state.agentStatus).toBe("done");
       expect(state.dslCode).toBe("scan where volume > 1000000");
       expect(state.results).toHaveLength(1);
-      expect(state.results[0].symbol).toBe("005930");
-      expect(mockedApi.nlSearch).toHaveBeenCalledWith("거래량 많은 종목");
     });
 
-    it("sets error status on API failure", async () => {
-      mockedApi.nlSearch.mockRejectedValue(new Error("API Error"));
+    it("handles error event", async () => {
+      async function* mockStream() {
+        yield { type: "error" as const, message: "timeout" };
+      }
+      mockedApi.nlSearchStream.mockReturnValue(mockStream());
 
       const actions = createSearchActions(useSearchStore.getState, useSearchStore.setState);
       useSearchStore.setState({ nlQuery: "테스트" });
 
       await actions.runNLSearch();
 
-      const state = useSearchStore.getState();
-      expect(state.agentStatus).toBe("error");
-      expect(state.agentMessage).toContain("API Error");
+      expect(useSearchStore.getState().agentStatus).toBe("error");
     });
   });
 

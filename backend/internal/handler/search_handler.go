@@ -1,11 +1,14 @@
 package handler
 
 import (
+	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/dev-superbear/nexus-backend/internal/llm"
 	"github.com/dev-superbear/nexus-backend/internal/service"
 )
 
@@ -84,25 +87,40 @@ func (h *SearchHandler) NLToDSL(c *gin.Context) {
 		return
 	}
 
-	dslResult, err := h.nlSvc.Convert(c.Request.Context(), req.Query)
+	// Critical: start stream BEFORE committing SSE headers so pre-stream
+	// failures (semaphore full, invalid config) return proper HTTP errors.
+	events, err := h.nlSvc.Stream(c.Request.Context(), req.Query)
 	if err != nil {
-		slog.Error("failed to convert NL to DSL", "error", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		slog.Error("failed to start NL stream", "error", err)
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "search service temporarily unavailable"})
 		return
 	}
 
-	results, err := h.searchSvc.Execute(c.Request.Context(), dslResult.DSL)
-	if err != nil {
-		slog.Error("failed to execute search after NL conversion", "error", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
-		return
+	// SSE headers — only after stream is established
+	c.Header("Content-Type", "text/event-stream")
+	c.Header("Cache-Control", "no-cache")
+	c.Header("Connection", "keep-alive")
+	c.Status(http.StatusOK)
+
+	var finalDSL string
+	for event := range events {
+		writeSSE(c, string(event.Type), event)
+		if event.Type == llm.EventDSLReady {
+			finalDSL = event.DSL
+		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"dsl":         dslResult.DSL,
-		"explanation": dslResult.Explanation,
-		"results":     results,
-	})
+	if finalDSL != "" {
+		results, err := h.searchSvc.Execute(c.Request.Context(), finalDSL)
+		if err != nil {
+			slog.Error("DSL execution failed after NL conversion", "error", err)
+			writeSSE(c, "error", gin.H{"message": "internal server error"})
+			return
+		}
+		writeSSE(c, "done", gin.H{"results": results, "count": len(results)})
+	} else {
+		writeSSE(c, "error", gin.H{"message": "LLM did not produce a valid DSL query"})
+	}
 }
 
 func (h *SearchHandler) Explain(c *gin.Context) {
@@ -115,8 +133,25 @@ func (h *SearchHandler) Explain(c *gin.Context) {
 		return
 	}
 
-	explanation := "이 쿼리는 다음 조건으로 종목을 검색합니다: " + req.DSL
+	explanation, err := h.nlSvc.Explain(c.Request.Context(), req.DSL)
+	if err != nil {
+		slog.Error("explain failed", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{"explanation": explanation})
+}
+
+func writeSSE(c *gin.Context, eventType string, data any) {
+	b, err := json.Marshal(data)
+	if err != nil {
+		slog.Error("failed to marshal SSE event", "type", eventType, "error", err)
+		b, _ = json.Marshal(gin.H{"message": "internal serialization error"})
+		eventType = "error"
+	}
+	fmt.Fprintf(c.Writer, "event: %s\ndata: %s\n\n", eventType, b)
+	c.Writer.Flush()
 }
 
 func (h *SearchHandler) RegisterRoutes(rg *gin.RouterGroup) {

@@ -7,7 +7,7 @@ import { searchApi } from "../api/search-api";
 
 jest.mock("../api/search-api", () => ({
   searchApi: {
-    nlSearch: jest.fn(),
+    nlSearchStream: jest.fn(),
     dslSearch: jest.fn(),
     validate: jest.fn(),
     explain: jest.fn(),
@@ -51,12 +51,11 @@ describe("NLTab", () => {
     expect(screen.getByRole("button", { name: /검색|search/i })).toBeInTheDocument();
   });
 
-  it("calls NL search API when Search button is clicked", async () => {
-    mockedApi.nlSearch.mockResolvedValue({
-      dsl: "scan where volume > 1000000",
-      explanation: "test",
-      results: [{ symbol: "005930", name: "삼성전자", matchedValue: 100 }],
-    });
+  it("calls NL search SSE stream when Search button is clicked", async () => {
+    async function* mockStream() {
+      yield { type: "done" as const, results: [{ symbol: "005930", name: "삼성전자", matchedValue: 100 }], count: 1 };
+    }
+    mockedApi.nlSearchStream.mockReturnValue(mockStream());
 
     useSearchStore.setState({ nlQuery: "거래량 많은 종목" });
     render(<NLTab />);
@@ -65,7 +64,7 @@ describe("NLTab", () => {
     fireEvent.click(searchBtn);
 
     await waitFor(() => {
-      expect(mockedApi.nlSearch).toHaveBeenCalledWith("거래량 많은 종목");
+      expect(mockedApi.nlSearchStream).toHaveBeenCalledWith("거래량 많은 종목");
     });
   });
 });

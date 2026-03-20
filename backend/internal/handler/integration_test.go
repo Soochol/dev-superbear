@@ -2,15 +2,32 @@ package handler
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/dev-superbear/nexus-backend/internal/llm"
 	"github.com/dev-superbear/nexus-backend/internal/middleware"
 	"github.com/dev-superbear/nexus-backend/internal/service"
 )
+
+type stubProvider struct{}
+
+func (s *stubProvider) Name() string { return "stub" }
+
+func (s *stubProvider) Explain(_ context.Context, dsl string) (string, error) {
+	return "Stub explanation for: " + dsl, nil
+}
+
+func (s *stubProvider) NLToDSL(_ context.Context, _ string) (<-chan llm.Event, error) {
+	ch := make(chan llm.Event, 2)
+	ch <- llm.Event{Type: llm.EventDSLReady, DSL: "scan where volume > 1000000", Message: "done"}
+	close(ch)
+	return ch, nil
+}
 
 func setupRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
@@ -21,7 +38,7 @@ func setupRouter() *gin.Engine {
 
 func newTestSearchHandler() *SearchHandler {
 	searchSvc := service.NewSearchService(nil)
-	nlSvc := service.NewNLToDSLService()
+	nlSvc := service.NewNLToDSLService(&stubProvider{})
 	return NewSearchHandler(searchSvc, nlSvc)
 }
 

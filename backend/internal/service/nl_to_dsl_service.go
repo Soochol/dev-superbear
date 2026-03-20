@@ -2,29 +2,22 @@ package service
 
 import (
 	"context"
-	"fmt"
+
+	"github.com/dev-superbear/nexus-backend/internal/llm"
 )
 
-type NLToDSLResult struct {
-	DSL         string  `json:"dsl"`
-	Explanation string  `json:"explanation"`
-	Confidence  float64 `json:"confidence"`
+type NLToDSLService struct {
+	provider llm.Provider
 }
 
-type NLToDSLService struct{}
-
-func NewNLToDSLService() *NLToDSLService {
-	return &NLToDSLService{}
+func NewNLToDSLService(provider llm.Provider) *NLToDSLService {
+	return &NLToDSLService{provider: provider}
 }
 
-func (s *NLToDSLService) Convert(ctx context.Context, nlQuery string) (*NLToDSLResult, error) {
-	if nlQuery == "" {
-		return nil, fmt.Errorf("empty NL query")
-	}
-	// TODO: Implement Google ADK call
-	return &NLToDSLResult{
-		DSL:         "scan where volume > 1000000",
-		Explanation: fmt.Sprintf(`"%s" 조건을 DSL로 변환했습니다.`, nlQuery),
-		Confidence:  0.0,
-	}, nil
+func (s *NLToDSLService) Stream(ctx context.Context, query string) (<-chan llm.Event, error) {
+	return s.provider.NLToDSL(ctx, query)
+}
+
+func (s *NLToDSLService) Explain(ctx context.Context, dsl string) (string, error) {
+	return s.provider.Explain(ctx, dsl)
 }
