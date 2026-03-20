@@ -22,9 +22,7 @@ export default function RootLayout({
         />
       </head>
       <body className="font-sans bg-nexus-bg text-nexus-text-primary min-h-screen antialiased">
-        <div className="flex flex-col min-h-screen">
-          {children}
-        </div>
+        {children}
       </body>
     </html>
   );

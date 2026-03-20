@@ -11,25 +11,6 @@ export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
 // ---------------------------------------------------------------------------
-// Navigation
-// ---------------------------------------------------------------------------
-
-export interface NavItem {
-  label: string;
-  href: string;
-  icon?: string;
-}
-
-export const NAV_ITEMS: readonly NavItem[] = [
-  { label: "Dashboard", href: "/", icon: "layout-dashboard" },
-  { label: "Cases", href: "/cases", icon: "briefcase" },
-  { label: "Pipelines", href: "/pipelines", icon: "git-branch" },
-  { label: "Trades", href: "/trades", icon: "trending-up" },
-  { label: "Alerts", href: "/alerts", icon: "bell" },
-  { label: "Timeline", href: "/timeline", icon: "clock" },
-] as const;
-
-// ---------------------------------------------------------------------------
 // Case / Pipeline status enums
 // ---------------------------------------------------------------------------
 
