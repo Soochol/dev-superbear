@@ -50,3 +50,7 @@ backend/coverage.*
 # IDE
 .vscode/
 .idea/
+
+# Playwright
+test-results/
+playwright-report/
