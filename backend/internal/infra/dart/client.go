@@ -17,12 +17,18 @@ const dartBaseURL = "https://opendart.fss.or.kr/api"
 type Client struct {
 	httpClient *http.Client
 	apiKey     string
+	baseURL    string
 }
 
-func NewClient(apiKey string) *Client {
+func NewClient(apiKey string, baseURL ...string) *Client {
+	u := dartBaseURL
+	if len(baseURL) > 0 && baseURL[0] != "" {
+		u = baseURL[0]
+	}
 	return &Client{
 		httpClient: &http.Client{Timeout: 15 * time.Second},
 		apiKey:     apiKey,
+		baseURL:    u,
 	}
 }
 
@@ -70,7 +76,7 @@ func (c *Client) FetchFinancialStatements(ctx context.Context, corpCode, year, r
 	params.Set("bsns_year", year)
 	params.Set("reprt_code", reportCode)
 
-	reqURL := fmt.Sprintf("%s/fnlttSinglAcnt.json?%s", dartBaseURL, params.Encode())
+	reqURL := fmt.Sprintf("%s/fnlttSinglAcnt.json?%s", c.baseURL, params.Encode())
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
 	if err != nil {

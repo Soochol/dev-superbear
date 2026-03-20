@@ -4,16 +4,14 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/dev-superbear/nexus-backend/internal/service"
-
 	"github.com/gin-gonic/gin"
 )
 
 type FinancialsHandler struct {
-	financialsSvc *service.FinancialsService
+	financialsSvc FinancialsFetcher
 }
 
-func NewFinancialsHandler(financialsSvc *service.FinancialsService) *FinancialsHandler {
+func NewFinancialsHandler(financialsSvc FinancialsFetcher) *FinancialsHandler {
 	return &FinancialsHandler{financialsSvc: financialsSvc}
 }
 

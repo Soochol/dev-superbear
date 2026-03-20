@@ -4,16 +4,14 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/dev-superbear/nexus-backend/internal/repository"
-
 	"github.com/gin-gonic/gin"
 )
 
 type WatchlistHandler struct {
-	repo *repository.WatchlistRepo
+	repo WatchlistRepository
 }
 
-func NewWatchlistHandler(repo *repository.WatchlistRepo) *WatchlistHandler {
+func NewWatchlistHandler(repo WatchlistRepository) *WatchlistHandler {
 	return &WatchlistHandler{repo: repo}
 }
 

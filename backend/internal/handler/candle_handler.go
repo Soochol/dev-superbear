@@ -4,16 +4,14 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/dev-superbear/nexus-backend/internal/service"
-
 	"github.com/gin-gonic/gin"
 )
 
 type CandleHandler struct {
-	candleSvc *service.CandleService
+	candleSvc CandleFetcher
 }
 
-func NewCandleHandler(candleSvc *service.CandleService) *CandleHandler {
+func NewCandleHandler(candleSvc CandleFetcher) *CandleHandler {
 	return &CandleHandler{candleSvc: candleSvc}
 }
 
