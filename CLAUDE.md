@@ -11,3 +11,4 @@
 | `/verify-implementation` | 등록된 verify-* 스킬 순차 실행, 통합 검증 보고서 생성 |
 | `/manage-skills` | 세션 변경사항 분석 → verify 스킬 생성/업데이트 제안 |
 | `/merge-worktree` | worktree 브랜치 squash-merge + 커밋 메시지 자동 생성 |
+| `/verify-fsd` | FSD 아키텍처 규칙 검증 (barrel 파일, import 경계, store 위치, 디자인 토큰) |
