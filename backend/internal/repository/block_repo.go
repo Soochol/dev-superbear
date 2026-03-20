@@ -26,6 +26,12 @@ func NewBlockRepository(pool *pgxpool.Pool) *BlockRepository {
 	}
 }
 
+// NewBlockRepositoryFromQueries creates a BlockRepository using pre-existing
+// sqlc.Queries (e.g. transaction-scoped).
+func NewBlockRepositoryFromQueries(q *sqlc.Queries) *BlockRepository {
+	return &BlockRepository{q: q}
+}
+
 // ---------------------------------------------------------------------------
 // Input structs (repo-level, avoids circular import with service)
 // ---------------------------------------------------------------------------
@@ -244,89 +250,3 @@ func (r *BlockRepository) Delete(ctx context.Context, id, userID uuid.UUID) erro
 	})
 }
 
-// ---------------------------------------------------------------------------
-// Monitor operations (delegated from block repo for convenience)
-// ---------------------------------------------------------------------------
-
-// CreateMonitor creates a monitor_block linking a block to a pipeline.
-func (r *BlockRepository) CreateMonitor(ctx context.Context, pipelineID, blockID uuid.UUID, cron string, enabled bool) (*domain.MonitorBlock, error) {
-	row, err := r.q.CreateMonitorBlock(ctx, sqlc.CreateMonitorBlockParams{
-		PipelineID: toPgtypeUUID(pipelineID),
-		BlockID:    toPgtypeUUID(blockID),
-		Cron:       cron,
-		Enabled:    enabled,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("create monitor: %w", err)
-	}
-	m := toDomainMonitor(row)
-	return &m, nil
-}
-
-// ListMonitors lists monitors for a pipeline.
-func (r *BlockRepository) ListMonitors(ctx context.Context, pipelineID uuid.UUID) ([]domain.MonitorBlock, error) {
-	rows, err := r.q.ListMonitorsByPipeline(ctx, toPgtypeUUID(pipelineID))
-	if err != nil {
-		return nil, fmt.Errorf("list monitors: %w", err)
-	}
-	monitors := make([]domain.MonitorBlock, len(rows))
-	for i, row := range rows {
-		monitors[i] = toDomainMonitor(row)
-	}
-	return monitors, nil
-}
-
-// UpdateMonitor updates a monitor's cron and enabled status.
-func (r *BlockRepository) UpdateMonitor(ctx context.Context, id uuid.UUID, cron string, enabled bool) (*domain.MonitorBlock, error) {
-	row, err := r.q.UpdateMonitorBlock(ctx, sqlc.UpdateMonitorBlockParams{
-		ID:      toPgtypeUUID(id),
-		Cron:    cron,
-		Enabled: enabled,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("update monitor: %w", err)
-	}
-	m := toDomainMonitor(row)
-	return &m, nil
-}
-
-// DeleteMonitor deletes a monitor_block.
-func (r *BlockRepository) DeleteMonitor(ctx context.Context, id uuid.UUID) error {
-	return r.q.DeleteMonitorBlock(ctx, toPgtypeUUID(id))
-}
-
-// ---------------------------------------------------------------------------
-// Price alert operations
-// ---------------------------------------------------------------------------
-
-// CreatePriceAlert creates a price alert for a pipeline.
-func (r *BlockRepository) CreatePriceAlert(ctx context.Context, pipelineID uuid.UUID, condition, label string) (*domain.PriceAlert, error) {
-	row, err := r.q.CreatePriceAlert(ctx, sqlc.CreatePriceAlertParams{
-		PipelineID: toPgtypeUUID(pipelineID),
-		Condition:  condition,
-		Label:      label,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("create price alert: %w", err)
-	}
-	a := toDomainPriceAlert(row)
-	return &a, nil
-}
-
-// ListPriceAlerts lists price alerts for a pipeline.
-func (r *BlockRepository) ListPriceAlerts(ctx context.Context, pipelineID uuid.UUID) ([]domain.PriceAlert, error) {
-	rows, err := r.q.ListPriceAlertsByPipeline(ctx, toPgtypeUUID(pipelineID))
-	if err != nil {
-		return nil, fmt.Errorf("list price alerts: %w", err)
-	}
-	alerts := make([]domain.PriceAlert, len(rows))
-	for i, row := range rows {
-		alerts[i] = toDomainPriceAlert(row)
-	}
-	return alerts, nil
-}
-
-// DeletePriceAlert deletes a price alert.
-func (r *BlockRepository) DeletePriceAlert(ctx context.Context, id uuid.UUID) error {
-	return r.q.DeletePriceAlert(ctx, toPgtypeUUID(id))
-}

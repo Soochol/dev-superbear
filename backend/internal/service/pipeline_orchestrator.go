@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"sort"
 	"sync"
@@ -58,9 +59,15 @@ func (o *PipelineOrchestrator) Execute(ctx context.Context, pipeline *domain.Pip
 
 		wg.Wait()
 
+		failedCount := 0
 		for i, r := range results {
 			if r.err != nil {
+				failedCount++
 				slog.Error("AgentBlock execution failed", "blockName", blocks[i].Name, "error", r.err)
+				execCtx.Errors = append(execCtx.Errors, domain.BlockError{
+					BlockName: blocks[i].Name,
+					Error:     r.err.Error(),
+				})
 				continue
 			}
 			if r.output != nil {
@@ -70,6 +77,11 @@ func (o *PipelineOrchestrator) Execute(ctx context.Context, pipeline *domain.Pip
 					Data:      r.output.Data,
 				})
 			}
+		}
+
+		// If ALL blocks in this stage failed, abort execution
+		if failedCount == len(blocks) {
+			return execCtx, fmt.Errorf("all blocks failed in stage at order %d", order)
 		}
 	}
 

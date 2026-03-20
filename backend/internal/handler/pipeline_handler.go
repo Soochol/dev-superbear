@@ -180,14 +180,14 @@ func (h *PipelineHandler) Execute(c *gin.Context) {
 
 // GetJob returns a pipeline job by ID.
 func (h *PipelineHandler) GetJob(c *gin.Context) {
-	_, err := middleware.GetUserID(c)
+	userID, err := middleware.GetUserID(c)
 	if err != nil {
 		Error(c, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 	jobID := c.Param("jobId")
 
-	job, err := h.svc.GetJob(c.Request.Context(), jobID)
+	job, err := h.svc.GetJob(c.Request.Context(), userID, jobID)
 	if err != nil {
 		if isNotFound(err) {
 			Error(c, http.StatusNotFound, "job not found")
@@ -203,15 +203,21 @@ func (h *PipelineHandler) GetJob(c *gin.Context) {
 
 // Generate creates a pipeline structure from a natural language description.
 func (h *PipelineHandler) Generate(c *gin.Context) {
+	userID, err := middleware.GetUserID(c)
+	if err != nil {
+		Error(c, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
 	var req service.GenerateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	generator := service.NewPipelineGenerator()
-	pipeline, err := generator.Generate(c.Request.Context(), req.Description)
+	pipeline, err := h.generator.Generate(c.Request.Context(), req.Description)
 	if err != nil {
-		Error(c, http.StatusInternalServerError, err.Error())
+		slog.Error("failed to generate pipeline", "error", err, "userId", userID)
+		Error(c, http.StatusInternalServerError, "internal server error")
 		return
 	}
 	Success(c, pipeline)

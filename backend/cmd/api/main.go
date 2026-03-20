@@ -90,8 +90,9 @@ func registerRoutes(rg *gin.RouterGroup, queries *sqlc.Queries, pool *pgxpool.Po
 
 	pipelineSvc := service.NewPipelineService(pipelineRepo, blockRepo, orchestrator)
 	blockSvc := service.NewBlockService(blockRepo)
+	generator := service.NewPipelineGenerator()
 
-	pipeH := handler.NewPipelineHandler(pipelineSvc)
+	pipeH := handler.NewPipelineHandler(pipelineSvc, generator)
 	pipeH.RegisterRoutes(rg)
 
 	blockH := handler.NewBlockHandler(blockSvc)

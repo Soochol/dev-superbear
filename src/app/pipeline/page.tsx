@@ -2,6 +2,9 @@
 
 import { useState, useCallback } from "react";
 import type { AgentBlock } from "@/entities/agent-block/model/types";
+import type { StageState } from "@/features/pipeline-builder/model/analysis.slice";
+import type { MonitorBlockState } from "@/features/pipeline-builder/model/monitor.slice";
+import type { PriceAlertState } from "@/features/pipeline-builder/model/judgment.slice";
 import { usePipelineStore } from "@/features/pipeline-builder/model/pipeline.store";
 import PipelineTopbar from "@/features/pipeline-builder/ui/PipelineTopbar";
 import NodePalette from "@/features/pipeline-builder/ui/NodePalette";
@@ -26,7 +29,6 @@ export default function PipelinePage() {
 
   // Agent block editor state
   const [editingBlock, setEditingBlock] = useState<AgentBlock | null>(null);
-  const [editorOpen, setEditorOpen] = useState(false);
 
   // AI generate modal state
   const [aiModalOpen, setAiModalOpen] = useState(false);
@@ -38,7 +40,6 @@ export default function PipelinePage() {
 
   const handleEditBlock = useCallback((block: AgentBlock) => {
     setEditingBlock(block);
-    setEditorOpen(true);
   }, []);
 
   const handleSaveBlock = useCallback(
@@ -64,23 +65,11 @@ export default function PipelinePage() {
     (data: {
       name: string;
       description: string;
-      stages: typeof usePipelineStore extends { getState: () => infer S }
-        ? S extends { analysisStages: infer A }
-          ? A
-          : never
-        : never;
-      monitors: typeof usePipelineStore extends { getState: () => infer S }
-        ? S extends { monitorBlocks: infer M }
-          ? M
-          : never
-        : never;
+      stages: StageState[];
+      monitors: MonitorBlockState[];
       successScript: string;
       failureScript: string;
-      priceAlerts: typeof usePipelineStore extends { getState: () => infer S }
-        ? S extends { priceAlerts: infer P }
-          ? P
-          : never
-        : never;
+      priceAlerts: PriceAlertState[];
     }) => {
       setPipelineName(data.name);
       setPipelineDescription(data.description);
@@ -136,11 +125,8 @@ export default function PipelinePage() {
       {/* Modals */}
       <AgentBlockEditor
         block={editingBlock}
-        open={editorOpen}
-        onClose={() => {
-          setEditorOpen(false);
-          setEditingBlock(null);
-        }}
+        open={editingBlock !== null}
+        onClose={() => setEditingBlock(null)}
         onSave={handleSaveBlock}
       />
 

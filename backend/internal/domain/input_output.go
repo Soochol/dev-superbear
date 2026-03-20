@@ -25,7 +25,13 @@ type PreviousResult struct {
 	Data      map[string]interface{} `json:"data,omitempty"`
 }
 
+type BlockError struct {
+	BlockName string `json:"blockName"`
+	Error     string `json:"error"`
+}
+
 type PipelineExecutionContext struct {
 	Symbol          string           `json:"symbol"`
 	PreviousResults []PreviousResult `json:"previousResults"`
+	Errors          []BlockError     `json:"errors,omitempty"`
 }

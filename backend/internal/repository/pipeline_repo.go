@@ -30,6 +30,13 @@ func NewPipelineRepository(pool *pgxpool.Pool) *PipelineRepository {
 	}
 }
 
+// NewPipelineRepositoryFromQueries creates a PipelineRepository using pre-existing
+// sqlc.Queries (e.g. transaction-scoped). The pool is nil so WithTx cannot be called
+// on the returned repo.
+func NewPipelineRepositoryFromQueries(q *sqlc.Queries) *PipelineRepository {
+	return &PipelineRepository{q: q}
+}
+
 // ---------------------------------------------------------------------------
 // Type conversion helpers
 // ---------------------------------------------------------------------------
@@ -524,7 +531,25 @@ func (r *PipelineRepository) loadMonitorsWithBlocks(ctx context.Context, pipelin
 	return monitors, nil
 }
 
-// Queries exposes the underlying sqlc.Queries for advanced use.
-func (r *PipelineRepository) Queries() *sqlc.Queries {
-	return r.q
+// WithTx runs fn inside a database transaction. It begins a transaction,
+// passes tx-scoped sqlc.Queries to fn, and commits on success or rolls back
+// on error (or panic).
+func (r *PipelineRepository) WithTx(ctx context.Context, fn func(q *sqlc.Queries) error) error {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	defer func() {
+		if p := recover(); p != nil {
+			_ = tx.Rollback(ctx)
+			panic(p)
+		}
+	}()
+
+	txQ := sqlc.New(tx)
+	if err := fn(txQ); err != nil {
+		_ = tx.Rollback(ctx)
+		return err
+	}
+	return tx.Commit(ctx)
 }
