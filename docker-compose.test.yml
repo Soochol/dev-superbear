@@ -44,6 +44,8 @@ services:
       ALLOWED_ORIGINS: http://localhost:3000,http://localhost:3001
       APP_ENV: development
       REDIS_ADDR: redis:6379
+      KIS_APP_KEY: PSbwFVcnRXIsAVV0h00mO9rSRmZs0xJJluMM
+      KIS_APP_SECRET: DFkYoXJw08f2+/E3upB24f/JTTDxPQaPbndEhC9qbep4TmQRIty2bUbuMddw5f0j5IwBlNYqKZ93+wsHFJAwNUBnJ1Y0IvPNgaJT/VVOQKiYgSlyubjzq2FnAjuHWkApIre/geTvEAOHBYuQzo34v4+zw4etzYwr++sfVAV2aXiKzgbuMO4=
     depends_on:
       postgres:
         condition: service_healthy
