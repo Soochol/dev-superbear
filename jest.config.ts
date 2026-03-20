@@ -6,6 +6,7 @@ const config: Config.InitialOptions = {
   roots: ["<rootDir>/src"],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/src/$1",
+    "^lightweight-charts$": "<rootDir>/src/__mocks__/lightweight-charts.ts",
   },
   transform: {
     "^.+\\.tsx?$": ["ts-jest", { tsconfig: "tsconfig.json" }],

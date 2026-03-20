@@ -13,6 +13,10 @@ type Config struct {
 	GoogleClientSecret string
 	AllowedOrigins     []string
 	Env                string
+	KISAppKey          string
+	KISAppSecret       string
+	KISBaseURL         string
+	DARTApiKey         string
 }
 
 func Load() *Config {
@@ -21,6 +25,10 @@ func Load() *Config {
 		Env:            env,
 		Port:           getEnv("PORT", "8080"),
 		AllowedOrigins: []string{getEnv("ALLOWED_ORIGIN", "http://localhost:3000")},
+		KISAppKey:      getEnv("KIS_APP_KEY", ""),
+		KISAppSecret:   getEnv("KIS_APP_SECRET", ""),
+		KISBaseURL:     getEnv("KIS_BASE_URL", "https://openapi.koreainvestment.com:9443"),
+		DARTApiKey:     getEnv("DART_API_KEY", ""),
 	}
 	if env == "production" {
 		cfg.JWTSecret = requireEnv("JWT_SECRET")

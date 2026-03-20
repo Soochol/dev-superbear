@@ -1,4 +1,4 @@
-import { ApiError, apiClient, apiGet, apiPost, apiPut, apiDelete } from "../client";
+import { ApiError, apiGet, apiPost, apiPut, apiDelete } from "../client";
 
 // Mock fetch globally
 const mockFetch = jest.fn();
@@ -127,4 +127,5 @@ describe("HTTP method helpers", () => {
     await apiDelete("/test");
     expect(mockFetch.mock.calls[0][1].method).toBe("DELETE");
   });
+
 });

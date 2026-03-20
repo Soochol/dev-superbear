@@ -41,5 +41,13 @@ export default defineConfig({
       },
       testMatch: /search.*\.spec\.ts/,
     },
+    {
+      name: "chart-app",
+      use: {
+        browserName: "chromium",
+        baseURL: "http://localhost:3000",
+      },
+      testMatch: /chart.*\.spec\.ts/,
+    },
   ],
 });
