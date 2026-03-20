@@ -103,6 +103,10 @@ func registerRoutes(rg *gin.RouterGroup, queries *sqlc.Queries, pool *pgxpool.Po
 	searchH := handler.NewSearchHandler(searchSvc, nlSvc)
 	searchH.RegisterRoutes(rg)
 
+	presetRepo := repository.NewPresetRepository(pool)
+	presetH := handler.NewPresetHandler(presetRepo)
+	presetH.RegisterRoutes(rg)
+
 	// Case extensions
 	rg.POST("/cases/:id/close", caseH.Close)
 	rg.GET("/cases/:id/timeline", caseH.GetTimeline)

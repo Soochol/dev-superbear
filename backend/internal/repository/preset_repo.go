@@ -3,9 +3,10 @@ package repository
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // ErrPresetNotFound is returned when a preset does not exist or is not owned by the user.
@@ -40,17 +41,20 @@ type PaginatedPresets struct {
 
 // PresetRepository handles SearchPreset CRUD operations.
 type PresetRepository struct {
-	db *sql.DB
+	pool *pgxpool.Pool
 }
 
 // NewPresetRepository creates a new PresetRepository.
-func NewPresetRepository(db *sql.DB) *PresetRepository {
-	return &PresetRepository{db: db}
+func NewPresetRepository(pool *pgxpool.Pool) *PresetRepository {
+	return &PresetRepository{pool: pool}
 }
 
 // FindMany returns a paginated list of presets visible to the user.
 func (r *PresetRepository) FindMany(ctx context.Context, userID string, limit, offset int32) (*PaginatedPresets, error) {
-	rows, err := r.db.QueryContext(ctx,
+	if r.pool == nil {
+		return nil, fmt.Errorf("list presets: no database connection")
+	}
+	rows, err := r.pool.Query(ctx,
 		`SELECT id, user_id, name, dsl, nl_query, is_public, created_at, updated_at
 		 FROM search_presets
 		 WHERE user_id = $1 OR is_public = true
@@ -76,7 +80,7 @@ func (r *PresetRepository) FindMany(ctx context.Context, userID string, limit, o
 	}
 
 	var count int64
-	err = r.db.QueryRowContext(ctx,
+	err = r.pool.QueryRow(ctx,
 		`SELECT COUNT(*) FROM search_presets WHERE user_id = $1 OR is_public = true`,
 		userID,
 	).Scan(&count)
@@ -89,8 +93,11 @@ func (r *PresetRepository) FindMany(ctx context.Context, userID string, limit, o
 
 // Create creates a new search preset.
 func (r *PresetRepository) Create(ctx context.Context, params CreatePresetParams) (*SearchPreset, error) {
+	if r.pool == nil {
+		return nil, fmt.Errorf("create preset: no database connection")
+	}
 	var p SearchPreset
-	err := r.db.QueryRowContext(ctx,
+	err := r.pool.QueryRow(ctx,
 		`INSERT INTO search_presets (user_id, name, dsl, nl_query, is_public)
 		 VALUES ($1, $2, $3, $4, $5)
 		 RETURNING id, user_id, name, dsl, nl_query, is_public, created_at, updated_at`,
@@ -104,18 +111,17 @@ func (r *PresetRepository) Create(ctx context.Context, params CreatePresetParams
 
 // Delete removes a preset owned by the specified user.
 func (r *PresetRepository) Delete(ctx context.Context, id, userID string) error {
-	result, err := r.db.ExecContext(ctx,
+	if r.pool == nil {
+		return fmt.Errorf("delete preset: no database connection")
+	}
+	result, err := r.pool.Exec(ctx,
 		`DELETE FROM search_presets WHERE id = $1 AND user_id = $2`,
 		id, userID,
 	)
 	if err != nil {
 		return fmt.Errorf("delete preset: %w", err)
 	}
-	n, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("delete preset check rows: %w", err)
-	}
-	if n == 0 {
+	if result.RowsAffected() == 0 {
 		return ErrPresetNotFound
 	}
 	return nil
