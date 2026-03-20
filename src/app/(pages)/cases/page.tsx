@@ -21,9 +21,7 @@ export default function CasesPage() {
 
   const handleSelectCase = async (id: string) => {
     await selectCase(id);
-    fetchTimeline(id);
-    fetchTrades(id);
-    fetchAlerts(id);
+    await Promise.all([fetchTimeline(id), fetchTrades(id), fetchAlerts(id)]);
   };
 
   return (

@@ -9,7 +9,6 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
-	"github.com/dev-superbear/nexus-backend/internal/middleware"
 	"github.com/dev-superbear/nexus-backend/internal/repository/sqlc"
 )
 
@@ -25,27 +24,14 @@ func NewAlertHandler(queries *sqlc.Queries) *AlertHandler {
 
 // ListAlerts returns pending and triggered alerts for a case.
 func (h *AlertHandler) ListAlerts(c *gin.Context) {
-	userID, err := middleware.GetUserID(c)
-	if err != nil {
-		Error(c, http.StatusUnauthorized, "unauthorized")
-		return
-	}
-
-	caseID := c.Param("id")
-	caseUUID, err := parseUUID(caseID)
-	if err != nil {
-		Error(c, http.StatusBadRequest, err.Error())
-		return
-	}
-	userUUID, err := parseUUID(userID)
-	if err != nil {
-		Error(c, http.StatusBadRequest, err.Error())
+	caseUUID, userUUID, ok := parseAuthAndCaseID(c)
+	if !ok {
 		return
 	}
 
 	ctx := c.Request.Context()
 
-	_, err = h.queries.GetCase(ctx, sqlc.GetCaseParams{
+	_, err := h.queries.GetCase(ctx, sqlc.GetCaseParams{
 		ID:     caseUUID,
 		UserID: userUUID,
 	})
@@ -53,7 +39,7 @@ func (h *AlertHandler) ListAlerts(c *gin.Context) {
 		if errors.Is(err, pgx.ErrNoRows) {
 			Error(c, http.StatusNotFound, "not found")
 		} else {
-			slog.Error("failed to get case for alerts", "error", err, "userId", userID)
+			slog.Error("failed to get case for alerts", "error", err, "caseId", c.Param("id"))
 			Error(c, http.StatusInternalServerError, "internal server error")
 		}
 		return
@@ -61,14 +47,14 @@ func (h *AlertHandler) ListAlerts(c *gin.Context) {
 
 	pending, err := h.queries.ListPendingAlertsByCase(ctx, caseUUID)
 	if err != nil {
-		slog.Error("failed to list pending alerts", "error", err, "caseId", caseID)
+		slog.Error("failed to list pending alerts", "error", err, "caseId", c.Param("id"))
 		Error(c, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
 	triggered, err := h.queries.ListTriggeredAlertsByCase(ctx, caseUUID)
 	if err != nil {
-		slog.Error("failed to list triggered alerts", "error", err, "caseId", caseID)
+		slog.Error("failed to list triggered alerts", "error", err, "caseId", c.Param("id"))
 		Error(c, http.StatusInternalServerError, "internal server error")
 		return
 	}
@@ -81,27 +67,14 @@ func (h *AlertHandler) ListAlerts(c *gin.Context) {
 
 // CreateAlert creates a new price alert for a case.
 func (h *AlertHandler) CreateAlert(c *gin.Context) {
-	userID, err := middleware.GetUserID(c)
-	if err != nil {
-		Error(c, http.StatusUnauthorized, "unauthorized")
-		return
-	}
-
-	caseID := c.Param("id")
-	caseUUID, err := parseUUID(caseID)
-	if err != nil {
-		Error(c, http.StatusBadRequest, err.Error())
-		return
-	}
-	userUUID, err := parseUUID(userID)
-	if err != nil {
-		Error(c, http.StatusBadRequest, err.Error())
+	caseUUID, userUUID, ok := parseAuthAndCaseID(c)
+	if !ok {
 		return
 	}
 
 	ctx := c.Request.Context()
 
-	_, err = h.queries.GetCase(ctx, sqlc.GetCaseParams{
+	_, err := h.queries.GetCase(ctx, sqlc.GetCaseParams{
 		ID:     caseUUID,
 		UserID: userUUID,
 	})
@@ -109,7 +82,7 @@ func (h *AlertHandler) CreateAlert(c *gin.Context) {
 		if errors.Is(err, pgx.ErrNoRows) {
 			Error(c, http.StatusNotFound, "not found")
 		} else {
-			slog.Error("failed to get case for create alert", "error", err, "userId", userID)
+			slog.Error("failed to get case for create alert", "error", err, "caseId", c.Param("id"))
 			Error(c, http.StatusInternalServerError, "internal server error")
 		}
 		return
@@ -137,7 +110,7 @@ func (h *AlertHandler) CreateAlert(c *gin.Context) {
 		Label:      req.Label,
 	})
 	if err != nil {
-		slog.Error("failed to create alert", "error", err, "caseId", caseID)
+		slog.Error("failed to create alert", "error", err, "caseId", c.Param("id"))
 		Error(c, http.StatusInternalServerError, "internal server error")
 		return
 	}
@@ -147,26 +120,12 @@ func (h *AlertHandler) CreateAlert(c *gin.Context) {
 
 // DeleteAlert removes a price alert by ID, scoped to the case.
 func (h *AlertHandler) DeleteAlert(c *gin.Context) {
-	userID, err := middleware.GetUserID(c)
-	if err != nil {
-		Error(c, http.StatusUnauthorized, "unauthorized")
+	caseUUID, userUUID, ok := parseAuthAndCaseID(c)
+	if !ok {
 		return
 	}
 
-	caseID := c.Param("id")
-	alertID := c.Param("alertId")
-
-	caseUUID, err := parseUUID(caseID)
-	if err != nil {
-		Error(c, http.StatusBadRequest, err.Error())
-		return
-	}
-	userUUID, err := parseUUID(userID)
-	if err != nil {
-		Error(c, http.StatusBadRequest, err.Error())
-		return
-	}
-	alertUUID, err := parseUUID(alertID)
+	alertUUID, err := parseUUID(c.Param("alertId"))
 	if err != nil {
 		Error(c, http.StatusBadRequest, err.Error())
 		return
@@ -182,7 +141,7 @@ func (h *AlertHandler) DeleteAlert(c *gin.Context) {
 		if errors.Is(err, pgx.ErrNoRows) {
 			Error(c, http.StatusNotFound, "not found")
 		} else {
-			slog.Error("failed to get case for delete alert", "error", err, "userId", userID)
+			slog.Error("failed to get case for delete alert", "error", err, "caseId", c.Param("id"))
 			Error(c, http.StatusInternalServerError, "internal server error")
 		}
 		return
@@ -193,7 +152,7 @@ func (h *AlertHandler) DeleteAlert(c *gin.Context) {
 		CaseID: caseUUID,
 	})
 	if err != nil {
-		slog.Error("failed to delete alert", "error", err, "caseId", caseID, "alertId", alertID)
+		slog.Error("failed to delete alert", "error", err, "caseId", c.Param("id"), "alertId", c.Param("alertId"))
 		Error(c, http.StatusInternalServerError, "internal server error")
 		return
 	}
