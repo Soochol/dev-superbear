@@ -8,7 +8,7 @@ export class ChartPage {
   constructor(readonly page: Page) {
     this.canvas = page.locator("canvas").first();
     this.loadingIndicator = page.getByText("Loading chart data...");
-    this.selectStockMessage = page.getByText("Select a stock");
+    this.selectStockMessage = page.getByText("Select a stock", { exact: true });
   }
 
   async goto(symbol?: string) {
