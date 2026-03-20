@@ -42,7 +42,8 @@ export class ChartPage {
   }
 
   async closeSearchModal() {
-    await this.modalBackdrop.click();
+    // Click backdrop at top-left corner (outside the centered modal)
+    await this.modalBackdrop.click({ position: { x: 10, y: 10 } });
     await expect(this.searchInput).not.toBeVisible();
   }
 
