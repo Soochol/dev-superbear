@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"math"
 	"net/http"
 	"strconv"
@@ -76,8 +77,10 @@ func GetPagination(c *gin.Context) Pagination {
 }
 
 // parseUUID converts a string UUID into a pgtype.UUID.
-func parseUUID(s string) pgtype.UUID {
+func parseUUID(s string) (pgtype.UUID, error) {
 	var u pgtype.UUID
-	u.Scan(s) //nolint:errcheck
-	return u
+	if err := u.Scan(s); err != nil {
+		return u, fmt.Errorf("invalid UUID: %s", s)
+	}
+	return u, nil
 }

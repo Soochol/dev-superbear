@@ -12,10 +12,11 @@ import (
 type AuthHandler struct {
 	queries   *sqlc.Queries
 	jwtSecret string
+	env       string
 }
 
-func NewAuthHandler(queries *sqlc.Queries, jwtSecret string) *AuthHandler {
-	return &AuthHandler{queries: queries, jwtSecret: jwtSecret}
+func NewAuthHandler(queries *sqlc.Queries, jwtSecret, env string) *AuthHandler {
+	return &AuthHandler{queries: queries, jwtSecret: jwtSecret, env: env}
 }
 
 func (h *AuthHandler) GoogleCallback(c *gin.Context) {
@@ -24,8 +25,8 @@ func (h *AuthHandler) GoogleCallback(c *gin.Context) {
 }
 
 func (h *AuthHandler) Me(c *gin.Context) {
-	userID := middleware.GetUserID(c)
-	if userID == "" {
+	userID, err := middleware.GetUserID(c)
+	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
@@ -33,6 +34,7 @@ func (h *AuthHandler) Me(c *gin.Context) {
 }
 
 func (h *AuthHandler) Logout(c *gin.Context) {
-	c.SetCookie("nexus_token", "", -1, "/", "", false, true)
+	secure := h.env == "production"
+	c.SetCookie("nexus_token", "", -1, "/", "", secure, true)
 	c.JSON(http.StatusOK, gin.H{"message": "logged out"})
 }

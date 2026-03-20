@@ -45,13 +45,23 @@ func main() {
 	r.Use(middleware.CORS(cfg.AllowedOrigins))
 
 	api := r.Group("/api/v1")
+
+	// Public routes (no auth required)
 	api.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
 
+	// Auth routes (public)
+	authH := handler.NewAuthHandler(queries, cfg.JWTSecret, cfg.Env)
+	api.POST("/auth/google/callback", authH.GoogleCallback)
+	api.POST("/auth/logout", authH.Logout)
+
+	// Protected routes
 	auth := api.Group("")
 	auth.Use(middleware.AuthRequired(cfg.JWTSecret))
+	auth.GET("/auth/me", authH.Me)
 
+	// Register resource routes
 	registerRoutes(auth, queries, cfg)
 
 	slog.Info("starting server", "port", cfg.Port)
@@ -62,9 +72,6 @@ func main() {
 }
 
 func registerRoutes(rg *gin.RouterGroup, queries *sqlc.Queries, cfg *config.Config) {
-	authH := handler.NewAuthHandler(queries, cfg.JWTSecret)
-	_ = authH
-
 	caseH := handler.NewCaseHandler(queries)
 	rg.GET("/cases", caseH.List)
 	rg.POST("/cases", caseH.Create)

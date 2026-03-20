@@ -1,9 +1,12 @@
 package handler
 
 import (
+	"errors"
+	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/dev-superbear/nexus-backend/internal/middleware"
 	"github.com/dev-superbear/nexus-backend/internal/repository/sqlc"
@@ -21,22 +24,34 @@ func NewCaseHandler(queries *sqlc.Queries) *CaseHandler {
 
 // List returns a paginated list of cases for the authenticated user.
 func (h *CaseHandler) List(c *gin.Context) {
-	userID := middleware.GetUserID(c)
+	userID, err := middleware.GetUserID(c)
+	if err != nil {
+		Error(c, http.StatusUnauthorized, "unauthorized")
+		return
+	}
 	p := GetPagination(c)
 
+	userUUID, err := parseUUID(userID)
+	if err != nil {
+		Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
 	cases, err := h.queries.ListCasesByUser(c.Request.Context(), sqlc.ListCasesByUserParams{
-		UserID: parseUUID(userID),
+		UserID: userUUID,
 		Limit:  int32(p.PageSize),
 		Offset: int32(p.Offset),
 	})
 	if err != nil {
-		Error(c, http.StatusInternalServerError, err.Error())
+		slog.Error("failed to list cases", "error", err, "userId", userID)
+		Error(c, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
-	count, err := h.queries.CountCasesByUser(c.Request.Context(), parseUUID(userID))
+	count, err := h.queries.CountCasesByUser(c.Request.Context(), userUUID)
 	if err != nil {
-		Error(c, http.StatusInternalServerError, err.Error())
+		slog.Error("failed to count cases", "error", err, "userId", userID)
+		Error(c, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
@@ -45,15 +60,35 @@ func (h *CaseHandler) List(c *gin.Context) {
 
 // Get returns a single case by ID, scoped to the authenticated user.
 func (h *CaseHandler) Get(c *gin.Context) {
-	userID := middleware.GetUserID(c)
+	userID, err := middleware.GetUserID(c)
+	if err != nil {
+		Error(c, http.StatusUnauthorized, "unauthorized")
+		return
+	}
 	id := c.Param("id")
 
+	idUUID, err := parseUUID(id)
+	if err != nil {
+		Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	userUUID, err := parseUUID(userID)
+	if err != nil {
+		Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
 	cs, err := h.queries.GetCase(c.Request.Context(), sqlc.GetCaseParams{
-		ID:     parseUUID(id),
-		UserID: parseUUID(userID),
+		ID:     idUUID,
+		UserID: userUUID,
 	})
 	if err != nil {
-		Error(c, http.StatusNotFound, "case not found")
+		if errors.Is(err, pgx.ErrNoRows) {
+			Error(c, http.StatusNotFound, "not found")
+		} else {
+			slog.Error("failed to get case", "error", err, "userId", userID)
+			Error(c, http.StatusInternalServerError, "internal server error")
+		}
 		return
 	}
 
@@ -62,7 +97,11 @@ func (h *CaseHandler) Get(c *gin.Context) {
 
 // Create validates the request body and creates a new case (placeholder).
 func (h *CaseHandler) Create(c *gin.Context) {
-	userID := middleware.GetUserID(c)
+	userID, err := middleware.GetUserID(c)
+	if err != nil {
+		Error(c, http.StatusUnauthorized, "unauthorized")
+		return
+	}
 	var req CreateCaseRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		Error(c, http.StatusBadRequest, "Validation error: "+err.Error())
@@ -76,17 +115,33 @@ func (h *CaseHandler) Create(c *gin.Context) {
 
 // Delete removes a case by ID, scoped to the authenticated user.
 func (h *CaseHandler) Delete(c *gin.Context) {
-	userID := middleware.GetUserID(c)
+	userID, err := middleware.GetUserID(c)
+	if err != nil {
+		Error(c, http.StatusUnauthorized, "unauthorized")
+		return
+	}
 	id := c.Param("id")
 
-	err := h.queries.DeleteCase(c.Request.Context(), sqlc.DeleteCaseParams{
-		ID:     parseUUID(id),
-		UserID: parseUUID(userID),
-	})
+	idUUID, err := parseUUID(id)
 	if err != nil {
-		Error(c, http.StatusInternalServerError, err.Error())
+		Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	userUUID, err := parseUUID(userID)
+	if err != nil {
+		Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusNoContent, nil)
+	err = h.queries.DeleteCase(c.Request.Context(), sqlc.DeleteCaseParams{
+		ID:     idUUID,
+		UserID: userUUID,
+	})
+	if err != nil {
+		slog.Error("failed to delete case", "error", err, "userId", userID)
+		Error(c, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	c.Status(http.StatusNoContent)
 }

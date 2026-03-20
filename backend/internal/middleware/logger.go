@@ -15,12 +15,19 @@ func Logger() gin.HandlerFunc {
 		c.Next()
 		latency := time.Since(start)
 		status := c.Writer.Status()
-		slog.Info("HTTP request",
+		attrs := []any{
 			"method", method,
 			"path", path,
 			"status", status,
 			"latency_ms", latency.Milliseconds(),
 			"client_ip", c.ClientIP(),
-		)
+		}
+		if status >= 500 {
+			slog.Error("HTTP request", attrs...)
+		} else if status >= 400 {
+			slog.Warn("HTTP request", attrs...)
+		} else {
+			slog.Info("HTTP request", attrs...)
+		}
 	}
 }

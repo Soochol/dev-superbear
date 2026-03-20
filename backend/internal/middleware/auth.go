@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -9,6 +10,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
+
+const ContextKeyUserID = "userId"
+const ContextKeyEmail = "email"
 
 type JWTClaims struct {
 	UserID string `json:"userId"`
@@ -28,8 +32,8 @@ func AuthRequired(jwtSecret string) gin.HandlerFunc {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
 			return
 		}
-		c.Set("userId", claims.UserID)
-		c.Set("email", claims.Email)
+		c.Set(ContextKeyUserID, claims.UserID)
+		c.Set(ContextKeyEmail, claims.Email)
 		c.Next()
 	}
 }
@@ -46,12 +50,16 @@ func extractToken(c *gin.Context) (string, error) {
 }
 
 func validateJWT(tokenStr, secret string) (*JWTClaims, error) {
-	token, err := jwt.ParseWithClaims(tokenStr, &JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
+	keyFunc := func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New("unexpected signing method")
 		}
 		return []byte(secret), nil
-	})
+	}
+	token, err := jwt.ParseWithClaims(tokenStr, &JWTClaims{}, keyFunc,
+		jwt.WithIssuer("nexus"),
+		jwt.WithValidMethods([]string{"HS256"}),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -67,6 +75,8 @@ func GenerateJWT(userID, email, secret string) (string, error) {
 		UserID: userID,
 		Email:  email,
 		RegisteredClaims: jwt.RegisteredClaims{
+			Issuer:    "nexus",
+			Subject:   userID,
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(7 * 24 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
@@ -75,8 +85,14 @@ func GenerateJWT(userID, email, secret string) (string, error) {
 	return token.SignedString([]byte(secret))
 }
 
-func GetUserID(c *gin.Context) string {
-	id, _ := c.Get("userId")
-	s, _ := id.(string)
-	return s
+func GetUserID(c *gin.Context) (string, error) {
+	id, exists := c.Get(ContextKeyUserID)
+	if !exists {
+		return "", fmt.Errorf("userId not found in context")
+	}
+	s, ok := id.(string)
+	if !ok || s == "" {
+		return "", fmt.Errorf("invalid userId in context")
+	}
+	return s, nil
 }

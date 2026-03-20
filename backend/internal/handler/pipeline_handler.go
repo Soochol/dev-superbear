@@ -1,9 +1,12 @@
 package handler
 
 import (
+	"errors"
+	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/dev-superbear/nexus-backend/internal/middleware"
 	"github.com/dev-superbear/nexus-backend/internal/repository/sqlc"
@@ -21,22 +24,34 @@ func NewPipelineHandler(queries *sqlc.Queries) *PipelineHandler {
 
 // List returns a paginated list of pipelines for the authenticated user.
 func (h *PipelineHandler) List(c *gin.Context) {
-	userID := middleware.GetUserID(c)
+	userID, err := middleware.GetUserID(c)
+	if err != nil {
+		Error(c, http.StatusUnauthorized, "unauthorized")
+		return
+	}
 	p := GetPagination(c)
 
+	userUUID, err := parseUUID(userID)
+	if err != nil {
+		Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
 	pipelines, err := h.queries.ListPipelinesByUser(c.Request.Context(), sqlc.ListPipelinesByUserParams{
-		UserID: parseUUID(userID),
+		UserID: userUUID,
 		Limit:  int32(p.PageSize),
 		Offset: int32(p.Offset),
 	})
 	if err != nil {
-		Error(c, http.StatusInternalServerError, err.Error())
+		slog.Error("failed to list pipelines", "error", err, "userId", userID)
+		Error(c, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
-	count, err := h.queries.CountPipelinesByUser(c.Request.Context(), parseUUID(userID))
+	count, err := h.queries.CountPipelinesByUser(c.Request.Context(), userUUID)
 	if err != nil {
-		Error(c, http.StatusInternalServerError, err.Error())
+		slog.Error("failed to count pipelines", "error", err, "userId", userID)
+		Error(c, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
@@ -45,15 +60,35 @@ func (h *PipelineHandler) List(c *gin.Context) {
 
 // Get returns a single pipeline by ID, scoped to the authenticated user.
 func (h *PipelineHandler) Get(c *gin.Context) {
-	userID := middleware.GetUserID(c)
+	userID, err := middleware.GetUserID(c)
+	if err != nil {
+		Error(c, http.StatusUnauthorized, "unauthorized")
+		return
+	}
 	id := c.Param("id")
 
+	idUUID, err := parseUUID(id)
+	if err != nil {
+		Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	userUUID, err := parseUUID(userID)
+	if err != nil {
+		Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
 	pipeline, err := h.queries.GetPipeline(c.Request.Context(), sqlc.GetPipelineParams{
-		ID:     parseUUID(id),
-		UserID: parseUUID(userID),
+		ID:     idUUID,
+		UserID: userUUID,
 	})
 	if err != nil {
-		Error(c, http.StatusNotFound, "pipeline not found")
+		if errors.Is(err, pgx.ErrNoRows) {
+			Error(c, http.StatusNotFound, "not found")
+		} else {
+			slog.Error("failed to get pipeline", "error", err, "userId", userID)
+			Error(c, http.StatusInternalServerError, "internal server error")
+		}
 		return
 	}
 
@@ -86,17 +121,33 @@ func (h *PipelineHandler) Update(c *gin.Context) {
 
 // Delete removes a pipeline by ID, scoped to the authenticated user.
 func (h *PipelineHandler) Delete(c *gin.Context) {
-	userID := middleware.GetUserID(c)
+	userID, err := middleware.GetUserID(c)
+	if err != nil {
+		Error(c, http.StatusUnauthorized, "unauthorized")
+		return
+	}
 	id := c.Param("id")
 
-	err := h.queries.DeletePipeline(c.Request.Context(), sqlc.DeletePipelineParams{
-		ID:     parseUUID(id),
-		UserID: parseUUID(userID),
-	})
+	idUUID, err := parseUUID(id)
 	if err != nil {
-		Error(c, http.StatusInternalServerError, err.Error())
+		Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	userUUID, err := parseUUID(userID)
+	if err != nil {
+		Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusNoContent, nil)
+	err = h.queries.DeletePipeline(c.Request.Context(), sqlc.DeletePipelineParams{
+		ID:     idUUID,
+		UserID: userUUID,
+	})
+	if err != nil {
+		slog.Error("failed to delete pipeline", "error", err, "userId", userID)
+		Error(c, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	c.Status(http.StatusNoContent)
 }

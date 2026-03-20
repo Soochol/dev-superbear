@@ -8,18 +8,26 @@ export class ApiError extends Error {
 }
 
 export async function apiClient<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...init,
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...init?.headers,
-    },
-  });
-  if (!res.ok) {
-    throw new ApiError(res.status, await res.text());
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      ...init,
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        ...init?.headers,
+      },
+    });
+  } catch {
+    throw new ApiError(0, 'Network error: unable to reach server');
   }
-  return res.json();
+  if (!res.ok) {
+    const body = await res.text().catch(() => 'unknown error');
+    throw new ApiError(res.status, body);
+  }
+  return res.json().catch(() => {
+    throw new ApiError(res.status, 'Invalid JSON response');
+  });
 }
 
 export function apiGet<T>(path: string): Promise<T> {
