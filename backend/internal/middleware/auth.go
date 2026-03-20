@@ -13,6 +13,7 @@ import (
 
 const ContextKeyUserID = "userId"
 const ContextKeyEmail = "email"
+const jwtIssuer = "nexus"
 
 type JWTClaims struct {
 	UserID string `json:"userId"`
@@ -57,7 +58,7 @@ func validateJWT(tokenStr, secret string) (*JWTClaims, error) {
 		return []byte(secret), nil
 	}
 	token, err := jwt.ParseWithClaims(tokenStr, &JWTClaims{}, keyFunc,
-		jwt.WithIssuer("nexus"),
+		jwt.WithIssuer(jwtIssuer),
 		jwt.WithValidMethods([]string{"HS256"}),
 	)
 	if err != nil {
@@ -75,7 +76,7 @@ func GenerateJWT(userID, email, secret string) (string, error) {
 		UserID: userID,
 		Email:  email,
 		RegisteredClaims: jwt.RegisteredClaims{
-			Issuer:    "nexus",
+			Issuer:    jwtIssuer,
 			Subject:   userID,
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(7 * 24 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

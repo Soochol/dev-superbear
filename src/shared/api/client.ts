@@ -1,4 +1,4 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+import { API_BASE_URL } from '@/shared/config/constants';
 
 export class ApiError extends Error {
   constructor(public status: number, public body: string) {
@@ -8,15 +8,16 @@ export class ApiError extends Error {
 }
 
 export async function apiClient<T>(path: string, init?: RequestInit): Promise<T> {
+  const headers: Record<string, string> = { ...(init?.headers as Record<string, string>) };
+  if (init?.body) {
+    headers['Content-Type'] = 'application/json';
+  }
   let res: Response;
   try {
-    res = await fetch(`${API_BASE}${path}`, {
+    res = await fetch(`${API_BASE_URL}${path}`, {
       ...init,
       credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-        ...init?.headers,
-      },
+      headers,
     });
   } catch {
     throw new ApiError(0, 'Network error: unable to reach server');

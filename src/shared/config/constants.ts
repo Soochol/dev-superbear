@@ -33,15 +33,14 @@ export const NAV_ITEMS: readonly NavItem[] = [
 // Case / Pipeline status enums
 // ---------------------------------------------------------------------------
 
-export const CaseStatus = {
-  DRAFT: "draft",
-  ACTIVE: "active",
-  MONITORING: "monitoring",
-  CLOSED: "closed",
-  ARCHIVED: "archived",
+export const CASE_STATUS = {
+  LIVE: "LIVE",
+  CLOSED_SUCCESS: "CLOSED_SUCCESS",
+  CLOSED_FAILURE: "CLOSED_FAILURE",
+  BACKTEST: "BACKTEST",
 } as const;
 
-export type CaseStatusType = (typeof CaseStatus)[keyof typeof CaseStatus];
+export type CaseStatusType = (typeof CASE_STATUS)[keyof typeof CASE_STATUS];
 
 export const PipelineStatus = {
   IDLE: "idle",
@@ -72,13 +71,13 @@ export type BlockStatusType = (typeof BlockStatus)[keyof typeof BlockStatus];
 // Trade direction
 // ---------------------------------------------------------------------------
 
-export const TradeDirection = {
-  LONG: "long",
-  SHORT: "short",
+export const TRADE_TYPE = {
+  BUY: "BUY",
+  SELL: "SELL",
 } as const;
 
-export type TradeDirectionType =
-  (typeof TradeDirection)[keyof typeof TradeDirection];
+export type TradeTypeValue =
+  (typeof TRADE_TYPE)[keyof typeof TRADE_TYPE];
 
 // ---------------------------------------------------------------------------
 // Alert severity

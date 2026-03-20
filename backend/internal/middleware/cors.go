@@ -7,13 +7,18 @@ import (
 )
 
 func CORS(allowedOrigins []string) gin.HandlerFunc {
+	allowed := make(map[string]struct{}, len(allowedOrigins))
+	for _, o := range allowedOrigins {
+		allowed[o] = struct{}{}
+	}
 	return func(c *gin.Context) {
 		origin := c.GetHeader("Origin")
-		for _, allowed := range allowedOrigins {
-			if origin == allowed {
-				c.Header("Access-Control-Allow-Origin", origin)
-				break
-			}
+		if origin == "" {
+			c.Next()
+			return
+		}
+		if _, ok := allowed[origin]; ok {
+			c.Header("Access-Control-Allow-Origin", origin)
 		}
 		c.Header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS")
 		c.Header("Access-Control-Allow-Headers", "Content-Type,Authorization")
