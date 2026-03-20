@@ -1,7 +1,6 @@
 "use client";
 
-import { MainChart, IndicatorPanel } from "@/features/chart";
-import { useChartStore } from "@/features/chart";
+import { MainChart, IndicatorPanel, useChartStore } from "@/features/chart";
 import { getPanelIndicators } from "@/entities/indicator";
 import { ChartTopbar } from "./ChartTopbar";
 import { StockSearchModal } from "@/widgets/stock-search-modal";

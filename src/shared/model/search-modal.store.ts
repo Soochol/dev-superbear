@@ -12,7 +12,7 @@ interface SearchModalState {
 
 export const useSearchModalStore = create<SearchModalState>()((set) => ({
   isOpen: false,
-  activeTab: "search" as SearchModalTab,
+  activeTab: "search",
   openModal: () => set({ isOpen: true }),
   closeModal: () => set({ isOpen: false, activeTab: "search" }),
   setActiveTab: (tab) => set({ activeTab: tab }),

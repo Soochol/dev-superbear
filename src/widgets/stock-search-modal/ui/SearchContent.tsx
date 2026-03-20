@@ -15,12 +15,14 @@ interface Props {
 export function SearchContent({ title, items, watchlistSymbols, onSelect, onToggleWatchlist }: Props) {
   const [filter, setFilter] = useState("");
 
-  const filtered = items.filter(
-    (item) =>
-      !filter ||
-      item.symbol.includes(filter.toUpperCase()) ||
-      item.name.toLowerCase().includes(filter.toLowerCase()),
-  );
+  const normalizedFilter = filter.toLowerCase();
+  const filtered = normalizedFilter
+    ? items.filter(
+        (item) =>
+          item.symbol.toLowerCase().includes(normalizedFilter) ||
+          item.name.toLowerCase().includes(normalizedFilter),
+      )
+    : items;
 
   return (
     <div className="flex-1 flex flex-col min-w-0">

@@ -54,9 +54,7 @@ export function IndicatorPanel({ indicatorId, onRemove }: Props) {
     const chart = chartRef.current;
     const closes = candles.map((c) => c.close);
 
-    // Remove existing series
-    // lightweight-charts v5: no direct "remove all", recreate approach
-    // Instead, we'll remove and re-add
+    // lightweight-charts v5: recreate chart to clear all series
     chart.remove();
 
     const newChart = createChart(containerRef.current!, {

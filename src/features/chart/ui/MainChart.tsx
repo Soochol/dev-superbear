@@ -82,7 +82,7 @@ export function MainChart() {
         for (const [key, values] of Object.entries({ upper, middle, lower })) {
           const series = chartRef.current!.addSeries(LineSeries, {
             color: colors[key] ?? "#6366f1",
-            lineWidth: key === "middle" ? 1 : 1,
+            lineWidth: 1,
             lineStyle: key === "middle" ? 0 : 2, // 0=solid, 2=dashed
             priceLineVisible: false,
           });

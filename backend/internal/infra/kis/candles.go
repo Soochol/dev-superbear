@@ -8,6 +8,38 @@ import (
 	"time"
 )
 
+// ohlcv holds the parsed numeric values from a KIS candle.
+type ohlcv struct {
+	open, high, low, close float64
+	volume                 int64
+}
+
+// parseOHLCV extracts numeric OHLCV values from a raw KIS candle.
+// Returns false if any field fails to parse.
+func parseOHLCV(c KISCandle) (ohlcv, bool) {
+	open, err := strconv.ParseFloat(c.StckOprc, 64)
+	if err != nil {
+		return ohlcv{}, false
+	}
+	high, err := strconv.ParseFloat(c.StckHgpr, 64)
+	if err != nil {
+		return ohlcv{}, false
+	}
+	low, err := strconv.ParseFloat(c.StckLwpr, 64)
+	if err != nil {
+		return ohlcv{}, false
+	}
+	closeVal, err := strconv.ParseFloat(c.StckClpr, 64)
+	if err != nil {
+		return ohlcv{}, false
+	}
+	volume, err := strconv.ParseInt(c.AcmlVol, 10, 64)
+	if err != nil {
+		return ohlcv{}, false
+	}
+	return ohlcv{open: open, high: high, low: low, close: closeVal, volume: volume}, true
+}
+
 func formatIntradayTime(dateTimeStr string) int64 {
 	// KIS returns "YYYYMMDDHHMMSS" for intraday
 	if len(dateTimeStr) < 12 {
@@ -25,24 +57,8 @@ func NormalizeKISIntradayCandles(raw []KISCandle) []NormalizedCandle {
 	result := make([]NormalizedCandle, 0, len(raw))
 
 	for _, c := range raw {
-		open, err := strconv.ParseFloat(c.StckOprc, 64)
-		if err != nil {
-			continue
-		}
-		high, err := strconv.ParseFloat(c.StckHgpr, 64)
-		if err != nil {
-			continue
-		}
-		low, err := strconv.ParseFloat(c.StckLwpr, 64)
-		if err != nil {
-			continue
-		}
-		closeVal, err := strconv.ParseFloat(c.StckClpr, 64)
-		if err != nil {
-			continue
-		}
-		volume, err := strconv.ParseInt(c.AcmlVol, 10, 64)
-		if err != nil {
+		v, ok := parseOHLCV(c)
+		if !ok {
 			continue
 		}
 
@@ -53,11 +69,11 @@ func NormalizeKISIntradayCandles(raw []KISCandle) []NormalizedCandle {
 
 		result = append(result, NormalizedCandle{
 			Time:   fmt.Sprintf("%d", ts),
-			Open:   open,
-			High:   high,
-			Low:    low,
-			Close:  closeVal,
-			Volume: volume,
+			Open:   v.open,
+			High:   v.high,
+			Low:    v.low,
+			Close:  v.close,
+			Volume: v.volume,
 		})
 	}
 
@@ -79,39 +95,19 @@ func NormalizeKISCandles(raw []KISCandle) []NormalizedCandle {
 	result := make([]NormalizedCandle, 0, len(raw))
 
 	for _, c := range raw {
-		open, err := strconv.ParseFloat(c.StckOprc, 64)
-		if err != nil {
-			slog.Warn("skipping candle: failed to parse open", "value", c.StckOprc, "error", err)
-			continue
-		}
-		high, err := strconv.ParseFloat(c.StckHgpr, 64)
-		if err != nil {
-			slog.Warn("skipping candle: failed to parse high", "value", c.StckHgpr, "error", err)
-			continue
-		}
-		low, err := strconv.ParseFloat(c.StckLwpr, 64)
-		if err != nil {
-			slog.Warn("skipping candle: failed to parse low", "value", c.StckLwpr, "error", err)
-			continue
-		}
-		closeVal, err := strconv.ParseFloat(c.StckClpr, 64)
-		if err != nil {
-			slog.Warn("skipping candle: failed to parse close", "value", c.StckClpr, "error", err)
-			continue
-		}
-		volume, err := strconv.ParseInt(c.AcmlVol, 10, 64)
-		if err != nil {
-			slog.Warn("skipping candle: failed to parse volume", "value", c.AcmlVol, "error", err)
+		v, ok := parseOHLCV(c)
+		if !ok {
+			slog.Warn("skipping candle: failed to parse OHLCV", "date", c.StckBsopDate)
 			continue
 		}
 
 		result = append(result, NormalizedCandle{
 			Time:   formatDate(c.StckBsopDate),
-			Open:   open,
-			High:   high,
-			Low:    low,
-			Close:  closeVal,
-			Volume: volume,
+			Open:   v.open,
+			High:   v.high,
+			Low:    v.low,
+			Close:  v.close,
+			Volume: v.volume,
 		})
 	}
 
