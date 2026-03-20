@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useSearchStore } from "../model/search.store";
+import { useSearchActions } from "../model/use-search-actions";
 import { highlightDSL } from "@/shared/lib/dsl/highlight";
 import { btnMini } from "./styles";
 
@@ -11,6 +12,7 @@ export function LiveDSLPanel() {
   const hasCode = dslCode.trim().length > 0;
   const tokens = useMemo(() => hasCode ? highlightDSL(dslCode) : [], [dslCode, hasCode]);
   const [copyLabel, setCopyLabel] = useState("Copy");
+  const { runDSLSearch } = useSearchActions();
 
   const handleCopy = async () => {
     try {
@@ -63,6 +65,7 @@ export function LiveDSLPanel() {
             <button
               aria-label="Run Search"
               className={btnMini}
+              onClick={runDSLSearch}
             >
               Run
             </button>
