@@ -25,6 +25,9 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
 
   -- 007: marketplace tables
   \i ${MIGRATIONS_DIR}/007_marketplace.sql
+
+  -- 009: monitoring engine (monitor_blocks, dsl_polling_enabled)
+  \i ${MIGRATIONS_DIR}/009_monitoring.sql
 EOSQL
 
 echo "All migrations applied successfully."

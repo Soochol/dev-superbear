@@ -18,6 +18,19 @@ services:
     tmpfs:
       - /var/lib/postgresql/data
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '6379:6379'
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+    tmpfs:
+      - /data
+
   api:
     build:
       context: ./backend
@@ -30,6 +43,9 @@ services:
       JWT_SECRET: test-secret
       ALLOWED_ORIGIN: http://localhost:3000
       APP_ENV: development
+      REDIS_ADDR: redis:6379
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy

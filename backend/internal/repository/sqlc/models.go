@@ -329,19 +329,20 @@ type AgentBlock struct {
 }
 
 type Case struct {
-	ID            pgtype.UUID        `json:"id"`
-	UserID        pgtype.UUID        `json:"user_id"`
-	PipelineID    pgtype.UUID        `json:"pipeline_id"`
-	Symbol        string             `json:"symbol"`
-	Status        CaseStatus         `json:"status"`
-	EventDate     pgtype.Date        `json:"event_date"`
-	EventSnapshot []byte             `json:"event_snapshot"`
-	SuccessScript string             `json:"success_script"`
-	FailureScript string             `json:"failure_script"`
-	ClosedAt      pgtype.Date        `json:"closed_at"`
-	ClosedReason  pgtype.Text        `json:"closed_reason"`
-	CreatedAt     pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+	ID                pgtype.UUID        `json:"id"`
+	UserID            pgtype.UUID        `json:"user_id"`
+	PipelineID        pgtype.UUID        `json:"pipeline_id"`
+	Symbol            string             `json:"symbol"`
+	Status            CaseStatus         `json:"status"`
+	EventDate         pgtype.Date        `json:"event_date"`
+	EventSnapshot     []byte             `json:"event_snapshot"`
+	SuccessScript     string             `json:"success_script"`
+	FailureScript     string             `json:"failure_script"`
+	ClosedAt          pgtype.Date        `json:"closed_at"`
+	ClosedReason      pgtype.Text        `json:"closed_reason"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
+	DslPollingEnabled bool               `json:"dsl_polling_enabled"`
 }
 
 type FifoLot struct {
@@ -398,6 +399,16 @@ type MarketplaceUsageLog struct {
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 }
 
+type MonitorBlock struct {
+	ID             pgtype.UUID        `json:"id"`
+	CaseID         pgtype.UUID        `json:"case_id"`
+	BlockID        pgtype.UUID        `json:"block_id"`
+	Cron           string             `json:"cron"`
+	Enabled        bool               `json:"enabled"`
+	LastExecutedAt pgtype.Timestamptz `json:"last_executed_at"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+}
+
 type Pipeline struct {
 	ID             pgtype.UUID        `json:"id"`
 	UserID         pgtype.UUID        `json:"user_id"`
@@ -452,6 +463,17 @@ type RealizedPnl struct {
 	NetPnl      pgtype.Numeric     `json:"net_pnl"`
 	RealizedAt  pgtype.Timestamptz `json:"realized_at"`
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+}
+
+type SearchPreset struct {
+	ID        pgtype.UUID        `json:"id"`
+	UserID    pgtype.UUID        `json:"user_id"`
+	Name      string             `json:"name"`
+	Dsl       string             `json:"dsl"`
+	NlQuery   pgtype.Text        `json:"nl_query"`
+	IsPublic  bool               `json:"is_public"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
 }
 
 type TimelineEvent struct {
