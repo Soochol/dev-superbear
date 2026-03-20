@@ -23,13 +23,15 @@ func NewPipelineHandler(svc *service.PipelineService) *PipelineHandler {
 
 // RegisterRoutes mounts pipeline routes on the given router group.
 func (h *PipelineHandler) RegisterRoutes(rg *gin.RouterGroup) {
-	rg.GET("/pipelines", h.List)
-	rg.POST("/pipelines", h.Create)
-	rg.GET("/pipelines/:id", h.Get)
-	rg.PUT("/pipelines/:id", h.Update)
-	rg.DELETE("/pipelines/:id", h.Delete)
-	rg.POST("/pipelines/:id/execute", h.Execute)
-	rg.GET("/pipelines/jobs/:jobId", h.GetJob)
+	pipelines := rg.Group("/pipelines")
+	pipelines.GET("", h.List)
+	pipelines.POST("", h.Create)
+	pipelines.POST("/generate", h.Generate)
+	pipelines.GET("/jobs/:jobId", h.GetJob)
+	pipelines.GET("/:id", h.Get)
+	pipelines.PUT("/:id", h.Update)
+	pipelines.DELETE("/:id", h.Delete)
+	pipelines.POST("/:id/execute", h.Execute)
 }
 
 // List returns a paginated list of pipelines for the authenticated user.
@@ -195,6 +197,22 @@ func (h *PipelineHandler) GetJob(c *gin.Context) {
 	}
 
 	Success(c, job)
+}
+
+// Generate creates a pipeline structure from a natural language description.
+func (h *PipelineHandler) Generate(c *gin.Context) {
+	var req service.GenerateRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	generator := service.NewPipelineGenerator()
+	pipeline, err := generator.Generate(c.Request.Context(), req.Description)
+	if err != nil {
+		Error(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	Success(c, pipeline)
 }
 
 // isNotFound checks if an error indicates a "not found" condition.

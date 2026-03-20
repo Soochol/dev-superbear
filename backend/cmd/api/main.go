@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/dev-superbear/nexus-backend/internal/agent"
 	"github.com/dev-superbear/nexus-backend/internal/config"
 	"github.com/dev-superbear/nexus-backend/internal/handler"
 	"github.com/dev-superbear/nexus-backend/internal/middleware"
@@ -84,7 +85,10 @@ func registerRoutes(rg *gin.RouterGroup, queries *sqlc.Queries, pool *pgxpool.Po
 	pipelineRepo := repository.NewPipelineRepository(pool)
 	blockRepo := repository.NewBlockRepository(pool)
 
-	pipelineSvc := service.NewPipelineService(pipelineRepo, blockRepo)
+	runner := agent.NewADKRunner()
+	orchestrator := service.NewPipelineOrchestrator(runner)
+
+	pipelineSvc := service.NewPipelineService(pipelineRepo, blockRepo, orchestrator)
 	blockSvc := service.NewBlockService(blockRepo)
 
 	pipeH := handler.NewPipelineHandler(pipelineSvc)

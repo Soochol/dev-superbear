@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/google/uuid"
 
@@ -14,11 +15,12 @@ import (
 type PipelineService struct {
 	pipelineRepo *repository.PipelineRepository
 	blockRepo    *repository.BlockRepository
+	orchestrator *PipelineOrchestrator
 }
 
 // NewPipelineService creates a PipelineService with its dependencies.
-func NewPipelineService(pr *repository.PipelineRepository, br *repository.BlockRepository) *PipelineService {
-	return &PipelineService{pipelineRepo: pr, blockRepo: br}
+func NewPipelineService(pr *repository.PipelineRepository, br *repository.BlockRepository, orch *PipelineOrchestrator) *PipelineService {
+	return &PipelineService{pipelineRepo: pr, blockRepo: br, orchestrator: orch}
 }
 
 // List returns a paginated list of pipelines for a user.
@@ -249,7 +251,7 @@ func (s *PipelineService) Delete(ctx context.Context, userID, id string) error {
 	return s.pipelineRepo.Delete(ctx, pid, uid)
 }
 
-// Execute creates a pipeline job for execution.
+// Execute creates a pipeline job and launches the orchestrator in a background goroutine.
 func (s *PipelineService) Execute(ctx context.Context, userID, id, symbol string) (*domain.PipelineJob, error) {
 	uid, err := uuid.Parse(userID)
 	if err != nil {
@@ -260,13 +262,42 @@ func (s *PipelineService) Execute(ctx context.Context, userID, id, symbol string
 		return nil, fmt.Errorf("invalid pipeline ID: %w", err)
 	}
 
-	// Verify pipeline exists and belongs to user
-	_, err = s.pipelineRepo.FindByID(ctx, pid, uid)
+	// Load pipeline with all relations
+	pipeline, err := s.pipelineRepo.FindByID(ctx, pid, uid)
 	if err != nil {
 		return nil, fmt.Errorf("pipeline not found: %w", err)
 	}
 
-	return s.pipelineRepo.CreateJob(ctx, pid, symbol)
+	// Create the job record
+	job, err := s.pipelineRepo.CreateJob(ctx, pid, symbol)
+	if err != nil {
+		return nil, fmt.Errorf("create job: %w", err)
+	}
+
+	// Launch orchestrator in background goroutine
+	go func() {
+		bgCtx := context.Background()
+
+		// Mark job as running
+		if err := s.pipelineRepo.UpdateJobStatus(bgCtx, job.ID, domain.JobStatusRunning, nil, nil); err != nil {
+			slog.Error("failed to update job status to RUNNING", "jobId", job.ID, "error", err)
+			return
+		}
+
+		execCtx, err := s.orchestrator.Execute(bgCtx, pipeline, symbol)
+		if err != nil {
+			errMsg := err.Error()
+			slog.Error("pipeline execution failed", "jobId", job.ID, "error", err)
+			_ = s.pipelineRepo.UpdateJobStatus(bgCtx, job.ID, domain.JobStatusFailed, nil, &errMsg)
+			return
+		}
+
+		if err := s.pipelineRepo.UpdateJobStatus(bgCtx, job.ID, domain.JobStatusCompleted, execCtx, nil); err != nil {
+			slog.Error("failed to update job status to COMPLETED", "jobId", job.ID, "error", err)
+		}
+	}()
+
+	return job, nil
 }
 
 // GetJob returns a pipeline job by ID.
