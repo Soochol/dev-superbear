@@ -4,7 +4,7 @@
 
 **Goal:** Search 페이지의 모든 버튼 핸들러를 API와 연결하고, 프리셋 CRUD를 프론트엔드까지 완성하며, E2E 테스트로 전체 플로우를 검증한다.
 
-**Architecture:** 프론트엔드에 `useSearchActions` 커스텀 훅을 생성하여 모든 검색 액션(NL 검색, DSL 검색, 검증, 설명)을 캡슐화한다. 각 UI 컴포넌트는 이 훅의 함수를 onClick 핸들러로 연결한다. 백엔드는 이미 구현된 PresetHandler를 라우터에 등록만 하면 된다.
+**Architecture:** 프론트엔드에 `useSearchActions` 커스텀 훅을 생성하여 모든 검색 액션(NL 검색, DSL 검색, 검증, 설명)을 캡슐화한다. 각 UI 컴포넌트는 이 훅의 함수를 onClick 핸들러로 연결한다. 백엔드는 이미 구현된 PresetHandler를 라우터에 등록하되, `PresetRepository`를 `*pgxpool.Pool` 기반으로 리팩토링하여 프로젝트의 활성 패턴과 일치시킨다.
 
 **Tech Stack:** Next.js 16.2 + React 19, Zustand, TypeScript, Go Gin, Playwright
 
@@ -25,6 +25,11 @@
 | `src/features/search/__tests__/preset.store.test.ts` | 프리셋 스토어 테스트 |
 | `src/features/search/__tests__/PresetManager.test.tsx` | 프리셋 매니저 컴포넌트 테스트 |
 | `backend/internal/handler/preset_handler_test.go` | PresetHandler 유닛 테스트 |
+
+### 리팩토링할 파일
+| 파일 | 변경 내용 |
+|------|-----------|
+| `backend/internal/repository/preset_repo.go` | `*sql.DB` → `*pgxpool.Pool` 리팩토링 (프로젝트 패턴 통일) |
 
 ### 수정할 파일
 | 파일 | 변경 내용 |
@@ -52,7 +57,9 @@ Search 관련 모든 API 호출과 상태 전환 로직을 하나의 훅으로 �
 import { useSearchStore } from "../model/search.store";
 import { searchApi } from "../api/search-api";
 
-// Mock the search API module
+import { createSearchActions } from "../model/use-search-actions";
+
+// jest.mock is auto-hoisted above imports by Jest
 jest.mock("../api/search-api", () => ({
   searchApi: {
     nlSearch: jest.fn(),
@@ -61,9 +68,6 @@ jest.mock("../api/search-api", () => ({
     explain: jest.fn(),
   },
 }));
-
-// Import after mock so the mock is applied
-import { createSearchActions } from "../model/use-search-actions";
 
 const mockedApi = searchApi as jest.Mocked<typeof searchApi>;
 
@@ -202,6 +206,7 @@ Expected: FAIL — `Cannot find module '../model/use-search-actions'`
 
 ```typescript
 import { searchApi } from "../api/search-api";
+import { useSearchStore } from "./search.store";
 import type { AgentStatus, ValidationState } from "./types";
 import type { SearchResult } from "@/entities/search-result";
 
@@ -285,9 +290,6 @@ export function createSearchActions(getState: GetState, setState: SetState) {
 
   return { runNLSearch, runDSLSearch, validateDSL, explainDSL };
 }
-
-// React hook wrapper for use in components
-import { useSearchStore } from "./search.store";
 
 export function useSearchActions() {
   return createSearchActions(
@@ -726,15 +728,147 @@ Expected: ALL PASS
 
 ---
 
-## Task 7: 백엔드 PresetHandler 라우트 등록
+## Task 7: 백엔드 PresetRepository 리팩토링 + 라우트 등록
 
-`PresetHandler`와 `PresetRepository`는 이미 완전히 구현되어 있다. `main.go`에 등록만 하면 된다.
+`PresetHandler`는 이미 완전히 구현되어 있다. 그러나 `PresetRepository`는 `*sql.DB`를 사용하는데,
+프로젝트의 활성 repository들(`PipelineRepository`, `BlockRepository`)은 `*pgxpool.Pool`을 사용한다.
+먼저 `PresetRepository`를 `*pgxpool.Pool` 패턴으로 리팩토링한 뒤, `main.go`에 등록한다.
 
 **Files:**
+- Modify: `backend/internal/repository/preset_repo.go` (리팩토링: `*sql.DB` → `*pgxpool.Pool`)
 - Create: `backend/internal/handler/preset_handler_test.go`
 - Modify: `backend/cmd/api/main.go:77-128`
 
-- [ ] **Step 22: PresetHandler 테스트 작성**
+- [ ] **Step 22: PresetRepository를 pgxpool.Pool 패턴으로 리팩토링**
+
+`backend/internal/repository/preset_repo.go` 전체 수정:
+
+기존:
+```go
+import (
+	"context"
+	"database/sql"
+	"fmt"
+	"time"
+)
+```
+
+변경:
+```go
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+)
+```
+
+기존:
+```go
+type PresetRepository struct {
+	db *sql.DB
+}
+
+func NewPresetRepository(db *sql.DB) *PresetRepository {
+	return &PresetRepository{db: db}
+}
+```
+
+변경:
+```go
+type PresetRepository struct {
+	pool *pgxpool.Pool
+}
+
+func NewPresetRepository(pool *pgxpool.Pool) *PresetRepository {
+	return &PresetRepository{pool: pool}
+}
+```
+
+모든 메서드에서 `r.db.QueryContext` → `r.pool.Query`, `r.db.QueryRowContext` → `r.pool.QueryRow`, `r.db.ExecContext` → `r.pool.Exec`로 변경:
+
+`FindMany` 변경:
+```go
+func (r *PresetRepository) FindMany(ctx context.Context, userID string, limit, offset int32) (*PaginatedPresets, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT id, user_id, name, dsl, nl_query, is_public, created_at, updated_at
+		 FROM search_presets
+		 WHERE user_id = $1 OR is_public = true
+		 ORDER BY created_at DESC
+		 LIMIT $2 OFFSET $3`,
+		userID, limit, offset,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list presets: %w", err)
+	}
+	defer rows.Close()
+
+	presets := []SearchPreset{}
+	for rows.Next() {
+		var p SearchPreset
+		if err := rows.Scan(&p.ID, &p.UserID, &p.Name, &p.DSL, &p.NLQuery, &p.IsPublic, &p.CreatedAt, &p.UpdatedAt); err != nil {
+			return nil, fmt.Errorf("scan preset: %w", err)
+		}
+		presets = append(presets, p)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate presets: %w", err)
+	}
+
+	var count int64
+	err = r.pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM search_presets WHERE user_id = $1 OR is_public = true`,
+		userID,
+	).Scan(&count)
+	if err != nil {
+		return nil, fmt.Errorf("count presets: %w", err)
+	}
+
+	return &PaginatedPresets{Presets: presets, Total: count}, nil
+}
+```
+
+`Create` 변경:
+```go
+func (r *PresetRepository) Create(ctx context.Context, params CreatePresetParams) (*SearchPreset, error) {
+	var p SearchPreset
+	err := r.pool.QueryRow(ctx,
+		`INSERT INTO search_presets (user_id, name, dsl, nl_query, is_public)
+		 VALUES ($1, $2, $3, $4, $5)
+		 RETURNING id, user_id, name, dsl, nl_query, is_public, created_at, updated_at`,
+		params.UserID, params.Name, params.DSL, params.NLQuery, params.IsPublic,
+	).Scan(&p.ID, &p.UserID, &p.Name, &p.DSL, &p.NLQuery, &p.IsPublic, &p.CreatedAt, &p.UpdatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("create preset: %w", err)
+	}
+	return &p, nil
+}
+```
+
+`Delete` 변경:
+```go
+func (r *PresetRepository) Delete(ctx context.Context, id, userID string) error {
+	result, err := r.pool.Exec(ctx,
+		`DELETE FROM search_presets WHERE id = $1 AND user_id = $2`,
+		id, userID,
+	)
+	if err != nil {
+		return fmt.Errorf("delete preset: %w", err)
+	}
+	if result.RowsAffected() == 0 {
+		return ErrPresetNotFound
+	}
+	return nil
+}
+```
+
+- [ ] **Step 23: 리팩토링 컴파일 확인**
+
+Run: `cd /home/dev/code/dev-superbear/.worktrees/search-completion/backend && go build ./...`
+Expected: BUILD SUCCESS
+
+- [ ] **Step 24: PresetHandler 테스트 작성**
 
 ```go
 package handler_test
@@ -754,21 +888,16 @@ import (
 	"github.com/dev-superbear/nexus-backend/internal/repository"
 )
 
-// newTestPresetRouter sets up a Gin router with PresetHandler using an
-// in-memory approach. Since PresetRepository requires *sql.DB, we test
-// via the integration test file, or we test the handler routes are
-// correctly registered by checking 401 (no userID in context).
 func setupPresetRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 
-	// Pass nil DB — handlers will fail at repo level but we can test
-	// routing and request validation.
+	// nil pool — handlers will fail at repo level but we can verify
+	// route registration and request validation (binding:"required").
 	repo := repository.NewPresetRepository(nil)
 	h := handler.NewPresetHandler(repo)
 
 	api := r.Group("/api/v1")
-	// Simulate auth middleware setting userID
 	api.Use(func(c *gin.Context) {
 		c.Set("userID", "test-user-123")
 		c.Next()
@@ -778,15 +907,26 @@ func setupPresetRouter() *gin.Engine {
 	return r
 }
 
-func TestPresetHandler_ListPresets_Route(t *testing.T) {
+func TestPresetHandler_Routes_Registered(t *testing.T) {
 	r := setupPresetRouter()
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/search/presets", nil)
-	w := httptest.NewRecorder()
+	tests := []struct {
+		method string
+		path   string
+	}{
+		{http.MethodGet, "/api/v1/search/presets"},
+		{http.MethodPost, "/api/v1/search/presets"},
+		{http.MethodDelete, "/api/v1/search/presets/some-id"},
+	}
 
-	r.ServeHTTP(w, req)
-	// Will fail at DB level (nil DB) but should not be 404 — route exists
-	assert.NotEqual(t, http.StatusNotFound, w.Code)
+	for _, tt := range tests {
+		t.Run(tt.method+" "+tt.path, func(t *testing.T) {
+			req := httptest.NewRequest(tt.method, tt.path, nil)
+			w := httptest.NewRecorder()
+			r.ServeHTTP(w, req)
+			assert.NotEqual(t, http.StatusNotFound, w.Code, "route should be registered")
+		})
+	}
 }
 
 func TestPresetHandler_CreatePreset_Validation(t *testing.T) {
@@ -801,16 +941,16 @@ func TestPresetHandler_CreatePreset_Validation(t *testing.T) {
 		r.ServeHTTP(w, req)
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
-}
 
-func TestPresetHandler_DeletePreset_Route(t *testing.T) {
-	r := setupPresetRouter()
+	t.Run("rejects missing name", func(t *testing.T) {
+		body, _ := json.Marshal(map[string]string{"dsl": "scan where volume > 100"})
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/search/presets", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
 
-	req := httptest.NewRequest(http.MethodDelete, "/api/v1/search/presets/some-id", nil)
-	w := httptest.NewRecorder()
-
-	r.ServeHTTP(w, req)
-	assert.NotEqual(t, http.StatusNotFound, w.Code)
+		r.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
 }
 
 func TestPresetHandler_Unauthorized(t *testing.T) {
@@ -837,16 +977,16 @@ func TestPresetHandler_Unauthorized(t *testing.T) {
 }
 ```
 
-- [ ] **Step 23: 테스트 실행 — 통과 확인**
+- [ ] **Step 25: 테스트 실행 — 통과 확인**
 
 Run: `cd /home/dev/code/dev-superbear/.worktrees/search-completion/backend && go test ./internal/handler/ -run TestPresetHandler -v`
-Expected: PASS (4 tests, 일부는 nil DB로 인해 500 응답이지만 404가 아님을 확인)
+Expected: PASS
 
-- [ ] **Step 24: main.go에 PresetHandler 등록**
+- [ ] **Step 26: main.go에 PresetHandler 등록**
 
-`backend/cmd/api/main.go`의 `registerRoutes` 함수에서, search 핸들러 등록 코드 바로 아래에 추가:
+`backend/cmd/api/main.go`의 `registerRoutes` 함수에서, search 핸들러 등록 코드(line 101-104) 바로 아래에 추가:
 
-기존 (line 101-104):
+기존:
 ```go
 	searchSvc := service.NewSearchService(nil)
 	nlSvc := service.NewNLToDSLService()
@@ -861,39 +1001,36 @@ Expected: PASS (4 tests, 일부는 nil DB로 인해 500 응답이지만 404가 �
 	searchH := handler.NewSearchHandler(searchSvc, nlSvc)
 	searchH.RegisterRoutes(rg)
 
-	presetRepo := repository.NewPresetRepository(pool.Config().ConnConfig.Config.Conn)
+	presetRepo := repository.NewPresetRepository(pool)
 	presetH := handler.NewPresetHandler(presetRepo)
 	presetH.RegisterRoutes(rg)
 ```
 
-**주의:** `pool`은 `*pgxpool.Pool`이다. `PresetRepository`는 `*sql.DB`를 기대하므로, 프로젝트에서 `database/sql`을 어떻게 사용하는지 먼저 확인해야 한다. 기존 패턴이 pgxpool과 database/sql을 혼용하는지 확인할 것. 만약 `sql.DB` 인스턴스가 없다면, `pgxpool.Pool`을 사용하도록 `PresetRepository`를 수정하거나, `stdlib` 어댑터를 사용해야 한다.
-
-**대안 — pgxpool 직접 사용:**
-기존 다른 repo (e.g., `PipelineRepository`)에서 `pool`을 어떻게 사용하는지 확인하고 동일 패턴 따를 것.
-
-- [ ] **Step 25: 백엔드 테스트 전체 실행**
+- [ ] **Step 27: 백엔드 전체 테스트 실행**
 
 Run: `cd /home/dev/code/dev-superbear/.worktrees/search-completion/backend && go test ./internal/handler/ -v`
 Expected: ALL PASS
 
-- [ ] **Step 26: 커밋**
+- [ ] **Step 28: 커밋**
 
 ```bash
 cd /home/dev/code/dev-superbear/.worktrees/search-completion
-git add backend/internal/handler/preset_handler_test.go backend/cmd/api/main.go
-git commit -m "feat(search): register PresetHandler routes in main.go"
+git add backend/internal/repository/preset_repo.go backend/internal/handler/preset_handler_test.go backend/cmd/api/main.go
+git commit -m "feat(search): refactor PresetRepo to pgxpool, register routes in main.go"
 ```
 
 ---
 
-## Task 8: 프리셋 API 클라이언트 + 스토어 — 테스트 작성
+## Task 8: 프리셋 API 클라이언트 + 스토어
+
+`preset-api.ts`는 `apiGet`/`apiPost`/`apiDelete` 래퍼를 사용하는 thin wrapper이므로 별도 유닛 테스트 없이 통합 테스트(PresetManager 테스트)에서 커버한다.
 
 **Files:**
 - Create: `src/features/search/__tests__/preset.store.test.ts`
 - Create: `src/features/search/api/preset-api.ts`
 - Create: `src/features/search/model/preset.store.ts`
 
-- [ ] **Step 27: 프리셋 API 클라이언트 작성**
+- [ ] **Step 29: 프리셋 API 클라이언트 작성**
 
 ```typescript
 // src/features/search/api/preset-api.ts
@@ -929,7 +1066,7 @@ export const presetApi = {
 };
 ```
 
-- [ ] **Step 28: 프리셋 스토어 테스트 작성**
+- [ ] **Step 30: 프리셋 스토어 테스트 작성**
 
 ```typescript
 // src/features/search/__tests__/preset.store.test.ts
@@ -972,12 +1109,12 @@ describe("Preset Store", () => {
 });
 ```
 
-- [ ] **Step 29: 테스트 실행 — 실패 확인**
+- [ ] **Step 31: 테스트 실행 — 실패 확인**
 
 Run: `cd /home/dev/code/dev-superbear/.worktrees/search-completion && npx jest src/features/search/__tests__/preset.store.test.ts --no-coverage`
 Expected: FAIL — `Cannot find module '../model/preset.store'`
 
-- [ ] **Step 30: 프리셋 스토어 구현**
+- [ ] **Step 32: 프리셋 스토어 구현**
 
 ```typescript
 // src/features/search/model/preset.store.ts
@@ -1003,12 +1140,12 @@ export const usePresetStore = create<PresetState>()((set) => ({
 }));
 ```
 
-- [ ] **Step 31: 테스트 실행 — 통과 확인**
+- [ ] **Step 33: 테스트 실행 — 통과 확인**
 
 Run: `cd /home/dev/code/dev-superbear/.worktrees/search-completion && npx jest src/features/search/__tests__/preset.store.test.ts --no-coverage`
 Expected: PASS
 
-- [ ] **Step 32: 커밋**
+- [ ] **Step 34: 커밋**
 
 ```bash
 cd /home/dev/code/dev-superbear/.worktrees/search-completion
@@ -1025,7 +1162,7 @@ git commit -m "feat(search): add preset API client and Zustand store"
 - Create: `src/features/search/ui/PresetManager.tsx`
 - Modify: `src/features/search/ui/SearchPageLayout.tsx`
 
-- [ ] **Step 33: PresetManager 테스트 작성**
+- [ ] **Step 35: PresetManager 테스트 작성**
 
 ```typescript
 // src/features/search/__tests__/PresetManager.test.tsx
@@ -1096,12 +1233,12 @@ describe("PresetManager", () => {
 });
 ```
 
-- [ ] **Step 34: 테스트 실행 — 실패 확인**
+- [ ] **Step 36: 테스트 실행 — 실패 확인**
 
 Run: `cd /home/dev/code/dev-superbear/.worktrees/search-completion && npx jest src/features/search/__tests__/PresetManager.test.tsx --no-coverage`
 Expected: FAIL
 
-- [ ] **Step 35: PresetManager 컴포넌트 구현**
+- [ ] **Step 37: PresetManager 컴포넌트 구현**
 
 ```typescript
 // src/features/search/ui/PresetManager.tsx
@@ -1122,10 +1259,12 @@ export function PresetManager() {
   const nlQuery = useSearchStore((s) => s.nlQuery);
   const setActiveTab = useSearchStore((s) => s.setActiveTab);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSave = async () => {
     if (!dslCode.trim()) return;
     setSaving(true);
+    setError(null);
     try {
       const name = `Preset ${new Date().toLocaleString("ko-KR", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}`;
       const response = await presetApi.create({
@@ -1134,6 +1273,8 @@ export function PresetManager() {
         nlQuery: nlQuery || undefined,
       });
       addPreset(response.data);
+    } catch {
+      setError("저장에 실패했습니다");
     } finally {
       setSaving(false);
     }
@@ -1145,12 +1286,22 @@ export function PresetManager() {
   };
 
   const handleDelete = async (id: string) => {
-    await presetApi.delete(id);
-    removePreset(id);
+    setError(null);
+    try {
+      await presetApi.delete(id);
+      removePreset(id);
+    } catch {
+      setError("삭제에 실패했습니다");
+    }
   };
 
   return (
     <div className="flex flex-col gap-2">
+      {error && (
+        <div className="text-xs text-nexus-failure bg-red-500/10 px-3 py-1 rounded">
+          {error}
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold text-nexus-text-secondary uppercase tracking-wider">
           Saved Presets
@@ -1193,12 +1344,12 @@ export function PresetManager() {
 }
 ```
 
-- [ ] **Step 36: 테스트 실행 — 통과 확인**
+- [ ] **Step 38: 테스트 실행 — 통과 확인**
 
 Run: `cd /home/dev/code/dev-superbear/.worktrees/search-completion && npx jest src/features/search/__tests__/PresetManager.test.tsx --no-coverage`
 Expected: PASS
 
-- [ ] **Step 37: SearchPageLayout에 PresetManager 삽입**
+- [ ] **Step 39: SearchPageLayout에 PresetManager 삽입**
 
 `src/features/search/ui/SearchPageLayout.tsx` 수정:
 
@@ -1226,12 +1377,12 @@ import { PresetManager } from "./PresetManager";
       <SearchResults />
 ```
 
-- [ ] **Step 38: 전체 search 유닛 테스트 실행**
+- [ ] **Step 40: 전체 search 유닛 테스트 실행**
 
 Run: `cd /home/dev/code/dev-superbear/.worktrees/search-completion && npx jest src/features/search/ --no-coverage`
 Expected: ALL PASS
 
-- [ ] **Step 39: 커밋**
+- [ ] **Step 41: 커밋**
 
 ```bash
 cd /home/dev/code/dev-superbear/.worktrees/search-completion
@@ -1246,7 +1397,7 @@ git commit -m "feat(search): add PresetManager component for saved presets"
 **Files:**
 - Modify: `src/features/search/index.ts`
 
-- [ ] **Step 40: index.ts에 새 export 추가**
+- [ ] **Step 42: index.ts에 새 export 추가**
 
 기존:
 ```typescript
@@ -1262,7 +1413,7 @@ export { usePresetStore } from "./model/preset.store";
 export type { SearchTab, AgentStatus, ValidationState } from "./model/types";
 ```
 
-- [ ] **Step 41: 커밋**
+- [ ] **Step 43: 커밋**
 
 ```bash
 cd /home/dev/code/dev-superbear/.worktrees/search-completion
@@ -1281,7 +1432,7 @@ git commit -m "chore(search): export new hooks from index"
 **Files:**
 - Modify: `e2e/search.spec.ts`
 
-- [ ] **Step 42: E2E 테스트 추가**
+- [ ] **Step 44: E2E 테스트 추가**
 
 `e2e/search.spec.ts` 파일 끝에 추가:
 
@@ -1313,10 +1464,10 @@ test.describe("Search Flow", () => {
     // Click Search
     await page.getByRole("button", { name: "Search" }).click();
 
-    // Wait for results
-    await expect(page.getByText("2개 종목")).toBeVisible({ timeout: 5000 });
-    await expect(page.getByText("삼성전자")).toBeVisible();
+    // Wait for results — agentMessage will be "2개 종목 발견"
+    await expect(page.getByText("삼성전자")).toBeVisible({ timeout: 5000 });
     await expect(page.getByText("SK하이닉스")).toBeVisible();
+    await expect(page.getByText("2개 종목")).toBeVisible();
 
     // LIVE DSL panel should show the generated DSL
     await expect(page.getByText(/scan/)).toBeVisible();
@@ -1349,9 +1500,9 @@ test.describe("Search Flow", () => {
     // Click Run Search
     await page.getByRole("button", { name: "Run Search" }).click();
 
-    // Wait for results
-    await expect(page.getByText("1개 종목")).toBeVisible({ timeout: 5000 });
-    await expect(page.getByText("NAVER")).toBeVisible();
+    // Wait for results — check actual data, not count text
+    await expect(page.getByText("NAVER")).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText("1개 종목")).toBeVisible();
   });
 
   test("DSL validate: enter DSL → Validate → see validation badge", async ({ page }) => {
@@ -1379,11 +1530,9 @@ test.describe("Search Flow", () => {
     await expect(page.getByText("Validated")).toBeVisible({ timeout: 5000 });
   });
 
-  test("NL search via preset: click preset → click Search → see agent status", async ({ page }) => {
+  test("NL search via preset chip: click chip → click Search → see results", async ({ page }) => {
     // Mock the NL search API
     await page.route("**/api/v1/search/nl-to-dsl", async (route) => {
-      // Simulate slight delay
-      await new Promise((r) => setTimeout(r, 100));
       await route.fulfill({
         status: 200,
         contentType: "application/json",
@@ -1397,53 +1546,103 @@ test.describe("Search Flow", () => {
 
     await page.goto("/search");
 
-    // Click RSI Oversold preset
+    // Click RSI Oversold preset chip (in NL tab's PresetChips, not PresetManager)
     await page.getByRole("button", { name: "RSI Oversold" }).click();
 
     // Click Search
     await page.getByRole("button", { name: "Search" }).click();
 
-    // Agent status should show interpreting (may flash quickly)
     // Wait for results
-    await expect(page.getByText("1개 종목")).toBeVisible({ timeout: 5000 });
-    await expect(page.getByText("LG")).toBeVisible();
+    await expect(page.getByText("LG")).toBeVisible({ timeout: 5000 });
+  });
+});
+
+test.describe("Preset Manager", () => {
+  test("save and load a preset", async ({ page }) => {
+    // Mock preset create API
+    await page.route("**/api/v1/search/presets", async (route) => {
+      if (route.request().method() === "POST") {
+        const body = route.request().postDataJSON();
+        await route.fulfill({
+          status: 201,
+          contentType: "application/json",
+          body: JSON.stringify({
+            data: {
+              id: "new-preset-1",
+              userId: "u1",
+              name: body.name,
+              dsl: body.dsl,
+              nlQuery: body.nlQuery ?? null,
+              isPublic: false,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            },
+          }),
+        });
+      } else {
+        await route.continue();
+      }
+    });
+
+    // Mock DSL execute for Run Search
+    await page.route("**/api/v1/search/execute", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ results: [] }),
+      });
+    });
+
+    await page.goto("/search");
+
+    // Switch to DSL tab, type DSL
+    await page.getByRole("button", { name: "DSL" }).click();
+    const editor = page.getByTestId("dsl-editor-container");
+    await editor.click();
+    await page.keyboard.type("scan where volume > 1000000");
+
+    // Save as preset
+    await page.getByRole("button", { name: /save/i }).click();
+
+    // Preset should appear in the saved presets list
+    await expect(page.getByText(/Preset/)).toBeVisible({ timeout: 5000 });
   });
 });
 ```
 
-- [ ] **Step 43: 커밋**
+- [ ] **Step 45: 커밋**
 
 ```bash
 cd /home/dev/code/dev-superbear/.worktrees/search-completion
 git add e2e/search.spec.ts
-git commit -m "test(e2e): add search flow E2E tests with API mocking"
+git commit -m "test(e2e): add search flow + preset manager E2E tests"
 ```
 
 ---
 
 ## Task 12: 전체 검증
 
-- [ ] **Step 44: 프론트엔드 전체 유닛 테스트**
+- [ ] **Step 46: 프론트엔드 전체 유닛 테스트**
 
 Run: `cd /home/dev/code/dev-superbear/.worktrees/search-completion && npx jest --no-coverage`
 Expected: ALL PASS
 
-- [ ] **Step 45: 백엔드 전체 테스트**
+- [ ] **Step 47: 백엔드 전체 테스트**
 
 Run: `cd /home/dev/code/dev-superbear/.worktrees/search-completion/backend && go test ./... -count=1`
 Expected: ALL PASS
 
-- [ ] **Step 46: TypeScript 타입 체크**
+- [ ] **Step 48: TypeScript 타입 체크**
 
 Run: `cd /home/dev/code/dev-superbear/.worktrees/search-completion && npx tsc --noEmit`
 Expected: No errors
 
-- [ ] **Step 47: Next.js 빌드**
+- [ ] **Step 49: Next.js 빌드**
 
 Run: `cd /home/dev/code/dev-superbear/.worktrees/search-completion && npm run build`
 Expected: Build succeeds
 
-- [ ] **Step 48: 최종 커밋 (필요시)**
+- [ ] **Step 50: 최종 커밋 (필요시)**
 
 실패한 항목 수정 후 추가 커밋.
 
