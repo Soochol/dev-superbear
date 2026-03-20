@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	domain "backend/internal/domain/portfolio"
-	"backend/internal/service"
+	domain "github.com/dev-superbear/nexus-backend/internal/domain/portfolio"
+	"github.com/dev-superbear/nexus-backend/internal/service"
 )
 
 // ---------------------------------------------------------------------------

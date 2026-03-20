@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/hibiken/asynq"
 
-	"backend/internal/repository"
+	"github.com/dev-superbear/nexus-backend/internal/repository"
 )
 
 // Task type constants for marketplace async workers.

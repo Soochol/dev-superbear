@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 
-	mkt "backend/internal/domain/marketplace"
+	mkt "github.com/dev-superbear/nexus-backend/internal/domain/marketplace"
 )
 
 // MarketplaceRepo wraps direct SQL access for marketplace tables.

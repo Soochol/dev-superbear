@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"time"
 
-	domain "backend/internal/domain/portfolio"
+	domain "github.com/dev-superbear/nexus-backend/internal/domain/portfolio"
 )
 
 // ---------------------------------------------------------------------------

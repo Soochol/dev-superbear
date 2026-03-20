@@ -9,8 +9,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 
-	mkt "backend/internal/domain/marketplace"
-	"backend/internal/repository"
+	mkt "github.com/dev-superbear/nexus-backend/internal/domain/marketplace"
+	"github.com/dev-superbear/nexus-backend/internal/repository"
 )
 
 // ForkService implements the deep-copy fork engine for marketplace items.
