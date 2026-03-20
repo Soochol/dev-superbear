@@ -1,3 +1,6 @@
+/**
+ * @jest-environment jsdom
+ */
 import { render, screen } from "@testing-library/react";
 import { SearchResults } from "../ui/SearchResults";
 import { useSearchStore } from "../model/search.store";

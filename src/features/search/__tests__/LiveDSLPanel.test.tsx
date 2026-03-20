@@ -1,6 +1,20 @@
-import { render, screen } from "@testing-library/react";
+/** @jest-environment jsdom */
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { LiveDSLPanel } from "../ui/LiveDSLPanel";
 import { useSearchStore } from "../model/search.store";
+
+import { searchApi } from "../api/search-api";
+
+jest.mock("../api/search-api", () => ({
+  searchApi: {
+    nlSearch: jest.fn(),
+    dslSearch: jest.fn(),
+    validate: jest.fn(),
+    explain: jest.fn(),
+  },
+}));
+
+const mockedApi = searchApi as jest.Mocked<typeof searchApi>;
 
 beforeEach(() => {
   useSearchStore.setState(useSearchStore.getInitialState());
@@ -47,5 +61,15 @@ describe("LiveDSLPanel", () => {
     render(<LiveDSLPanel />);
     expect(screen.getByRole("button", { name: /copy/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /run/i })).toBeInTheDocument();
+  });
+
+  it("calls dslSearch when Run button is clicked", async () => {
+    mockedApi.dslSearch.mockResolvedValue({ results: [] });
+    useSearchStore.setState({ dslCode: "scan where volume > 1000000" });
+    render(<LiveDSLPanel />);
+    fireEvent.click(screen.getByRole("button", { name: /run/i }));
+    await waitFor(() => {
+      expect(mockedApi.dslSearch).toHaveBeenCalledWith("scan where volume > 1000000");
+    });
   });
 });

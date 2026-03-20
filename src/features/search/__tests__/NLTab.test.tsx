@@ -1,6 +1,20 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+/** @jest-environment jsdom */
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { NLTab } from "../ui/NLTab";
 import { useSearchStore } from "../model/search.store";
+
+import { searchApi } from "../api/search-api";
+
+jest.mock("../api/search-api", () => ({
+  searchApi: {
+    nlSearch: jest.fn(),
+    dslSearch: jest.fn(),
+    validate: jest.fn(),
+    explain: jest.fn(),
+  },
+}));
+
+const mockedApi = searchApi as jest.Mocked<typeof searchApi>;
 
 beforeEach(() => {
   useSearchStore.setState(useSearchStore.getInitialState());
@@ -35,5 +49,23 @@ describe("NLTab", () => {
   it("has a search button", () => {
     render(<NLTab />);
     expect(screen.getByRole("button", { name: /검색|search/i })).toBeInTheDocument();
+  });
+
+  it("calls NL search API when Search button is clicked", async () => {
+    mockedApi.nlSearch.mockResolvedValue({
+      dsl: "scan where volume > 1000000",
+      explanation: "test",
+      results: [{ symbol: "005930", name: "삼성전자", matchedValue: 100 }],
+    });
+
+    useSearchStore.setState({ nlQuery: "거래량 많은 종목" });
+    render(<NLTab />);
+
+    const searchBtn = screen.getByRole("button", { name: /search/i });
+    fireEvent.click(searchBtn);
+
+    await waitFor(() => {
+      expect(mockedApi.nlSearch).toHaveBeenCalledWith("거래량 많은 종목");
+    });
   });
 });

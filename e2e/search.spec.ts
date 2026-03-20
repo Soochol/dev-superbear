@@ -152,3 +152,140 @@ test.describe("Search Page", () => {
     );
   });
 });
+
+test.describe("Search Flow", () => {
+  test("NL search: type query → click Search → see results", async ({ page }) => {
+    await page.route("**/api/v1/search/nl-to-dsl", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          dsl: "scan where volume > 1000000",
+          explanation: "거래량 100만 이상",
+          results: [
+            { symbol: "005930", name: "삼성전자", matchedValue: 28400000, close: 71000, changePct: 1.5 },
+            { symbol: "000660", name: "SK하이닉스", matchedValue: 15200000, close: 195000, changePct: -0.3 },
+          ],
+        }),
+      });
+    });
+
+    await page.goto("/search");
+    const textarea = page.getByPlaceholder("자연어로 검색 조건을 입력하세요...");
+    await textarea.fill("거래량 많은 종목");
+    await page.getByRole("button", { name: "Search" }).click();
+
+    await expect(page.getByText("삼성전자")).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText("SK하이닉스")).toBeVisible();
+    await expect(page.getByText("2개 종목")).toBeVisible();
+    await expect(page.getByText(/scan/)).toBeVisible();
+  });
+
+  test("DSL search: enter DSL → Run Search → see results", async ({ page }) => {
+    await page.route("**/api/v1/search/execute", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          results: [
+            { symbol: "035420", name: "NAVER", matchedValue: 5000000, close: 220000, changePct: 2.1 },
+          ],
+        }),
+      });
+    });
+
+    await page.goto("/search");
+    await page.getByRole("button", { name: "DSL" }).click();
+    const editor = page.getByTestId("dsl-editor-container");
+    await editor.click();
+    await page.keyboard.type("scan where volume > 5000000");
+    await page.getByRole("button", { name: "Run Search" }).click();
+
+    await expect(page.getByText("NAVER")).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText("1개 종목")).toBeVisible();
+  });
+
+  test("DSL validate: enter DSL → Validate → see validation badge", async ({ page }) => {
+    await page.route("**/api/v1/search/validate", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ valid: true, error: null }),
+      });
+    });
+
+    await page.goto("/search");
+    await page.getByRole("button", { name: "DSL" }).click();
+    const editor = page.getByTestId("dsl-editor-container");
+    await editor.click();
+    await page.keyboard.type("scan where volume > 1000000");
+    await page.getByRole("button", { name: "Validate" }).click();
+
+    await expect(page.getByText("Validated")).toBeVisible({ timeout: 5000 });
+  });
+
+  test("NL search via preset chip: click chip → click Search → see results", async ({ page }) => {
+    await page.route("**/api/v1/search/nl-to-dsl", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          dsl: "scan where rsi(14) < 30",
+          explanation: "RSI 과매도",
+          results: [{ symbol: "003550", name: "LG", matchedValue: 28.5, close: 95000, changePct: -1.2 }],
+        }),
+      });
+    });
+
+    await page.goto("/search");
+    await page.getByRole("button", { name: "RSI Oversold" }).click();
+    await page.getByRole("button", { name: "Search" }).click();
+
+    await expect(page.getByText("LG")).toBeVisible({ timeout: 5000 });
+  });
+});
+
+test.describe("Preset Manager", () => {
+  test("save and load a preset", async ({ page }) => {
+    await page.route("**/api/v1/search/presets", async (route) => {
+      if (route.request().method() === "POST") {
+        const body = route.request().postDataJSON();
+        await route.fulfill({
+          status: 201,
+          contentType: "application/json",
+          body: JSON.stringify({
+            data: {
+              id: "new-preset-1",
+              userId: "u1",
+              name: body.name,
+              dsl: body.dsl,
+              nlQuery: body.nlQuery ?? null,
+              isPublic: false,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            },
+          }),
+        });
+      } else {
+        await route.continue();
+      }
+    });
+
+    await page.route("**/api/v1/search/execute", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ results: [] }),
+      });
+    });
+
+    await page.goto("/search");
+    await page.getByRole("button", { name: "DSL" }).click();
+    const editor = page.getByTestId("dsl-editor-container");
+    await editor.click();
+    await page.keyboard.type("scan where volume > 1000000");
+
+    await page.getByRole("button", { name: /save/i }).click();
+    await expect(page.getByText(/Preset/)).toBeVisible({ timeout: 5000 });
+  });
+});

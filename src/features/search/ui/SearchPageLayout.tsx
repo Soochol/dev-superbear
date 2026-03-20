@@ -4,6 +4,7 @@ import { useSearchStore } from "../model/search.store";
 import { NLTab } from "./NLTab";
 import { DSLTab } from "./DSLTab";
 import { LiveDSLPanel } from "./LiveDSLPanel";
+import { PresetManager } from "./PresetManager";
 import { SearchResults } from "./SearchResults";
 
 export function SearchPageLayout() {
@@ -40,6 +41,7 @@ export function SearchPageLayout() {
       </div>
 
       <LiveDSLPanel />
+      <PresetManager />
       <SearchResults />
     </div>
   );
