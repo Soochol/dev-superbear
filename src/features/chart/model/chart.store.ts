@@ -14,8 +14,6 @@ interface ChartState {
   setIsLoading: (v: boolean) => void;
   activeIndicators: string[];
   toggleIndicator: (id: string) => void;
-  activeSubIndicators: string[];
-  toggleSubIndicator: (id: string) => void;
   bottomPanelTab: BottomPanelTab;
   setBottomPanelTab: (tab: BottomPanelTab) => void;
 }
@@ -35,13 +33,6 @@ export const useChartStore = create<ChartState>()((set) => ({
       activeIndicators: state.activeIndicators.includes(id)
         ? state.activeIndicators.filter((i) => i !== id)
         : [...state.activeIndicators, id],
-    })),
-  activeSubIndicators: [],
-  toggleSubIndicator: (id) =>
-    set((state) => ({
-      activeSubIndicators: state.activeSubIndicators.includes(id)
-        ? state.activeSubIndicators.filter((i) => i !== id)
-        : [...state.activeSubIndicators, id],
     })),
   bottomPanelTab: "financials",
   setBottomPanelTab: (tab) => set({ bottomPanelTab: tab }),

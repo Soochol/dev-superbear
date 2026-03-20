@@ -3,7 +3,6 @@
 import { MainChart } from "@/features/chart";
 import { ChartTopbar } from "./ChartTopbar";
 import { StockListSidebar } from "@/widgets/stock-list-sidebar";
-import { SubIndicatorPanel } from "@/widgets/sub-indicator-panel";
 import { BottomInfoPanel } from "@/widgets/bottom-info-panel";
 
 export function ChartPageLayout() {
@@ -15,7 +14,6 @@ export function ChartPageLayout() {
           <div className="flex-1 min-h-0">
             <MainChart />
           </div>
-          <SubIndicatorPanel />
         </div>
         <div className="w-72 border-l border-nexus-border flex-shrink-0">
           <StockListSidebar />
