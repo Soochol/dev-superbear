@@ -4,7 +4,32 @@ import { useChartStore } from "@/features/chart";
 import { useSearchModalStore } from "@/widgets/stock-search-modal";
 import type { Timeframe } from "@/features/chart";
 
-const TIMEFRAMES: Timeframe[] = ["1m", "5m", "15m", "1H", "1D", "1W", "1M"];
+const TIMEFRAME_GROUPS: { label: string; items: { tf: Timeframe; display: string }[] }[] = [
+  {
+    label: "min",
+    items: [
+      { tf: "1m", display: "1" },
+      { tf: "5m", display: "5" },
+      { tf: "15m", display: "15" },
+      { tf: "30m", display: "30" },
+    ],
+  },
+  {
+    label: "hour",
+    items: [
+      { tf: "1H", display: "1H" },
+      { tf: "4H", display: "4H" },
+    ],
+  },
+  {
+    label: "day",
+    items: [
+      { tf: "1D", display: "D" },
+      { tf: "1W", display: "W" },
+      { tf: "1M", display: "M" },
+    ],
+  },
+];
 
 export function ChartTopbar() {
   const { currentStock, timeframe, setTimeframe } = useChartStore();
@@ -37,19 +62,27 @@ export function ChartTopbar() {
           </span>
         )}
       </button>
-      <div className="flex gap-1">
-        {TIMEFRAMES.map((tf) => (
-          <button
-            key={tf}
-            onClick={() => setTimeframe(tf)}
-            className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
-              timeframe === tf
-                ? "bg-nexus-accent text-white"
-                : "text-nexus-text-secondary hover:text-nexus-text-primary"
-            }`}
-          >
-            {tf}
-          </button>
+      <div className="flex items-center">
+        {TIMEFRAME_GROUPS.map((group, gi) => (
+          <div key={group.label} className="flex items-center">
+            {gi > 0 && <div className="w-px h-4 bg-nexus-border mx-1.5" />}
+            <div className="flex gap-0.5">
+              {group.items.map(({ tf, display }) => (
+                <button
+                  key={tf}
+                  data-testid={`tf-${tf}`}
+                  onClick={() => setTimeframe(tf)}
+                  className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+                    timeframe === tf
+                      ? "bg-nexus-accent text-white"
+                      : "text-nexus-text-secondary hover:text-nexus-text-primary"
+                  }`}
+                >
+                  {display}
+                </button>
+              ))}
+            </div>
+          </div>
         ))}
       </div>
     </div>
