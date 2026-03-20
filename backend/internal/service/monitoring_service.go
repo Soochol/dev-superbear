@@ -61,21 +61,14 @@ func (s *MonitoringService) ToggleCaseMonitoring(caseID string, enabled bool, ke
 		return fmt.Errorf("update monitor blocks: %w", err)
 	}
 
-	if !keepDSLPolling && !enabled {
+	// DSL 폴링: 활성화 시 항상 켜고, 비활성화 시 keepDSLPolling이 아니면 끔
+	if enabled || !keepDSLPolling {
 		err = s.queries.UpdateCaseDSLPollingEnabled(ctx, sqlc.UpdateCaseDSLPollingEnabledParams{
 			ID:                id,
-			DslPollingEnabled: false,
+			DslPollingEnabled: enabled,
 		})
 		if err != nil {
-			return fmt.Errorf("disable dsl polling: %w", err)
-		}
-	} else if enabled {
-		err = s.queries.UpdateCaseDSLPollingEnabled(ctx, sqlc.UpdateCaseDSLPollingEnabledParams{
-			ID:                id,
-			DslPollingEnabled: true,
-		})
-		if err != nil {
-			return fmt.Errorf("enable dsl polling: %w", err)
+			return fmt.Errorf("update dsl polling: %w", err)
 		}
 	}
 
