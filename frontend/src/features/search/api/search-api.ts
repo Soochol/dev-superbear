@@ -31,7 +31,7 @@ export const searchApi = {
   async dslSearch(dsl: string): Promise<DSLSearchResponse> {
     return apiClient<DSLSearchResponse>("/api/v1/search/execute", {
       method: "POST",
-      body: JSON.stringify({ dslCode: dsl }),
+      body: JSON.stringify({ dsl }),
     });
   },
 

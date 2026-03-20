@@ -60,7 +60,7 @@ func (r *PresetRepository) FindMany(ctx context.Context, userID string, limit, o
 	}
 	defer rows.Close()
 
-	var presets []SearchPreset
+	presets := []SearchPreset{}
 	for rows.Next() {
 		var p SearchPreset
 		if err := rows.Scan(&p.ID, &p.UserID, &p.Name, &p.DSL, &p.NLQuery, &p.IsPublic, &p.CreatedAt, &p.UpdatedAt); err != nil {
@@ -101,12 +101,19 @@ func (r *PresetRepository) Create(ctx context.Context, params CreatePresetParams
 
 // Delete removes a preset owned by the specified user.
 func (r *PresetRepository) Delete(ctx context.Context, id, userID string) error {
-	_, err := r.db.ExecContext(ctx,
+	result, err := r.db.ExecContext(ctx,
 		`DELETE FROM search_presets WHERE id = $1 AND user_id = $2`,
 		id, userID,
 	)
 	if err != nil {
 		return fmt.Errorf("delete preset: %w", err)
+	}
+	n, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("delete preset check rows: %w", err)
+	}
+	if n == 0 {
+		return fmt.Errorf("preset not found or not owned by user")
 	}
 	return nil
 }

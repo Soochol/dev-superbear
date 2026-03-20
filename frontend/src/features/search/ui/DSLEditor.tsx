@@ -90,7 +90,7 @@ export function DSLEditor({
     return () => {
       view.destroy();
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- Editor created once on mount; external dslCode changes handled by sync useEffect below
 
   // Sync when dslCode changes externally (e.g., NL agent generates DSL)
   useEffect(() => {

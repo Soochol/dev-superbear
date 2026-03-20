@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useSearchStore } from "../model/search.store";
 import { highlightDSL } from "@/shared/lib/dsl/highlight";
 
@@ -7,9 +8,17 @@ export function LiveDSLPanel() {
   const { dslCode, validationState } = useSearchStore();
   const hasCode = dslCode.trim().length > 0;
   const tokens = hasCode ? highlightDSL(dslCode) : [];
+  const [copyLabel, setCopyLabel] = useState("Copy");
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(dslCode);
+    try {
+      await navigator.clipboard.writeText(dslCode);
+      setCopyLabel("Copied!");
+      setTimeout(() => setCopyLabel("Copy"), 2000);
+    } catch {
+      setCopyLabel("Failed");
+      setTimeout(() => setCopyLabel("Copy"), 2000);
+    }
   };
 
   return (
@@ -47,7 +56,7 @@ export function LiveDSLPanel() {
               className="px-3 py-1 text-xs rounded bg-nexus-border text-nexus-text-secondary
                          hover:text-nexus-text-primary transition-colors"
             >
-              Copy
+              {copyLabel}
             </button>
             <button
               aria-label="Run Search"

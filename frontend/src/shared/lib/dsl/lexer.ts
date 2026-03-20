@@ -79,6 +79,7 @@ export class Lexer {
     const start = this.pos;
     this.pos++; // skip opening quote
     while (this.pos < this.input.length && this.input[this.pos] !== quote) {
+      if (this.input[this.pos] === "\\") this.pos++; // skip escaped char
       this.pos++;
     }
     if (this.pos < this.input.length) this.pos++; // skip closing quote

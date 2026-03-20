@@ -6,19 +6,29 @@ import (
 )
 
 type SearchResult struct {
-	Symbol       string      `json:"symbol"`
-	Name         string      `json:"name"`
-	MatchedValue any `json:"matchedValue"`
-	Close        *float64    `json:"close,omitempty"`
-	Volume       *int64      `json:"volume,omitempty"`
-	TradeValue   *float64    `json:"tradeValue,omitempty"`
-	Change       *float64    `json:"change,omitempty"`
-	ChangePct    *float64    `json:"changePct,omitempty"`
+	Symbol string `json:"symbol"`
+	Name   string `json:"name"`
+	// MatchedValue holds the value that matched the scan condition.
+	// Concrete types: float64 for numeric matches, string for text matches.
+	MatchedValue any      `json:"matchedValue"`
+	Close        *float64 `json:"close,omitempty"`
+	Volume       *int64   `json:"volume,omitempty"`
+	TradeValue   *float64 `json:"tradeValue,omitempty"`
+	Change       *float64 `json:"change,omitempty"`
+	ChangePct    *float64 `json:"changePct,omitempty"`
 }
 
+// SortDirection represents the direction of a sort operation.
+type SortDirection string
+
+const (
+	SortAsc  SortDirection = "asc"
+	SortDesc SortDirection = "desc"
+)
+
 type SortSpec struct {
-	Field     string `json:"field"`
-	Direction string `json:"direction"`
+	Field     string        `json:"field"`
+	Direction SortDirection `json:"direction"`
 }
 
 type ParsedScanQuery struct {

@@ -13,7 +13,8 @@ export function ResultsTable() {
   const handleChartClick = (symbol: string) => {
     setSearchResults(results);
     setSelectedSymbol(symbol);
-    addToRecent(results.find((r) => r.symbol === symbol)!);
+    const found = results.find((r) => r.symbol === symbol);
+    if (found) addToRecent(found);
     router.push(`/chart?symbol=${symbol}`);
   };
 

@@ -33,7 +33,7 @@ func TestSearchHandler_Execute(t *testing.T) {
 	r := setupSearchRouter()
 
 	t.Run("returns results for valid DSL", func(t *testing.T) {
-		body, _ := json.Marshal(map[string]string{"dslCode": "scan where volume > 1000000"})
+		body, _ := json.Marshal(map[string]string{"dsl": "scan where volume > 1000000"})
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/search/execute", bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
@@ -41,13 +41,13 @@ func TestSearchHandler_Execute(t *testing.T) {
 		r.ServeHTTP(w, req)
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var resp map[string]interface{}
+		var resp map[string]any
 		err := json.Unmarshal(w.Body.Bytes(), &resp)
 		require.NoError(t, err)
 		assert.Contains(t, resp, "results")
 	})
 
-	t.Run("rejects missing dslCode", func(t *testing.T) {
+	t.Run("rejects missing dsl", func(t *testing.T) {
 		body, _ := json.Marshal(map[string]string{})
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/search/execute", bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
@@ -70,7 +70,7 @@ func TestSearchHandler_Validate(t *testing.T) {
 		r.ServeHTTP(w, req)
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var resp map[string]interface{}
+		var resp map[string]any
 		err := json.Unmarshal(w.Body.Bytes(), &resp)
 		require.NoError(t, err)
 		assert.Equal(t, true, resp["valid"])
@@ -89,7 +89,7 @@ func TestSearchHandler_NLToDSL(t *testing.T) {
 		r.ServeHTTP(w, req)
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var resp map[string]interface{}
+		var resp map[string]any
 		err := json.Unmarshal(w.Body.Bytes(), &resp)
 		require.NoError(t, err)
 		assert.Contains(t, resp, "dsl")
@@ -120,7 +120,7 @@ func TestSearchHandler_Explain(t *testing.T) {
 		r.ServeHTTP(w, req)
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var resp map[string]interface{}
+		var resp map[string]any
 		err := json.Unmarshal(w.Body.Bytes(), &resp)
 		require.NoError(t, err)
 		assert.Contains(t, resp, "explanation")

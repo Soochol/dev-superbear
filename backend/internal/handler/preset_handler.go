@@ -1,9 +1,10 @@
-// Package handler provides Gin HTTP handlers for search preset CRUD.
 package handler
 
 import (
+	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -22,9 +23,9 @@ func NewPresetHandler(repo *repository.PresetRepository) *PresetHandler {
 
 // RegisterRoutes mounts preset routes onto a Gin router group.
 //
-//	GET    /search/presets     → ListPresets
-//	POST   /search/presets     → CreatePreset
-//	DELETE /search/presets/:id → DeletePreset
+//	GET    /search/presets     -> ListPresets
+//	POST   /search/presets     -> CreatePreset
+//	DELETE /search/presets/:id -> DeletePreset
 func (h *PresetHandler) RegisterRoutes(rg *gin.RouterGroup) {
 	presets := rg.Group("/search/presets")
 	{
@@ -37,6 +38,10 @@ func (h *PresetHandler) RegisterRoutes(rg *gin.RouterGroup) {
 // ListPresets returns a paginated list of presets visible to the current user.
 func (h *PresetHandler) ListPresets(c *gin.Context) {
 	userID := c.GetString("userID")
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "authentication required"})
+		return
+	}
 
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
@@ -50,7 +55,8 @@ func (h *PresetHandler) ListPresets(c *gin.Context) {
 
 	result, err := h.repo.FindMany(c.Request.Context(), userID, int32(pageSize), int32(offset))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		slog.Error("failed to list presets", "error", err, "userID", userID)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
 
@@ -77,10 +83,23 @@ type CreatePresetRequest struct {
 // CreatePreset creates a new search preset for the current user.
 func (h *PresetHandler) CreatePreset(c *gin.Context) {
 	userID := c.GetString("userID")
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "authentication required"})
+		return
+	}
 
 	var req CreatePresetRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if len(req.Name) > 255 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "name exceeds maximum length of 255 characters"})
+		return
+	}
+	if len(req.DSL) > 10000 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "DSL exceeds maximum length of 10000 characters"})
 		return
 	}
 
@@ -92,7 +111,8 @@ func (h *PresetHandler) CreatePreset(c *gin.Context) {
 		IsPublic: req.IsPublic,
 	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		slog.Error("failed to create preset", "error", err, "userID", userID)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
 
@@ -102,10 +122,20 @@ func (h *PresetHandler) CreatePreset(c *gin.Context) {
 // DeletePreset removes a preset owned by the current user.
 func (h *PresetHandler) DeletePreset(c *gin.Context) {
 	userID := c.GetString("userID")
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "authentication required"})
+		return
+	}
+
 	presetID := c.Param("id")
 
 	if err := h.repo.Delete(c.Request.Context(), presetID, userID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		if strings.Contains(err.Error(), "not found") {
+			c.JSON(http.StatusNotFound, gin.H{"error": "preset not found"})
+		} else {
+			slog.Error("failed to delete preset", "error", err, "presetID", presetID)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		}
 		return
 	}
 

@@ -39,7 +39,8 @@ export function highlightDSL(code: string): HighlightedToken[] {
         text: t.value,
         className: TOKEN_COLORS[t.type] ?? "text-nexus-text-primary",
       }));
-  } catch {
+  } catch (err) {
+    console.error("[highlightDSL] Lexer failed for input:", code, err);
     return [{ text: code, className: "text-nexus-text-primary" }];
   }
 }
