@@ -4,7 +4,6 @@ import { ChartPageLayout } from "../ui/ChartPageLayout";
 
 jest.mock("../ui/ChartTopbar", () => ({ ChartTopbar: () => <div data-testid="topbar" /> }));
 jest.mock("@/widgets/stock-list-sidebar", () => ({ StockListSidebar: () => <div data-testid="sidebar" /> }));
-jest.mock("@/widgets/sub-indicator-panel", () => ({ SubIndicatorPanel: () => <div data-testid="sub-panel" /> }));
 jest.mock("@/widgets/bottom-info-panel", () => ({ BottomInfoPanel: () => <div data-testid="bottom-panel" /> }));
 jest.mock("@/features/chart", () => ({
   MainChart: () => <div data-testid="main-chart" />,

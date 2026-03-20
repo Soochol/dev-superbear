@@ -34,11 +34,6 @@ describe("Chart Store", () => {
     expect(useChartStore.getState().activeIndicators).toContain("ma20");
   });
 
-  it("manages sub-indicator panels", () => {
-    useChartStore.getState().toggleSubIndicator("rsi");
-    expect(useChartStore.getState().activeSubIndicators).toContain("rsi");
-  });
-
   it("tracks candle data loading state", () => {
     useChartStore.getState().setIsLoading(true);
     expect(useChartStore.getState().isLoading).toBe(true);
