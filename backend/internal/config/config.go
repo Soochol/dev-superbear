@@ -13,6 +13,7 @@ type Config struct {
 	KISAppKey          string
 	KISAppSecret       string
 	KISBaseURL         string
+	DARTApiKey         string
 }
 
 func Load() *Config {
@@ -27,6 +28,7 @@ func Load() *Config {
 		KISAppKey:          getEnv("KIS_APP_KEY", ""),
 		KISAppSecret:       getEnv("KIS_APP_SECRET", ""),
 		KISBaseURL:         getEnv("KIS_BASE_URL", "https://openapi.koreainvestment.com:9443"),
+		DARTApiKey:         getEnv("DART_API_KEY", ""),
 	}
 }
 
