@@ -87,17 +87,20 @@ func (h *SearchHandler) NLToDSL(c *gin.Context) {
 		return
 	}
 
-	// SSE headers
+	// Critical: start stream BEFORE committing SSE headers so pre-stream
+	// failures (semaphore full, invalid config) return proper HTTP errors.
+	events, err := h.nlSvc.Stream(c.Request.Context(), req.Query)
+	if err != nil {
+		slog.Error("failed to start NL stream", "error", err)
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "search service temporarily unavailable"})
+		return
+	}
+
+	// SSE headers — only after stream is established
 	c.Header("Content-Type", "text/event-stream")
 	c.Header("Cache-Control", "no-cache")
 	c.Header("Connection", "keep-alive")
 	c.Status(http.StatusOK)
-
-	events, err := h.nlSvc.Stream(c.Request.Context(), req.Query)
-	if err != nil {
-		writeSSE(c, "error", gin.H{"message": err.Error()})
-		return
-	}
 
 	var finalDSL string
 	for event := range events {
@@ -110,10 +113,13 @@ func (h *SearchHandler) NLToDSL(c *gin.Context) {
 	if finalDSL != "" {
 		results, err := h.searchSvc.Execute(c.Request.Context(), finalDSL)
 		if err != nil {
-			writeSSE(c, "error", gin.H{"message": "DSL execution failed: " + err.Error()})
+			slog.Error("DSL execution failed after NL conversion", "error", err)
+			writeSSE(c, "error", gin.H{"message": "internal server error"})
 			return
 		}
 		writeSSE(c, "done", gin.H{"results": results, "count": len(results)})
+	} else {
+		writeSSE(c, "error", gin.H{"message": "LLM did not produce a valid DSL query"})
 	}
 }
 
@@ -138,7 +144,12 @@ func (h *SearchHandler) Explain(c *gin.Context) {
 }
 
 func writeSSE(c *gin.Context, eventType string, data any) {
-	b, _ := json.Marshal(data)
+	b, err := json.Marshal(data)
+	if err != nil {
+		slog.Error("failed to marshal SSE event", "type", eventType, "error", err)
+		b, _ = json.Marshal(gin.H{"message": "internal serialization error"})
+		eventType = "error"
+	}
 	fmt.Fprintf(c.Writer, "event: %s\ndata: %s\n\n", eventType, b)
 	c.Writer.Flush()
 }

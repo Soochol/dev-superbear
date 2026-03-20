@@ -32,7 +32,8 @@ export function parseSSEBuffer(buffer: string): ParseResult {
         const parsed = JSON.parse(data);
         events.push({ type: eventType, ...parsed } as SSEEvent);
       } catch {
-        // skip malformed events
+        console.error(`[SSE] Failed to parse event: type=${eventType}, data=${data}`);
+        events.push({ type: "error", message: `Malformed server event: ${eventType}` } as SSEEvent);
       }
     }
   }

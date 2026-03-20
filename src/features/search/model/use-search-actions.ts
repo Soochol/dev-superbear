@@ -109,8 +109,10 @@ export function createSearchActions(getState: GetState, setState: SetState) {
       const response = await searchApi.explain(dslCode);
       setState({ explanation: response.explanation });
     } catch (err) {
-      setState({ explanation: "" });
       console.error("explainDSL failed:", err);
+      setState({
+        explanation: extractErrorMessage(err, "설명을 가져올 수 없습니다. 다시 시도해 주세요."),
+      });
     }
   }
 

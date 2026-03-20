@@ -178,7 +178,10 @@ func (s *Server) successResponse(id any, result any) []byte {
 		ID:      id,
 		Result:  result,
 	}
-	b, _ := json.Marshal(resp)
+	b, err := json.Marshal(resp)
+	if err != nil {
+		return s.errorResponse(id, -32603, "internal: failed to marshal response")
+	}
 	return b
 }
 
@@ -188,7 +191,11 @@ func (s *Server) errorResponse(id any, code int, message string) []byte {
 		ID:      id,
 		Error:   rpcError{Code: code, Message: message},
 	}
-	b, _ := json.Marshal(resp)
+	b, err := json.Marshal(resp)
+	if err != nil {
+		// Last-resort fallback — hardcoded valid JSON-RPC error
+		return []byte(`{"jsonrpc":"2.0","id":null,"error":{"code":-32603,"message":"internal marshal error"}}`)
+	}
 	return b
 }
 
