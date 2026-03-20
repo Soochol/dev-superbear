@@ -1,0 +1,14 @@
+{"type":"server-started","port":63827,"host":"0.0.0.0","url_host":"localhost","url":"http://localhost:63827","screen_dir":"/home/dev/code/dev-superbear/.superpowers/brainstorm/31686-1773969788"}
+{"type":"screen-added","file":"/home/dev/code/dev-superbear/.superpowers/brainstorm/31686-1773969788/gap-analysis.html"}
+{"type":"screen-added","file":"/home/dev/code/dev-superbear/.superpowers/brainstorm/31686-1773969788/dashboard-design.html"}
+{"source":"user-event","type":"click","text":"A\n    \n      현재 유지 (변경 없음)\n      Dashboard는 이미 충분. 새 페이지(모니터링/포트폴리오/마켓플레이스)는 사이드바에서 직접 접근하면 됨. Dashboard를 가볍게 유지.","choice":"a","id":null,"timestamp":1773970610159}
+{"source":"user-event","type":"click","text":"B\n    \n      포트폴리오 요약 추가\n      stat-grid에 \"Total P&L\" (총 손익), \"Portfolio Value\" (포트폴리오 가치) 추가. 하단에 포트폴리오 미니 요약 카드 (보유 종목 수, 실현/미실현 손익) 추가.","choice":"b","id":null,"timestamp":1773970610596}
+{"source":"user-event","type":"click","text":"A\n    \n      현재 유지 (변경 없음)\n      Dashboard는 이미 충분. 새 페이지(모니터링/포트폴리오/마켓플레이스)는 사이드바에서 직접 접근하면 됨. Dashboard를 가볍게 유지.","choice":"a","id":null,"timestamp":1773970611628}
+{"source":"user-event","type":"click","text":"B\n    \n      포트폴리오 요약 추가\n      stat-grid에 \"Total P&L\" (총 손익), \"Portfolio Value\" (포트폴리오 가치) 추가. 하단에 포트폴리오 미니 요약 카드 (보유 종목 수, 실현/미실현 손익) 추가.","choice":"b","id":null,"timestamp":1773970613115}
+{"source":"user-event","type":"click","text":"C\n    \n      3열 그리드로 확장\n      현재 2열(Cases + Alerts)을 3열로: Live Cases | Recent Alerts | Monitoring Status. 모니터링 상태 카드에 현재 동작 중인 cron 블록 수, 최근 실행 결과, 다음 실행 시간 표시.","choice":"c","id":null,"timestamp":1773970613807}
+{"source":"user-event","type":"click","text":"D\n    \n      풀 대시보드 (B + C 결합)\n      stat-grid에 포트폴리오 지표 추가 + 3열 하단 그리드 (Cases | Alerts | Monitoring). 전체 플랫폼의 한눈에 보기.","choice":"d","id":null,"timestamp":1773970614454}
+{"type":"screen-added","file":"/home/dev/code/dev-superbear/.superpowers/brainstorm/31686-1773969788/search-design.html"}
+{"type":"screen-added","file":"/home/dev/code/dev-superbear/.superpowers/brainstorm/31686-1773969788/chart-design.html"}
+{"type":"screen-added","file":"/home/dev/code/dev-superbear/.superpowers/brainstorm/31686-1773969788/pipeline-design.html"}
+{"type":"screen-added","file":"/home/dev/code/dev-superbear/.superpowers/brainstorm/31686-1773969788/case-design.html"}
+{"type":"server-stopped","reason":"idle timeout"}

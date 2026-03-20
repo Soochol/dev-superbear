@@ -1,0 +1,60 @@
+<h2>Chart 보강 디자인</h2>
+<p class="subtitle">중간 갭 — 하단 패인, 밸류에이션 밴드, 지표 패널, 섹터 비교 풀뷰</p>
+
+<div class="section">
+  <h3>현재 Chart 레이아웃</h3>
+  <div style="background:#0a1020;border:1px solid #1e2a3e;border-radius:12px;padding:16px;margin-bottom:20px;">
+    <div style="display:grid;grid-template-columns:1fr 240px;gap:10px;">
+      <div>
+        <div style="background:#111827;border:1px solid #1e2a3e;border-radius:8px;padding:12px;height:160px;position:relative;">
+          <div style="font-size:10px;color:#5a6478;position:absolute;top:8px;left:12px;">Chart Area (SVG)</div>
+          <div style="position:absolute;bottom:8px;left:12px;display:flex;gap:4px;">
+            <span style="background:rgba(0,230,138,0.12);color:#00e68a;padding:2px 6px;border-radius:4px;font-size:9px;">PER 8.2x</span>
+            <span style="background:rgba(0,212,255,0.12);color:#00d4ff;padding:2px 6px;border-radius:4px;font-size:9px;">RSI 42</span>
+          </div>
+        </div>
+        <div style="font-size:10px;color:#ff5c5c;margin-top:6px;text-align:center;">❌ 하단에 RSI/MACD 패인 없음 · ❌ 매출 성장률 패인 없음</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <div style="background:#111827;border:1px solid #1e2a3e;border-radius:6px;padding:8px;font-size:10px;color:#00e68a;">✅ Financials</div>
+        <div style="background:#111827;border:1px solid #1e2a3e;border-radius:6px;padding:8px;font-size:10px;color:#00d4ff;">✅ AI Fusion</div>
+        <div style="background:#111827;border:1px solid #1e2a3e;border-radius:6px;padding:8px;font-size:10px;color:#60a5fa;">✅ Sector Rank (간략)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h3>추가할 요소</h3>
+
+<div class="options" data-multiselect>
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>기술 지표 하단 패인 (RSI + MACD)</h3>
+      <p>차트 아래에 접이식(collapsible) 패인 2개 추가. RSI 패인(과매수 70/과매도 30 라인), MACD 패인(시그널 크로스, 히스토그램). 각 패인에 ON/OFF 토글.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>매출/이익 성장률 하단 패인</h3>
+      <p>차트 아래에 분기별 매출(Revenue)과 영업이익(Op. Profit) 성장률을 바 차트로 표시. 재무 이벤트 마커(Q3/Q4 Earnings)와 시각적으로 연결. 기술 차트 아래에서 펀더멘탈을 동시에 읽을 수 있는 "회계 × 기술 통합".</p>
+    </div>
+  </div>
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>PER/PBR 밴드 오버레이</h3>
+      <p>메인 차트 위에 과거 PER/PBR 밴드(상한/하한/평균)를 반투명 영역으로 오버레이. 현재 가격이 밸류에이션 밴드 어디에 위치하는지 시각화. "역사적 저평가/고평가 직관".</p>
+    </div>
+  </div>
+  <div class="option" data-choice="d" onclick="toggleSelect(this)">
+    <div class="letter">D</div>
+    <div class="content">
+      <h3>섹터 비교 풀뷰 (사이드바 확장)</h3>
+      <p>현재 간략한 Sector Rank를 풀 비교 테이블로 확장. 동종 업종 5~8개 종목의 PER/ROE/RSI/모멘텀 비교. 복합 스코어링 + 상대 순위. "같은 섹터에서 이 종목이 어디쯤인지".</p>
+    </div>
+  </div>
+</div>
+
+<p class="subtitle" style="margin-top:16px;color:#8b95a8;">복수 선택 가능. 추가 아이디어가 있으면 터미널에 입력하세요.</p>

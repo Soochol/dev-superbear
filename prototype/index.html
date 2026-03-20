@@ -1,0 +1,3318 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEXUS — AI-Native Investment Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ================================================================
+   NEXUS Design System — CSS Variables
+   ================================================================ */
+:root {
+  /* Backgrounds */
+  --nx-bg-deep: #060a12;
+  --nx-bg-base: #0a1020;
+  --nx-bg-surface: #111827;
+  --nx-bg-card: #1a2234;
+  --nx-bg-elevated: #212d42;
+  --nx-bg-hover: #263048;
+
+  /* Accents */
+  --nx-cyan: #00d4ff;
+  --nx-cyan-dim: rgba(0,212,255,0.12);
+  --nx-cyan-glow: rgba(0,212,255,0.25);
+  --nx-amber: #ffb020;
+  --nx-amber-dim: rgba(255,176,32,0.12);
+  --nx-green: #00e68a;
+  --nx-green-dim: rgba(0,230,138,0.12);
+  --nx-red: #ff5c5c;
+  --nx-red-dim: rgba(255,92,92,0.12);
+  --nx-purple: #a78bfa;
+  --nx-purple-dim: rgba(167,139,250,0.12);
+  --nx-blue: #60a5fa;
+  --nx-blue-dim: rgba(96,165,250,0.12);
+
+  /* Text */
+  --nx-text: #e8ecf4;
+  --nx-text-secondary: #8b95a8;
+  --nx-text-muted: #5a6478;
+  --nx-text-dim: #3a4458;
+
+  /* Borders */
+  --nx-border: #1e2a3e;
+  --nx-border-light: #2a3650;
+
+  /* Fonts */
+  --font-display: 'Outfit', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Sizing */
+  --sidebar-w: 64px;
+  --topbar-h: 52px;
+}
+
+/* ================================================================
+   RESET & BASE
+   ================================================================ */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--nx-bg-deep);
+  color: var(--nx-text);
+  overflow: hidden;
+  height: 100vh;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--nx-border-light); border-radius: 3px; }
+
+/* ================================================================
+   LAYOUT
+   ================================================================ */
+.app {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr;
+  grid-template-rows: var(--topbar-h) 1fr;
+  height: 100vh;
+}
+
+/* --- Sidebar --- */
+.sidebar {
+  grid-row: 1 / -1;
+  background: var(--nx-bg-base);
+  border-right: 1px solid var(--nx-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 0;
+  gap: 2px;
+  z-index: 10;
+}
+.sidebar-logo {
+  width: 36px; height: 36px;
+  background: linear-gradient(135deg, var(--nx-cyan), var(--nx-purple));
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 800; font-size: 14px; color: white;
+  margin-bottom: 16px;
+  box-shadow: 0 0 20px var(--nx-cyan-glow);
+}
+.sidebar-item {
+  width: 42px; height: 42px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  color: var(--nx-text-muted);
+  transition: all 0.2s;
+  position: relative;
+  font-size: 18px;
+}
+.sidebar-item:hover { background: var(--nx-bg-hover); color: var(--nx-text-secondary); }
+.sidebar-item.active {
+  background: var(--nx-cyan-dim);
+  color: var(--nx-cyan);
+}
+.sidebar-item.active::before {
+  content: '';
+  position: absolute;
+  left: -12px;
+  width: 3px; height: 20px;
+  background: var(--nx-cyan);
+  border-radius: 0 2px 2px 0;
+}
+.sidebar-item .tooltip {
+  position: absolute;
+  left: 54px;
+  background: var(--nx-bg-elevated);
+  border: 1px solid var(--nx-border-light);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+  color: var(--nx-text);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+  font-family: var(--font-body);
+}
+.sidebar-item:hover .tooltip { opacity: 1; }
+.sidebar-spacer { flex: 1; }
+.sidebar-badge {
+  position: absolute;
+  top: 6px; right: 6px;
+  width: 8px; height: 8px;
+  background: var(--nx-red);
+  border-radius: 50%;
+  border: 2px solid var(--nx-bg-base);
+}
+
+/* --- Topbar --- */
+.topbar {
+  background: var(--nx-bg-base);
+  border-bottom: 1px solid var(--nx-border);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  gap: 16px;
+}
+.topbar-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--nx-text);
+}
+.topbar-breadcrumb {
+  font-size: 12px;
+  color: var(--nx-text-muted);
+}
+.topbar-breadcrumb span { color: var(--nx-text-secondary); }
+.topbar-spacer { flex: 1; }
+.topbar-search {
+  background: var(--nx-bg-surface);
+  border: 1px solid var(--nx-border);
+  border-radius: 8px;
+  padding: 6px 14px;
+  color: var(--nx-text);
+  font-size: 13px;
+  width: 280px;
+  outline: none;
+  font-family: var(--font-body);
+  transition: border-color 0.2s;
+}
+.topbar-search:focus { border-color: var(--nx-cyan); }
+.topbar-search::placeholder { color: var(--nx-text-dim); }
+.topbar-user {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; color: var(--nx-text-secondary);
+}
+.topbar-avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--nx-cyan), var(--nx-blue));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600; color: white;
+}
+
+/* --- Main content --- */
+.main {
+  overflow-y: auto;
+  padding: 24px;
+  background: var(--nx-bg-deep);
+}
+
+/* ================================================================
+   PAGE (show/hide)
+   ================================================================ */
+.page { display: none; }
+.page.active { display: block; animation: fadeIn 0.3s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ================================================================
+   SHARED COMPONENTS
+   ================================================================ */
+
+/* Cards */
+.card {
+  background: var(--nx-bg-surface);
+  border: 1px solid var(--nx-border);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.card:hover { border-color: var(--nx-border-light); }
+.card-header {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--nx-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.card-title {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.card-body { padding: 18px; }
+
+/* Tags */
+.tag {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.5px;
+}
+.tag-live { background: var(--nx-green-dim); color: var(--nx-green); }
+.tag-backtest { background: var(--nx-purple-dim); color: var(--nx-purple); }
+.tag-closed { background: var(--nx-red-dim); color: var(--nx-red); }
+.tag-success { background: var(--nx-green-dim); color: var(--nx-green); }
+.tag-running { background: var(--nx-cyan-dim); color: var(--nx-cyan); }
+.tag-cron { background: var(--nx-amber-dim); color: var(--nx-amber); }
+
+/* Buttons */
+.btn {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 7px 16px;
+  border-radius: 7px;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s;
+}
+.btn-primary { background: var(--nx-cyan-dim); color: var(--nx-cyan); border: 1px solid rgba(0,212,255,0.2); }
+.btn-primary:hover { background: rgba(0,212,255,0.2); }
+.btn-ghost { background: transparent; color: var(--nx-text-secondary); border: 1px solid var(--nx-border); }
+.btn-ghost:hover { background: var(--nx-bg-hover); }
+.btn-success { background: var(--nx-green-dim); color: var(--nx-green); border: 1px solid rgba(0,230,138,0.2); }
+.btn-danger { background: var(--nx-red-dim); color: var(--nx-red); border: 1px solid rgba(255,92,92,0.2); }
+
+/* Stats */
+.stat-grid {
+  display: grid;
+  gap: 12px;
+}
+.stat-box {
+  background: var(--nx-bg-card);
+  border: 1px solid var(--nx-border);
+  border-radius: 10px;
+  padding: 16px;
+}
+.stat-label {
+  font-size: 10px;
+  color: var(--nx-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-family: var(--font-mono);
+  margin-bottom: 6px;
+}
+.stat-value {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 700;
+}
+.stat-sub {
+  font-size: 11px;
+  color: var(--nx-text-muted);
+  margin-top: 2px;
+}
+
+/* Tables */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.table th {
+  text-align: left;
+  font-size: 10px;
+  color: var(--nx-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-family: var(--font-mono);
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--nx-border);
+  font-weight: 500;
+}
+.table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(30,42,62,0.5);
+  vertical-align: middle;
+}
+.table tr:hover td { background: rgba(255,255,255,0.015); }
+
+/* Section */
+.section-title {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.section-title .icon {
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+}
+
+/* Progress bar */
+.progress { height: 4px; background: var(--nx-border); border-radius: 2px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+
+/* ================================================================
+   PAGE 1: DASHBOARD
+   ================================================================ */
+.dash-stats { grid-template-columns: repeat(7, 1fr); margin-bottom: 24px; }
+.dash-grid { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 16px; }
+.case-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid rgba(30,42,62,0.5); }
+.case-row:last-child { border-bottom: none; }
+.case-symbol {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 14px;
+  min-width: 90px;
+}
+.case-name { font-size: 12px; color: var(--nx-text-secondary); min-width: 100px; }
+.case-meta { flex: 1; font-size: 11px; color: var(--nx-text-muted); }
+.case-return {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 14px;
+  min-width: 80px;
+  text-align: right;
+}
+.alert-item {
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.alert-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  margin-top: 4px;
+  flex-shrink: 0;
+}
+.alert-time { font-size: 10px; color: var(--nx-text-dim); margin-top: 2px; font-family: var(--font-mono); }
+
+/* ================================================================
+   PAGE 2: PIPELINE BUILDER
+   ================================================================ */
+.pipeline-layout { display: grid; grid-template-columns: 220px 1fr; gap: 0; min-height: calc(100vh - 100px); }
+.pipeline-palette {
+  background: var(--nx-bg-surface);
+  border: 1px solid var(--nx-border);
+  border-radius: 12px 0 0 12px;
+  padding: 16px;
+  overflow-y: auto;
+}
+.pipeline-canvas {
+  background: var(--nx-bg-surface);
+  border: 1px solid var(--nx-border);
+  border-left: none;
+  border-radius: 0 12px 12px 0;
+  padding: 24px;
+  overflow-y: auto;
+}
+.palette-section { margin-bottom: 20px; }
+.palette-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--nx-text-muted);
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+.palette-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 10px;
+  border-radius: 7px;
+  margin-bottom: 3px;
+  font-size: 12px;
+  cursor: grab;
+  transition: background 0.15s;
+  color: var(--nx-text-secondary);
+}
+.palette-item:hover { background: var(--nx-bg-hover); color: var(--nx-text); }
+.palette-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+/* Pipeline sections */
+.pipe-section {
+  margin-bottom: 24px;
+  position: relative;
+}
+.pipe-section-header {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--nx-border);
+}
+.pipe-section-num {
+  width: 24px; height: 24px;
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 11px; font-weight: 600;
+}
+.pipe-section-title {
+  font-family: var(--font-display);
+  font-size: 14px; font-weight: 600;
+}
+.pipe-section-desc { font-size: 11px; color: var(--nx-text-muted); margin-left: auto; }
+
+/* Pipeline blocks */
+.pipe-stage { margin-bottom: 12px; }
+.pipe-stage-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--nx-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+}
+.pipe-blocks { display: flex; gap: 10px; flex-wrap: wrap; }
+.pipe-block {
+  flex: 1;
+  min-width: 200px;
+  border-radius: 10px;
+  padding: 14px 16px;
+  position: relative;
+  cursor: grab;
+}
+.pipe-block-name { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+.pipe-block-config { font-size: 11px; color: var(--nx-text-muted); margin-bottom: 8px; line-height: 1.5; }
+.pipe-block-output {
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  display: inline-block;
+  font-family: var(--font-mono);
+}
+.pipe-block-drag {
+  position: absolute; top: 8px; right: 10px;
+  color: var(--nx-text-dim); font-size: 12px; cursor: grab;
+}
+.pipe-block-weight {
+  position: absolute; bottom: 8px; right: 10px;
+  font-size: 9px; color: var(--nx-text-muted);
+  background: rgba(255,255,255,0.04);
+  padding: 2px 6px; border-radius: 3px;
+  font-family: var(--font-mono);
+}
+.pipe-block-cron {
+  position: absolute; bottom: 8px; right: 10px;
+  font-size: 9px;
+  padding: 2px 6px; border-radius: 3px;
+  font-family: var(--font-mono);
+}
+
+/* Arrow connector */
+.pipe-arrow {
+  display: flex; flex-direction: column; align-items: center; padding: 4px 0;
+  color: var(--nx-text-dim);
+}
+.pipe-arrow-line { width: 2px; height: 14px; background: var(--nx-border); }
+.pipe-arrow-label { font-size: 9px; color: var(--nx-text-dim); font-family: var(--font-mono); margin-top: 2px; }
+
+/* Block colors */
+.block-cyan { background: var(--nx-cyan-dim); border: 1px solid rgba(0,212,255,0.15); }
+.block-cyan .pipe-block-name { color: var(--nx-cyan); }
+.block-cyan .pipe-block-output { background: rgba(0,212,255,0.15); color: var(--nx-cyan); }
+
+.block-green { background: var(--nx-green-dim); border: 1px solid rgba(0,230,138,0.15); }
+.block-green .pipe-block-name { color: var(--nx-green); }
+.block-green .pipe-block-output { background: rgba(0,230,138,0.15); color: var(--nx-green); }
+
+.block-amber { background: var(--nx-amber-dim); border: 1px solid rgba(255,176,32,0.15); }
+.block-amber .pipe-block-name { color: var(--nx-amber); }
+.block-amber .pipe-block-output { background: rgba(255,176,32,0.15); color: var(--nx-amber); }
+
+.block-purple { background: var(--nx-purple-dim); border: 1px solid rgba(167,139,250,0.15); }
+.block-purple .pipe-block-name { color: var(--nx-purple); }
+.block-purple .pipe-block-output { background: rgba(167,139,250,0.15); color: var(--nx-purple); }
+
+.block-blue { background: var(--nx-blue-dim); border: 1px solid rgba(96,165,250,0.15); }
+.block-blue .pipe-block-name { color: var(--nx-blue); }
+.block-blue .pipe-block-output { background: rgba(96,165,250,0.15); color: var(--nx-blue); }
+
+.block-red { background: var(--nx-red-dim); border: 1px solid rgba(255,92,92,0.15); }
+.block-red .pipe-block-name { color: var(--nx-red); }
+
+/* ================================================================
+   PAGE 3: CASE TIMELINE
+   ================================================================ */
+.case-header-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.timeline {
+  position: relative;
+  padding-left: 36px;
+}
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 13px; top: 0; bottom: 0;
+  width: 2px;
+  background: var(--nx-border);
+}
+.tl-node { position: relative; margin-bottom: 20px; }
+.tl-dot {
+  position: absolute;
+  left: -36px; top: 2px;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 600;
+  z-index: 1;
+  font-family: var(--font-mono);
+}
+.tl-date {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--nx-text-muted);
+  margin-bottom: 6px;
+  display: flex; align-items: center; gap: 8px;
+}
+.tl-card {
+  background: var(--nx-bg-card);
+  border: 1px solid var(--nx-border);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+.tl-card h4 { font-family: var(--font-display); font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+.tl-card p { font-size: 12px; color: var(--nx-text-secondary); line-height: 1.6; }
+.tl-detail-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px;
+}
+.tl-detail {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--nx-border);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+.tl-detail-label { font-size: 9px; color: var(--nx-text-dim); text-transform: uppercase; font-family: var(--font-mono); letter-spacing: 0.5px; margin-bottom: 3px; }
+
+/* ================================================================
+   PAGE 4: CHART
+   ================================================================ */
+.chart-topbar {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 16px;
+  padding: 10px 16px;
+  background: var(--nx-bg-surface);
+  border: 1px solid var(--nx-border);
+  border-radius: 10px;
+}
+.chart-symbol {
+  font-family: var(--font-display);
+  font-size: 18px; font-weight: 700;
+}
+.chart-price {
+  font-family: var(--font-mono);
+  font-size: 16px; font-weight: 600;
+}
+.chart-change { font-family: var(--font-mono); font-size: 13px; }
+.chart-tf-group { display: flex; gap: 2px; margin-left: auto; }
+.chart-tf {
+  padding: 4px 10px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  color: var(--nx-text-muted);
+  transition: all 0.15s;
+}
+.chart-tf:hover { background: var(--nx-bg-hover); color: var(--nx-text); }
+.chart-tf.active { background: var(--nx-cyan-dim); color: var(--nx-cyan); }
+
+.chart-layout { display: grid; grid-template-columns: 1fr 280px; gap: 0; }
+.chart-area {
+  background: var(--nx-bg-surface);
+  border: 1px solid var(--nx-border);
+  border-radius: 12px;
+  padding: 20px;
+  min-height: 340px;
+  position: relative;
+}
+.chart-placeholder {
+  width: 100%; height: 380px;
+}
+
+/* Stock List Panel (replaces old sidebar) */
+.stock-list-panel {
+  grid-column: 2; grid-row: 1 / span 2;
+  display: flex; flex-direction: column;
+  background: var(--nx-bg-surface);
+  border: 1px solid var(--nx-border);
+  border-radius: 0 12px 12px 0;
+  overflow: hidden;
+}
+.stock-tab-bar {
+  display: flex; border-bottom: 1px solid var(--nx-border);
+}
+.stock-tab {
+  flex: 1; padding: 9px 4px; text-align: center;
+  font-size: 11px; color: var(--nx-text-muted);
+  cursor: pointer; border-bottom: 2px solid transparent;
+  transition: all 0.2s; background: none; border-top: none; border-left: none; border-right: none;
+}
+.stock-tab:hover { color: var(--nx-text-secondary); }
+.stock-tab.active { color: var(--nx-cyan); border-bottom-color: var(--nx-cyan); }
+.stock-search-input {
+  margin: 8px; padding: 6px 10px;
+  background: var(--nx-bg-deep); border: 1px solid var(--nx-border);
+  border-radius: 6px; font-size: 11px; color: var(--nx-text);
+  font-family: var(--font-body); outline: none;
+}
+.stock-search-input:focus { border-color: var(--nx-cyan); }
+.stock-search-input::placeholder { color: var(--nx-text-dim); }
+.stock-list { flex: 1; overflow-y: auto; }
+.stock-item {
+  display: flex; align-items: center; padding: 8px 12px;
+  border-bottom: 1px solid rgba(30,42,62,0.3);
+  cursor: pointer; transition: background 0.15s;
+}
+.stock-item:hover { background: var(--nx-bg-hover); }
+.stock-item.active {
+  background: var(--nx-cyan-dim);
+  border-left: 2px solid var(--nx-cyan);
+}
+.stock-item .stock-info { flex: 1; }
+.stock-item .stock-code { font-size: 11px; font-weight: 600; color: var(--nx-text); font-family: var(--font-mono); }
+.stock-item .stock-name { font-size: 9px; color: var(--nx-text-secondary); }
+.stock-item .stock-price { text-align: right; }
+.stock-item .stock-star {
+  font-size: 14px; cursor: pointer; margin-right: 6px;
+  color: var(--nx-text-dim); transition: color 0.15s;
+}
+.stock-item .stock-star.starred { color: var(--nx-amber); }
+.stock-item .stock-star:hover { color: var(--nx-amber); }
+
+/* Chart Info Bottom Panel */
+.chart-info-bottom {
+  grid-column: 1 / -1;
+  display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 1px;
+  background: var(--nx-border);
+  border-radius: 0 0 12px 12px; overflow: hidden;
+  margin-top: 12px;
+}
+.chart-info-bottom > div {
+  background: var(--nx-bg-surface); padding: 14px 16px;
+}
+
+/* Keep old sidebar class for backward compat but hidden */
+.chart-sidebar { display: none; }
+.fin-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; padding: 4px 8px; border-radius: 4px;
+  font-family: var(--font-mono);
+}
+.fin-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 0;
+  font-size: 12px;
+  border-bottom: 1px solid rgba(30,42,62,0.3);
+}
+.fin-row:last-child { border-bottom: none; }
+
+/* ================================================================
+   PAGE 5: BACKTEST
+   ================================================================ */
+.bt-stats { grid-template-columns: repeat(5, 1fr); margin-bottom: 24px; }
+.bt-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+.bt-chart-area {
+  min-height: 260px;
+  position: relative;
+  padding: 12px 0;
+}
+.bt-legend { display: flex; gap: 16px; font-size: 11px; margin-bottom: 12px; }
+.bt-legend-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; vertical-align: middle; }
+.bt-bar-row {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 8px; font-size: 12px;
+}
+.bt-bar { height: 5px; background: var(--nx-border); border-radius: 3px; margin-top: 4px; overflow: hidden; }
+.bt-bar-fill { height: 100%; border-radius: 3px; }
+
+/* Pattern match card */
+.match-card {
+  background: var(--nx-bg-card);
+  border: 1px solid var(--nx-border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+}
+.match-card h4 { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+.match-similarity { font-size: 11px; margin-bottom: 8px; }
+.match-outcome {
+  font-size: 11px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-top: 8px;
+}
+
+/* ================================================================
+   PAGE 6: SEARCH
+   ================================================================ */
+.search-layout { display: grid; grid-template-columns: 1fr 380px; gap: 16px; }
+.search-input-area {
+  background: var(--nx-bg-surface);
+  border: 1px solid var(--nx-border);
+  border-radius: 12px;
+  padding: 24px;
+}
+.search-prompt {
+  width: 100%;
+  background: var(--nx-bg-card);
+  border: 1px solid var(--nx-border);
+  border-radius: 10px;
+  padding: 14px 18px;
+  color: var(--nx-text);
+  font-family: var(--font-body);
+  font-size: 14px;
+  outline: none;
+  resize: vertical;
+  min-height: 100px;
+  transition: border-color 0.2s;
+}
+.search-prompt:focus { border-color: var(--nx-cyan); }
+.search-prompt::placeholder { color: var(--nx-text-dim); }
+
+.search-agent-status {
+  margin-top: 16px;
+  padding: 14px;
+  background: var(--nx-bg-card);
+  border: 1px solid var(--nx-border);
+  border-radius: 10px;
+}
+.agent-status-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 0; font-size: 12px;
+}
+.agent-pulse {
+  width: 8px; height: 8px; border-radius: 50%;
+  animation: pulse 1.5s infinite;
+}
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+.search-result-item {
+  display: flex; align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--nx-border);
+  transition: background 0.15s;
+  cursor: pointer;
+}
+.search-result-item:hover { background: var(--nx-bg-hover); }
+.search-result-item:last-child { border-bottom: none; }
+
+.preset-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.preset-chip {
+  font-size: 11px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  background: var(--nx-bg-card);
+  border: 1px solid var(--nx-border);
+  color: var(--nx-text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.preset-chip:hover { border-color: var(--nx-cyan); color: var(--nx-cyan); }
+
+/* Search Mode Tabs */
+.search-mode-tabs {
+  display: flex; gap: 0; margin-bottom: 16px;
+  border-bottom: 1px solid var(--nx-border);
+}
+.search-mode-tab {
+  padding: 10px 20px;
+  font-size: 13px; font-weight: 600;
+  font-family: var(--font-display);
+  color: var(--nx-text-muted);
+  background: none; border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer; transition: all 0.2s;
+  display: flex; align-items: center; gap: 8px;
+}
+.search-mode-tab:hover { color: var(--nx-text-secondary); }
+.search-mode-tab.active {
+  color: var(--nx-cyan);
+  border-bottom-color: var(--nx-cyan);
+}
+.search-mode-tab .tab-icon { font-size: 14px; }
+
+.search-tab-content { display: none; }
+.search-tab-content.active { display: block; }
+
+/* DSL Editor */
+.dsl-editor {
+  width: 100%;
+  background: var(--nx-bg-deep);
+  border: 1px solid var(--nx-border);
+  border-radius: 10px;
+  padding: 16px 18px;
+  color: var(--nx-cyan);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.8;
+  outline: none;
+  resize: vertical;
+  min-height: 140px;
+  transition: border-color 0.2s;
+  tab-size: 2;
+}
+.dsl-editor:focus { border-color: var(--nx-cyan); box-shadow: 0 0 0 2px rgba(0,212,255,0.1); }
+.dsl-editor::placeholder { color: var(--nx-text-dim); }
+
+.dsl-hint-bar {
+  margin-top: 10px;
+  padding: 10px 14px;
+  background: var(--nx-bg-card);
+  border: 1px solid var(--nx-border);
+  border-radius: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--nx-text-muted);
+  line-height: 1.8;
+}
+.dsl-hint-bar .hint-label {
+  color: var(--nx-text-dim);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+.dsl-hint-bar .hint-fn {
+  display: inline-block;
+  padding: 2px 7px;
+  background: var(--nx-bg-elevated);
+  border-radius: 4px;
+  color: var(--nx-cyan);
+  margin: 2px 3px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.dsl-hint-bar .hint-fn:hover { background: var(--nx-cyan-dim); }
+.dsl-hint-bar .hint-kw {
+  display: inline-block;
+  padding: 2px 7px;
+  background: var(--nx-purple-dim);
+  border-radius: 4px;
+  color: var(--nx-purple);
+  margin: 2px 3px;
+}
+
+.dsl-editor-actions {
+  display: flex; gap: 8px; margin-top: 12px;
+}
+
+/* LIVE DSL Panel */
+.live-dsl-panel {
+  margin-top: 16px;
+  background: var(--nx-bg-card);
+  border: 1px solid var(--nx-border);
+  border-radius: 10px;
+  padding: 14px;
+}
+.live-dsl-header {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;
+}
+.live-dsl-label {
+  font-size: 11px;
+  color: var(--nx-text-muted);
+  font-family: var(--font-mono);
+  display: flex; align-items: center; gap: 8px;
+}
+/* DSL syntax highlight classes */
+.hl-k { color: var(--nx-purple); }
+.hl-f { color: var(--nx-cyan); }
+.hl-s { color: var(--nx-amber); }
+.hl-n { color: var(--nx-amber); }
+
+.live-dsl-code {
+  background: var(--nx-bg-deep);
+  border: 1px solid var(--nx-border);
+  border-radius: 8px;
+  padding: 12px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--nx-text-secondary);
+  min-height: 40px;
+}
+.live-dsl-footer {
+  display: flex; justify-content: space-between; align-items: center; margin-top: 10px;
+}
+.live-dsl-status {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  display: flex; align-items: center; gap: 6px;
+}
+.live-dsl-status.validated { color: var(--nx-green); }
+.live-dsl-status.not-validated { color: var(--nx-amber); }
+.live-dsl-status.error { color: var(--nx-red); }
+
+/* ================================================================
+   UTILITIES
+   ================================================================ */
+.text-cyan { color: var(--nx-cyan); }
+.text-green { color: var(--nx-green); }
+.text-red { color: var(--nx-red); }
+.text-amber { color: var(--nx-amber); }
+.text-purple { color: var(--nx-purple); }
+.text-blue { color: var(--nx-blue); }
+.text-muted { color: var(--nx-text-muted); }
+.text-secondary { color: var(--nx-text-secondary); }
+.text-mono { font-family: var(--font-mono); }
+.fw-600 { font-weight: 600; }
+.fw-700 { font-weight: 700; }
+.mt-12 { margin-top: 12px; }
+.mt-16 { margin-top: 16px; }
+.mb-8 { margin-bottom: 8px; }
+.mb-16 { margin-bottom: 16px; }
+.mb-24 { margin-bottom: 24px; }
+.gap-8 { gap: 8px; }
+.flex { display: flex; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.flex-1 { flex: 1; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- ===== SIDEBAR ===== -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">N</div>
+
+    <div class="sidebar-item active" data-page="dashboard" onclick="showPage('dashboard')">
+      <span>&#9632;</span>
+      <span class="tooltip">Dashboard</span>
+    </div>
+    <div class="sidebar-item" data-page="search" onclick="showPage('search')">
+      <span>&#9740;</span>
+      <span class="tooltip">Search</span>
+    </div>
+    <div class="sidebar-item" data-page="chart" onclick="showPage('chart')">
+      <span>&#9585;</span>
+      <span class="tooltip">Chart</span>
+    </div>
+    <div class="sidebar-item" data-page="pipeline" onclick="showPage('pipeline')">
+      <span>&#9881;</span>
+      <span class="tooltip">Pipeline</span>
+    </div>
+    <div class="sidebar-item" data-page="case" onclick="showPage('case')">
+      <span>&#9776;</span>
+      <span class="tooltip">Case</span>
+    </div>
+    <div class="sidebar-item" data-page="backtest" onclick="showPage('backtest')">
+      <span>&#9716;</span>
+      <span class="tooltip">Backtest</span>
+    </div>
+
+    <div class="sidebar-item" data-page="portfolio" onclick="showPage('portfolio')">
+      <span>&#9830;</span>
+      <span class="tooltip">Portfolio</span>
+    </div>
+
+    <div class="sidebar-spacer"></div>
+
+    <div class="sidebar-item" data-page="alerts" onclick="showPage('alerts')" style="position:relative;">
+      <span>&#9888;</span>
+      <span class="sidebar-badge"></span>
+      <span class="tooltip">Alerts</span>
+    </div>
+    <div class="sidebar-item" data-page="marketplace" onclick="showPage('marketplace')">
+      <span>&#9733;</span>
+      <span class="tooltip">Marketplace</span>
+    </div>
+  </nav>
+
+  <!-- ===== TOPBAR ===== -->
+  <header class="topbar">
+    <div class="topbar-title" id="topbar-title">Dashboard</div>
+    <div class="topbar-breadcrumb" id="topbar-breadcrumb"></div>
+    <div class="topbar-spacer"></div>
+    <input type="text" class="topbar-search" placeholder="Search stocks, cases, pipelines... (Ctrl+K)">
+    <div class="topbar-user">
+      <div class="topbar-avatar">J</div>
+      <span>JK</span>
+    </div>
+  </header>
+
+  <!-- ===== MAIN CONTENT ===== -->
+  <main class="main">
+
+    <!-- ==================== DASHBOARD ==================== -->
+    <div class="page active" id="page-dashboard">
+      <div class="stat-grid dash-stats mb-24">
+        <div class="stat-box">
+          <div class="stat-label">Active Cases</div>
+          <div class="stat-value text-cyan">12</div>
+          <div class="stat-sub">3 new this week</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Avg Return</div>
+          <div class="stat-value text-green">+14.2%</div>
+          <div class="stat-sub">LIVE cases</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Win Rate</div>
+          <div class="stat-value text-green">68%</div>
+          <div class="stat-sub">Closed cases</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Monitoring</div>
+          <div class="stat-value text-amber">47</div>
+          <div class="stat-sub">agent blocks active</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Pipelines</div>
+          <div class="stat-value">8</div>
+          <div class="stat-sub">3 shared</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Portfolio Value</div>
+          <div class="stat-value text-cyan" style="font-size:20px;">248.5M</div>
+          <div class="stat-sub">6 holdings</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Total P&L</div>
+          <div class="stat-value text-green" style="font-size:20px;">+18.7M</div>
+          <div class="stat-sub">+8.1% realized</div>
+        </div>
+      </div>
+
+      <div class="dash-grid">
+        <!-- Cases list -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title text-cyan">Live Cases</span>
+            <button class="btn btn-ghost">View All</button>
+          </div>
+          <div class="card-body">
+            <div class="case-row">
+              <span class="tag tag-live">LIVE</span>
+              <span class="case-symbol">247540</span>
+              <span class="case-name">ecoprobm</span>
+              <span class="case-meta">D+127 &middot; Pipeline: Semi Value &middot; 2 alerts pending</span>
+              <span class="case-return text-red">-18.4%</span>
+            </div>
+            <div class="case-row">
+              <span class="tag tag-live">LIVE</span>
+              <span class="case-symbol">005930</span>
+              <span class="case-name">Samsung</span>
+              <span class="case-meta">D+196 &middot; Pipeline: Earnings Momentum &middot; Near success</span>
+              <span class="case-return text-green">+24.8%</span>
+            </div>
+            <div class="case-row">
+              <span class="tag tag-live">LIVE</span>
+              <span class="case-symbol">028260</span>
+              <span class="case-name">Samsung C&T</span>
+              <span class="case-meta">D+38 &middot; Pipeline: Volume Spike &middot; Sector diverging</span>
+              <span class="case-return text-green">+8.1%</span>
+            </div>
+            <div class="case-row">
+              <span class="tag tag-live">LIVE</span>
+              <span class="case-symbol">068270</span>
+              <span class="case-name">Celltrion</span>
+              <span class="case-meta">D+15 &middot; Pipeline: Bio Catalyst &middot; Awaiting FDA</span>
+              <span class="case-return text-green">+3.2%</span>
+            </div>
+            <div class="case-row">
+              <span class="tag tag-success">SUCCESS</span>
+              <span class="case-symbol">000660</span>
+              <span class="case-name">SK Hynix</span>
+              <span class="case-meta">Closed D+89 &middot; Pipeline: HBM Thesis &middot; Target hit</span>
+              <span class="case-return text-green">+42.1%</span>
+            </div>
+            <div class="case-row">
+              <span class="tag tag-closed">FAILED</span>
+              <span class="case-symbol">373220</span>
+              <span class="case-name">LG Energy</span>
+              <span class="case-meta">Closed D+54 &middot; Pipeline: Semi Value &middot; Stop hit</span>
+              <span class="case-return text-red">-15.2%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Alerts -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title text-amber">Recent Alerts</span>
+            <span class="tag tag-cron">4 new</span>
+          </div>
+          <div class="card-body">
+            <div class="alert-item" style="background:var(--nx-green-dim);">
+              <div class="alert-dot" style="background:var(--nx-green);"></div>
+              <div>
+                <div style="font-size:13px;"><strong>005930</strong> Success condition approaching</div>
+                <div style="font-size:11px;color:var(--nx-text-secondary);">close = 78,400 (target: 82,000 = event_high * 2.0)</div>
+                <div class="alert-time">2 min ago</div>
+              </div>
+            </div>
+            <div class="alert-item" style="background:var(--nx-amber-dim);">
+              <div class="alert-dot" style="background:var(--nx-amber);"></div>
+              <div>
+                <div style="font-size:13px;"><strong>247540</strong> News: IRA rule update</div>
+                <div style="font-size:11px;color:var(--nx-text-secondary);">AI Impact: 7/10 - Policy clarity improving</div>
+                <div class="alert-time">35 min ago</div>
+              </div>
+            </div>
+            <div class="alert-item" style="background:var(--nx-blue-dim);">
+              <div class="alert-dot" style="background:var(--nx-blue);"></div>
+              <div>
+                <div style="font-size:13px;"><strong>028260</strong> Sector decoupling detected</div>
+                <div style="font-size:11px;color:var(--nx-text-secondary);">Correlation dropped from 0.81 to 0.42</div>
+                <div class="alert-time">1h ago</div>
+              </div>
+            </div>
+            <div class="alert-item" style="background:var(--nx-red-dim);">
+              <div class="alert-dot" style="background:var(--nx-red);"></div>
+              <div>
+                <div style="font-size:13px;"><strong>068270</strong> Approaching failure condition</div>
+                <div style="font-size:11px;color:var(--nx-text-secondary);">close = 185,200 (stop: pre_event_ma(120) = 182,500)</div>
+                <div class="alert-time">2h ago</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Monitoring Status -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title text-purple">Monitoring Status</span>
+            <span class="tag tag-live" style="background:var(--nx-green-dim);color:var(--nx-green);">All Running</span>
+          </div>
+          <div class="card-body">
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <div style="background:var(--nx-bg-surface);border:1px solid var(--nx-border);border-radius:8px;padding:10px 14px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                  <span style="font-size:12px;font-weight:600;">News Monitor</span>
+                  <span class="tag tag-cron" style="font-size:9px;">every 6h</span>
+                </div>
+                <div style="font-size:11px;color:var(--nx-text-muted);">8 cases active &middot; Last run: 12 min ago</div>
+                <div style="font-size:10px;color:var(--nx-green);margin-top:2px;">Next: 5h 48m</div>
+              </div>
+              <div style="background:var(--nx-bg-surface);border:1px solid var(--nx-border);border-radius:8px;padding:10px 14px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                  <span style="font-size:12px;font-weight:600;">Disclosure Watch</span>
+                  <span class="tag tag-cron" style="font-size:9px;">daily 18:00</span>
+                </div>
+                <div style="font-size:11px;color:var(--nx-text-muted);">12 cases active &middot; Last run: 21h ago</div>
+                <div style="font-size:10px;color:var(--nx-amber);margin-top:2px;">Next: 2h 15m</div>
+              </div>
+              <div style="background:var(--nx-bg-surface);border:1px solid var(--nx-border);border-radius:8px;padding:10px 14px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                  <span style="font-size:12px;font-weight:600;">Sector Movement</span>
+                  <span class="tag tag-cron" style="font-size:9px;">daily close</span>
+                </div>
+                <div style="font-size:11px;color:var(--nx-text-muted);">10 cases active &middot; Last run: 18h ago</div>
+                <div style="font-size:10px;color:var(--nx-text-dim);margin-top:2px;">Next: market close</div>
+              </div>
+              <div style="background:var(--nx-bg-surface);border:1px solid var(--nx-border);border-radius:8px;padding:10px 14px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                  <span style="font-size:12px;font-weight:600;">Price Polling (DSL)</span>
+                  <span class="tag tag-live" style="font-size:9px;background:var(--nx-green-dim);color:var(--nx-green);">LIVE</span>
+                </div>
+                <div style="font-size:11px;color:var(--nx-text-muted);">12 cases &middot; 1min interval &middot; 3 alerts pending</div>
+                <div style="font-size:10px;color:var(--nx-cyan);margin-top:2px;">Continuous</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== SEARCH ==================== -->
+    <div class="page" id="page-search">
+      <div class="search-layout">
+        <div>
+          <div class="search-input-area mb-16">
+            <!-- Mode Tabs -->
+            <div class="search-mode-tabs">
+              <button class="search-mode-tab active" data-tab="nl" onclick="switchSearchTab('nl')">
+                <span class="tab-icon">&#x1f5e3;</span> 자연어 모드
+              </button>
+              <button class="search-mode-tab" data-tab="dsl" onclick="switchSearchTab('dsl')">
+                <span class="tab-icon">&#x1f4bb;</span> DSL 모드
+              </button>
+            </div>
+
+            <!-- Tab 1: Natural Language -->
+            <div class="search-tab-content active" id="search-tab-nl">
+              <textarea class="search-prompt" placeholder="Search stocks with natural language...&#10;&#10;Example: &quot;Find stocks where 2-year max volume occurred in the last 5 years with trade value over 300 billion KRW&quot;"></textarea>
+              <div class="preset-chips" style="margin-top:12px;">
+                <div class="preset-chip" onclick="applyPreset('2yr Max Volume')">2yr Max Volume</div>
+                <div class="preset-chip" onclick="applyPreset('Golden Cross')">Golden Cross</div>
+                <div class="preset-chip" onclick="applyPreset('Earnings Surprise')">Earnings Surprise</div>
+                <div class="preset-chip" onclick="applyPreset('RSI Oversold')">RSI Oversold</div>
+                <div class="preset-chip" onclick="applyPreset('Sector Breakout')">Sector Breakout</div>
+              </div>
+
+              <div class="search-agent-status mt-16">
+                <div style="font-size:11px;color:var(--nx-text-muted);margin-bottom:8px;font-family:var(--font-mono);">AGENT STATUS</div>
+                <div class="agent-status-row">
+                  <div class="agent-pulse" style="background:var(--nx-green);"></div>
+                  <span class="text-mono" style="font-size:11px;color:var(--nx-green);">Interpreting query...</span>
+                </div>
+                <div class="agent-status-row">
+                  <div class="agent-pulse" style="background:var(--nx-cyan);"></div>
+                  <span class="text-mono" style="font-size:11px;color:var(--nx-cyan);">Building DSL expression</span>
+                </div>
+                <div class="agent-status-row">
+                  <div class="agent-pulse" style="background:var(--nx-amber);opacity:0.4;animation:none;"></div>
+                  <span class="text-mono" style="font-size:11px;color:var(--nx-text-dim);">Scanning 2,100+ stocks...</span>
+                </div>
+                <div class="progress mt-12"><div class="progress-fill" style="width:65%;background:var(--nx-cyan);"></div></div>
+              </div>
+            </div>
+
+            <!-- Tab 2: DSL Editor -->
+            <div class="search-tab-content" id="search-tab-dsl">
+              <textarea class="dsl-editor" id="dsl-editor-input" placeholder="scan market=&quot;KOSPI+KOSDAQ&quot;&#10;  where max_volume(504) == volume&#10;  and trade_value >= 300000000000&#10;sort trade_value desc" spellcheck="false"></textarea>
+
+              <div class="dsl-hint-bar">
+                <div class="hint-label">Available Functions & Keywords</div>
+                <span class="hint-fn" onclick="insertDslHint('max_volume()')">max_volume(days)</span>
+                <span class="hint-fn" onclick="insertDslHint('trade_value')">trade_value</span>
+                <span class="hint-fn" onclick="insertDslHint('close')">close</span>
+                <span class="hint-fn" onclick="insertDslHint('open')">open</span>
+                <span class="hint-fn" onclick="insertDslHint('high')">high</span>
+                <span class="hint-fn" onclick="insertDslHint('low')">low</span>
+                <span class="hint-fn" onclick="insertDslHint('volume')">volume</span>
+                <span class="hint-fn" onclick="insertDslHint('per')">per</span>
+                <span class="hint-fn" onclick="insertDslHint('pbr')">pbr</span>
+                <span class="hint-fn" onclick="insertDslHint('roe')">roe</span>
+                <span class="hint-fn" onclick="insertDslHint('rsi()')">rsi(days)</span>
+                <span class="hint-fn" onclick="insertDslHint('ma()')">ma(days)</span>
+                <span class="hint-fn" onclick="insertDslHint('market_cap')">market_cap</span>
+                <span class="hint-fn" onclick="insertDslHint('sector_avg_per')">sector_avg_per</span>
+                <span class="hint-fn" onclick="insertDslHint('days_since()')">days_since(date_expr)</span>
+                <br style="margin-top:4px;">
+                <span class="hint-kw">scan</span>
+                <span class="hint-kw">where</span>
+                <span class="hint-kw">and</span>
+                <span class="hint-kw">or</span>
+                <span class="hint-kw">sort</span>
+                <span class="hint-kw">desc</span>
+                <span class="hint-kw">asc</span>
+              </div>
+
+              <div class="dsl-editor-actions">
+                <button class="btn btn-ghost" onclick="validateDsl()" style="font-size:12px;">
+                  &#x2713; Validate
+                </button>
+                <button class="btn btn-ghost" onclick="explainDsl()" style="font-size:12px;">
+                  &#x1f4ac; Explain in NL
+                </button>
+              </div>
+
+              <!-- Validate / Explain result area -->
+              <div id="dsl-action-result" style="display:none;margin-top:12px;padding:10px 14px;border-radius:8px;font-size:12px;font-family:var(--font-mono);line-height:1.6;"></div>
+            </div>
+
+            <!-- LIVE DSL Panel (always visible) -->
+            <div class="live-dsl-panel">
+              <div class="live-dsl-header">
+                <div class="live-dsl-label">
+                  LIVE DSL
+                  <span style="font-size:10px;padding:2px 8px;background:var(--nx-cyan-dim);border-radius:4px;color:var(--nx-cyan);">auto-sync</span>
+                </div>
+              </div>
+              <div class="live-dsl-code" id="live-dsl-display">
+                <div><span style="color:var(--nx-purple);">scan</span> market=<span style="color:var(--nx-amber);">"KOSPI+KOSDAQ"</span></div>
+                <div>&nbsp;&nbsp;<span style="color:var(--nx-purple);">where</span> <span style="color:var(--nx-cyan);">max_volume</span>(<span style="color:var(--nx-amber);">504</span>) == <span style="color:var(--nx-cyan);">volume</span></div>
+                <div>&nbsp;&nbsp;<span style="color:var(--nx-purple);">and</span> <span style="color:var(--nx-cyan);">days_since</span>(<span style="color:var(--nx-cyan);">max_volume_date</span>(<span style="color:var(--nx-amber);">504</span>)) &lt;= <span style="color:var(--nx-amber);">1260</span></div>
+                <div>&nbsp;&nbsp;<span style="color:var(--nx-purple);">and</span> <span style="color:var(--nx-cyan);">trade_value</span> &gt;= <span style="color:var(--nx-amber);">300000000000</span></div>
+                <div><span style="color:var(--nx-purple);">sort</span> <span style="color:var(--nx-cyan);">trade_value</span> <span style="color:var(--nx-purple);">desc</span></div>
+              </div>
+              <div class="live-dsl-footer">
+                <div class="live-dsl-status validated" id="live-dsl-status">
+                  &#x2713; Agent validated
+                </div>
+                <div style="display:flex;gap:6px;">
+                  <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="copyLiveDsl()">Copy</button>
+                  <button class="btn btn-primary" style="font-size:11px;padding:4px 14px;">Run Search</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Results -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Results <span class="text-cyan text-mono" style="font-size:12px;margin-left:8px;">18 found</span></span>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <select style="background:var(--nx-bg-surface);border:1px solid var(--nx-border);border-radius:6px;padding:4px 10px;color:var(--nx-text);font-size:12px;font-family:var(--font-body);outline:none;cursor:pointer;">
+                  <option>Semi Value Strategy</option>
+                  <option>Earnings Momentum</option>
+                  <option>Volume Spike</option>
+                  <option>Bio Catalyst</option>
+                </select>
+                <button class="btn btn-primary">Run Pipeline on All</button>
+              </div>
+            </div>
+            <div style="padding:0;">
+              <div class="search-result-item">
+                <span class="text-mono fw-600" style="min-width:80px;">247540</span>
+                <span style="min-width:120px;font-size:13px;">ecoprobm</span>
+                <span class="tag tag-cron" style="margin-right:12px;">Battery</span>
+                <span class="text-secondary" style="flex:1;font-size:12px;">Event: 2025-11-12 &middot; Volume: 28.4M &middot; TradeVal: 4,280B</span>
+                <button class="btn btn-ghost" style="font-size:11px;" onclick="openChart('247540','ecoprobm','124,200','-3.4%')">Chart</button>
+                <button class="btn btn-primary" style="font-size:11px;margin-left:6px;">Pipeline</button>
+              </div>
+              <div class="search-result-item">
+                <span class="text-mono fw-600" style="min-width:80px;">005930</span>
+                <span style="min-width:120px;font-size:13px;">Samsung</span>
+                <span class="tag tag-cron" style="margin-right:12px;">Semi</span>
+                <span class="text-secondary" style="flex:1;font-size:12px;">Event: 2025-09-03 &middot; Volume: 42.1M &middot; TradeVal: 8,120B</span>
+                <button class="btn btn-ghost" style="font-size:11px;" onclick="openChart('005930','Samsung','78,400','+2.1%')">Chart</button>
+                <button class="btn btn-primary" style="font-size:11px;margin-left:6px;">Pipeline</button>
+              </div>
+              <div class="search-result-item">
+                <span class="text-mono fw-600" style="min-width:80px;">000660</span>
+                <span style="min-width:120px;font-size:13px;">SK Hynix</span>
+                <span class="tag tag-cron" style="margin-right:12px;">Semi</span>
+                <span class="text-secondary" style="flex:1;font-size:12px;">Event: 2025-07-18 &middot; Volume: 35.8M &middot; TradeVal: 6,240B</span>
+                <button class="btn btn-ghost" style="font-size:11px;" onclick="openChart('000660','SK Hynix','198,500','+1.8%')">Chart</button>
+                <button class="btn btn-primary" style="font-size:11px;margin-left:6px;">Pipeline</button>
+              </div>
+              <div class="search-result-item">
+                <span class="text-mono fw-600" style="min-width:80px;">068270</span>
+                <span style="min-width:120px;font-size:13px;">Celltrion</span>
+                <span class="tag tag-cron" style="margin-right:12px;">Bio</span>
+                <span class="text-secondary" style="flex:1;font-size:12px;">Event: 2026-03-03 &middot; Volume: 18.2M &middot; TradeVal: 3,380B</span>
+                <button class="btn btn-ghost" style="font-size:11px;" onclick="openChart('068270','Celltrion','185,200','+0.6%')">Chart</button>
+                <button class="btn btn-primary" style="font-size:11px;margin-left:6px;">Pipeline</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Saved searches + Marketplace -->
+        <div class="card" style="height:fit-content;">
+          <div class="card-header" style="padding-bottom:0;">
+            <div style="display:flex;gap:0;border-bottom:1px solid var(--nx-border);width:100%;margin:-4px -16px 0;padding:0 16px;">
+              <div style="padding:6px 14px;font-size:12px;font-weight:600;color:var(--nx-cyan);border-bottom:2px solid var(--nx-cyan);cursor:pointer;">My Searches</div>
+              <div style="padding:6px 14px;font-size:12px;color:var(--nx-text-muted);cursor:pointer;">Marketplace</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <!-- My Searches (active tab) -->
+            <div style="padding:8px 12px;border-radius:8px;margin-bottom:6px;background:var(--nx-bg-card);border:1px solid var(--nx-border);cursor:pointer;">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div style="font-size:13px;font-weight:500;">2yr Max Volume + 3000B</div>
+                <div style="display:flex;gap:4px;">
+                  <button class="btn btn-ghost" style="font-size:9px;padding:1px 6px;" title="Load">&#9998;</button>
+                  <button class="btn btn-ghost" style="font-size:9px;padding:1px 6px;" title="Share">&#8599;</button>
+                  <button class="btn btn-ghost" style="font-size:9px;padding:1px 6px;color:var(--nx-red);" title="Delete">&#10005;</button>
+                </div>
+              </div>
+              <div style="font-size:10px;color:var(--nx-text-muted);margin-top:2px;">Last run: 2h ago &middot; 18 results</div>
+            </div>
+            <div style="padding:8px 12px;border-radius:8px;margin-bottom:6px;background:var(--nx-bg-card);border:1px solid var(--nx-border);cursor:pointer;">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div style="font-size:13px;font-weight:500;">Golden Cross + High Volume</div>
+                <div style="display:flex;gap:4px;">
+                  <button class="btn btn-ghost" style="font-size:9px;padding:1px 6px;">&#9998;</button>
+                  <button class="btn btn-ghost" style="font-size:9px;padding:1px 6px;">&#8599;</button>
+                  <button class="btn btn-ghost" style="font-size:9px;padding:1px 6px;color:var(--nx-red);">&#10005;</button>
+                </div>
+              </div>
+              <div style="font-size:10px;color:var(--nx-text-muted);margin-top:2px;">Last run: 1d ago &middot; 7 results</div>
+            </div>
+            <div style="padding:8px 12px;border-radius:8px;margin-bottom:6px;background:var(--nx-bg-card);border:1px solid var(--nx-border);cursor:pointer;">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div style="font-size:13px;font-weight:500;">RSI Oversold + PER &lt; Industry</div>
+                <div style="display:flex;gap:4px;">
+                  <button class="btn btn-ghost" style="font-size:9px;padding:1px 6px;">&#9998;</button>
+                  <button class="btn btn-ghost" style="font-size:9px;padding:1px 6px;">&#8599;</button>
+                  <button class="btn btn-ghost" style="font-size:9px;padding:1px 6px;color:var(--nx-red);">&#10005;</button>
+                </div>
+              </div>
+              <div style="font-size:10px;color:var(--nx-text-muted);margin-top:2px;">Last run: 3d ago &middot; 12 results</div>
+            </div>
+
+            <!-- Marketplace tab content (hidden, shown on tab click) -->
+            <div style="display:none;">
+              <div style="padding:8px 12px;border-radius:8px;margin-bottom:6px;background:var(--nx-bg-card);border:1px solid rgba(167,139,250,0.15);cursor:pointer;">
+                <div style="font-size:13px;font-weight:500;">Institutional Accumulation</div>
+                <div style="font-size:10px;color:var(--nx-text-muted);margin-top:2px;">by trader_kim &middot; 2.4k uses &middot; 24 results avg</div>
+                <button class="btn btn-ghost" style="font-size:10px;margin-top:4px;color:var(--nx-purple);">Fork</button>
+              </div>
+            </div>
+
+            <!-- Marketplace preview (always visible as teaser) -->
+            <div style="margin-top:12px;padding:10px 12px;border-radius:8px;background:var(--nx-purple-dim);border:1px solid rgba(167,139,250,0.15);">
+              <div style="font-size:10px;font-family:var(--font-mono);color:var(--nx-purple);margin-bottom:6px;">MARKETPLACE POPULAR</div>
+              <div style="padding:6px 0;border-bottom:1px solid rgba(167,139,250,0.08);">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <span style="font-size:12px;font-weight:500;">Institutional Accumulation</span>
+                  <button class="btn btn-ghost" style="font-size:9px;padding:1px 8px;color:var(--nx-purple);">Fork</button>
+                </div>
+                <div style="font-size:10px;color:var(--nx-text-muted);">by trader_kim &middot; 2.4k uses</div>
+              </div>
+              <div style="padding:6px 0;border-bottom:1px solid rgba(167,139,250,0.08);">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <span style="font-size:12px;font-weight:500;">52w High Breakout</span>
+                  <button class="btn btn-ghost" style="font-size:9px;padding:1px 8px;color:var(--nx-purple);">Fork</button>
+                </div>
+                <div style="font-size:10px;color:var(--nx-text-muted);">by quant_lab &middot; 1.8k uses</div>
+              </div>
+              <div style="padding:6px 0;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <span style="font-size:12px;font-weight:500;">DART Insider Buy Signal</span>
+                  <button class="btn btn-ghost" style="font-size:9px;padding:1px 8px;color:var(--nx-purple);">Fork</button>
+                </div>
+                <div style="font-size:10px;color:var(--nx-text-muted);">by value_hunter &middot; 1.2k uses</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== CHART ==================== -->
+    <div class="page" id="page-chart">
+      <div class="chart-topbar">
+        <span class="chart-symbol">005930</span>
+        <span style="color:var(--nx-text-secondary);font-size:14px;">Samsung Electronics</span>
+        <span class="chart-price text-green">78,400</span>
+        <span class="chart-change text-green">+2.1%</span>
+        <div class="chart-tf-group">
+          <div class="chart-tf">1m</div>
+          <div class="chart-tf">5m</div>
+          <div class="chart-tf">15m</div>
+          <div class="chart-tf">1h</div>
+          <div class="chart-tf active">1D</div>
+          <div class="chart-tf">1W</div>
+          <div class="chart-tf">1M</div>
+        </div>
+      </div>
+
+      <div class="chart-layout">
+        <div class="chart-area">
+          <svg class="chart-placeholder" viewBox="0 0 800 380" preserveAspectRatio="none">
+            <!-- Grid -->
+            <line x1="0" y1="76" x2="800" y2="76" stroke="#1e2a3e" stroke-width="0.5"/>
+            <line x1="0" y1="152" x2="800" y2="152" stroke="#1e2a3e" stroke-width="0.5"/>
+            <line x1="0" y1="228" x2="800" y2="228" stroke="#1e2a3e" stroke-width="0.5"/>
+            <line x1="0" y1="304" x2="800" y2="304" stroke="#1e2a3e" stroke-width="0.5"/>
+
+            <!-- Price line -->
+            <polyline points="0,280 40,270 80,260 120,265 160,240 200,235 240,220 280,210 320,230 360,200 400,180 440,190 480,170 520,155 560,165 600,145 640,150 680,135 720,140 760,125 800,118" fill="none" stroke="#00d4ff" stroke-width="2"/>
+            <polyline points="0,280 40,270 80,260 120,265 160,240 200,235 240,220 280,210 320,230 360,200 400,180 440,190 480,170 520,155 560,165 600,145 640,150 680,135 720,140 760,125 800,118 800,380 0,380" fill="url(#cg)" opacity="0.08"/>
+            <defs><linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#00d4ff"/><stop offset="100%" stop-color="transparent"/></linearGradient></defs>
+
+            <!-- PER/PBR Valuation Band Overlay -->
+            <polygon points="0,200 80,195 160,185 240,178 320,175 400,165 480,155 560,148 640,142 720,138 800,132 800,220 720,225 640,230 560,235 480,238 400,240 320,245 240,248 160,250 80,255 0,260" fill="#a78bfa" opacity="0.06"/>
+            <polyline points="0,230 80,225 160,218 240,213 320,210 400,202 480,196 560,191 640,186 720,181 800,176" fill="none" stroke="#a78bfa" stroke-width="1" stroke-dasharray="6,3" opacity="0.3"/>
+            <text x="10" y="198" fill="#a78bfa" font-size="8" font-family="JetBrains Mono" opacity="0.5">PER 12x (high)</text>
+            <text x="10" y="258" fill="#a78bfa" font-size="8" font-family="JetBrains Mono" opacity="0.5">PER 6x (low)</text>
+            <text x="10" y="228" fill="#a78bfa" font-size="8" font-family="JetBrains Mono" opacity="0.4">PER 9x (avg)</text>
+
+            <!-- MA lines -->
+            <polyline points="0,290 80,278 160,260 240,245 320,240 400,220 480,200 560,185 640,170 720,158 800,148" fill="none" stroke="#ffb020" stroke-width="1" opacity="0.5"/>
+            <polyline points="0,300 80,290 160,278 240,265 320,258 400,245 480,232 560,218 640,205 720,192 800,180" fill="none" stroke="#ff5c5c" stroke-width="1" opacity="0.5"/>
+
+            <!-- Earnings markers -->
+            <line x1="200" y1="0" x2="200" y2="380" stroke="#00e68a" stroke-width="1" stroke-dasharray="4,4" opacity="0.3"/>
+            <circle cx="200" cy="14" r="5" fill="#00e68a" opacity="0.6"/>
+            <text x="208" y="18" fill="#00e68a" font-size="9" font-family="JetBrains Mono">Q3 Earnings</text>
+
+            <line x1="480" y1="0" x2="480" y2="380" stroke="#00e68a" stroke-width="1" stroke-dasharray="4,4" opacity="0.3"/>
+            <circle cx="480" cy="14" r="5" fill="#00e68a" opacity="0.6"/>
+            <text x="488" y="18" fill="#00e68a" font-size="9" font-family="JetBrains Mono">Q4 Earnings</text>
+
+            <!-- Volume event -->
+            <line x1="640" y1="0" x2="640" y2="380" stroke="#ffb020" stroke-width="1" stroke-dasharray="4,4" opacity="0.3"/>
+            <circle cx="640" cy="14" r="5" fill="#ffb020" opacity="0.6"/>
+            <text x="648" y="18" fill="#ffb020" font-size="9" font-family="JetBrains Mono">Max Volume</text>
+
+            <!-- Volume bars -->
+            <rect x="196" y="345" width="8" height="35" fill="#00e68a" opacity="0.3" rx="1"/>
+            <rect x="476" y="340" width="8" height="40" fill="#00e68a" opacity="0.3" rx="1"/>
+            <rect x="636" y="330" width="8" height="50" fill="#ffb020" opacity="0.4" rx="1"/>
+          </svg>
+
+          <!-- Overlay badges -->
+          <div style="position:absolute;bottom:16px;left:16px;display:flex;gap:6px;flex-wrap:wrap;">
+            <span class="fin-badge" style="background:var(--nx-green-dim);color:var(--nx-green);">PER 8.2x (-34% vs sector)</span>
+            <span class="fin-badge" style="background:var(--nx-cyan-dim);color:var(--nx-cyan);">RSI 42</span>
+            <span class="fin-badge" style="background:var(--nx-amber-dim);color:var(--nx-amber);">ROE 15.3%</span>
+            <span class="fin-badge" style="background:var(--nx-purple-dim);color:var(--nx-purple);">MA20 breakout imminent</span>
+            <span class="fin-badge" style="background:var(--nx-purple-dim);color:var(--nx-purple);">PER Band: Low zone</span>
+          </div>
+        </div>
+
+        <!-- Indicator Panes (chart column only) -->
+        <div style="grid-column:1;display:flex;flex-direction:column;gap:8px;padding:0 0 8px 0;">
+          <!-- Pane toggles -->
+          <div style="display:flex;gap:6px;align-items:center;">
+            <span style="font-size:10px;color:var(--nx-text-muted);font-family:var(--font-mono);margin-right:4px;">PANES</span>
+            <span style="font-size:10px;padding:3px 10px;border-radius:4px;background:var(--nx-cyan-dim);color:var(--nx-cyan);cursor:pointer;font-weight:600;">RSI</span>
+            <span style="font-size:10px;padding:3px 10px;border-radius:4px;background:var(--nx-amber-dim);color:var(--nx-amber);cursor:pointer;font-weight:600;">MACD</span>
+            <span style="font-size:10px;padding:3px 10px;border-radius:4px;background:var(--nx-green-dim);color:var(--nx-green);cursor:pointer;font-weight:600;">Revenue</span>
+          </div>
+
+          <!-- RSI Pane -->
+          <div style="background:var(--nx-bg-surface);border:1px solid var(--nx-border);border-radius:10px;padding:12px 20px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <span style="font-size:10px;font-family:var(--font-mono);color:var(--nx-cyan);">RSI(14)</span>
+              <span style="font-size:11px;font-family:var(--font-mono);color:var(--nx-cyan);font-weight:600;">42.3</span>
+            </div>
+            <svg viewBox="0 0 800 80" style="width:100%;height:80px;" preserveAspectRatio="none">
+              <rect x="0" y="0" width="800" height="16" fill="#ff5c5c" opacity="0.04"/>
+              <rect x="0" y="56" width="800" height="24" fill="#00e68a" opacity="0.04"/>
+              <line x1="0" y1="16" x2="800" y2="16" stroke="#ff5c5c" stroke-width="0.5" stroke-dasharray="4,4" opacity="0.3"/>
+              <text x="4" y="12" fill="#ff5c5c" font-size="7" font-family="JetBrains Mono" opacity="0.5">70</text>
+              <line x1="0" y1="56" x2="800" y2="56" stroke="#00e68a" stroke-width="0.5" stroke-dasharray="4,4" opacity="0.3"/>
+              <text x="4" y="64" fill="#00e68a" font-size="7" font-family="JetBrains Mono" opacity="0.5">30</text>
+              <polyline points="0,30 40,28 80,32 120,35 160,38 200,25 240,20 280,22 320,35 360,28 400,32 440,38 480,24 520,30 560,42 600,45 640,38 680,40 720,44 760,46 800,46" fill="none" stroke="#00d4ff" stroke-width="1.5"/>
+            </svg>
+          </div>
+
+          <!-- MACD Pane -->
+          <div style="background:var(--nx-bg-surface);border:1px solid var(--nx-border);border-radius:10px;padding:12px 20px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <span style="font-size:10px;font-family:var(--font-mono);color:var(--nx-amber);">MACD(12,26,9)</span>
+              <div style="display:flex;gap:12px;">
+                <span style="font-size:10px;font-family:var(--font-mono);color:var(--nx-amber);">MACD: 842</span>
+                <span style="font-size:10px;font-family:var(--font-mono);color:var(--nx-red);">Signal: 710</span>
+                <span style="font-size:10px;font-family:var(--font-mono);color:var(--nx-green);">Hist: +132</span>
+              </div>
+            </div>
+            <svg viewBox="0 0 800 80" style="width:100%;height:80px;" preserveAspectRatio="none">
+              <line x1="0" y1="40" x2="800" y2="40" stroke="#1e2a3e" stroke-width="0.5"/>
+              <!-- Histogram bars -->
+              <rect x="20" y="42" width="16" height="12" fill="#ff5c5c" opacity="0.4" rx="1"/>
+              <rect x="60" y="44" width="16" height="8" fill="#ff5c5c" opacity="0.4" rx="1"/>
+              <rect x="100" y="44" width="16" height="6" fill="#ff5c5c" opacity="0.3" rx="1"/>
+              <rect x="140" y="36" width="16" height="4" fill="#00e68a" opacity="0.2" rx="1"/>
+              <rect x="180" y="32" width="16" height="8" fill="#00e68a" opacity="0.3" rx="1"/>
+              <rect x="220" y="28" width="16" height="12" fill="#00e68a" opacity="0.4" rx="1"/>
+              <rect x="260" y="26" width="16" height="14" fill="#00e68a" opacity="0.5" rx="1"/>
+              <rect x="300" y="30" width="16" height="10" fill="#00e68a" opacity="0.4" rx="1"/>
+              <rect x="340" y="34" width="16" height="6" fill="#00e68a" opacity="0.3" rx="1"/>
+              <rect x="380" y="42" width="16" height="8" fill="#ff5c5c" opacity="0.3" rx="1"/>
+              <rect x="420" y="42" width="16" height="10" fill="#ff5c5c" opacity="0.4" rx="1"/>
+              <rect x="460" y="36" width="16" height="4" fill="#00e68a" opacity="0.2" rx="1"/>
+              <rect x="500" y="30" width="16" height="10" fill="#00e68a" opacity="0.4" rx="1"/>
+              <rect x="540" y="26" width="16" height="14" fill="#00e68a" opacity="0.5" rx="1"/>
+              <rect x="580" y="28" width="16" height="12" fill="#00e68a" opacity="0.4" rx="1"/>
+              <rect x="620" y="32" width="16" height="8" fill="#00e68a" opacity="0.3" rx="1"/>
+              <rect x="660" y="34" width="16" height="6" fill="#00e68a" opacity="0.3" rx="1"/>
+              <rect x="700" y="36" width="16" height="4" fill="#00e68a" opacity="0.2" rx="1"/>
+              <rect x="740" y="36" width="16" height="4" fill="#00e68a" opacity="0.2" rx="1"/>
+              <rect x="780" y="35" width="16" height="5" fill="#00e68a" opacity="0.3" rx="1"/>
+              <!-- MACD line -->
+              <polyline points="0,55 80,50 160,42 240,32 320,28 400,35 480,42 560,30 640,28 720,34 800,35" fill="none" stroke="#ffb020" stroke-width="1.5"/>
+              <!-- Signal line -->
+              <polyline points="0,52 80,48 160,44 240,38 320,34 400,36 480,40 560,35 640,32 720,34 800,36" fill="none" stroke="#ff5c5c" stroke-width="1" stroke-dasharray="3,2"/>
+            </svg>
+          </div>
+
+          <!-- Revenue / Op.Profit Growth Pane -->
+          <div style="background:var(--nx-bg-surface);border:1px solid var(--nx-border);border-radius:10px;padding:12px 20px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <span style="font-size:10px;font-family:var(--font-mono);color:var(--nx-green);">QUARTERLY FINANCIALS</span>
+              <div style="display:flex;gap:12px;">
+                <span style="font-size:10px;display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:2px;background:var(--nx-cyan);display:inline-block;"></span> Revenue</span>
+                <span style="font-size:10px;display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:2px;background:var(--nx-green);display:inline-block;"></span> Op. Profit</span>
+              </div>
+            </div>
+            <div style="display:flex;align-items:flex-end;gap:4px;height:80px;padding-bottom:20px;position:relative;">
+              <!-- Q labels -->
+              <div style="position:absolute;bottom:0;left:0;right:0;display:flex;justify-content:space-around;">
+                <span style="font-size:8px;color:var(--nx-text-dim);font-family:var(--font-mono);">Q1'25</span>
+                <span style="font-size:8px;color:var(--nx-text-dim);font-family:var(--font-mono);">Q2'25</span>
+                <span style="font-size:8px;color:var(--nx-text-dim);font-family:var(--font-mono);">Q3'25</span>
+                <span style="font-size:8px;color:var(--nx-text-dim);font-family:var(--font-mono);">Q4'25</span>
+                <span style="font-size:8px;color:var(--nx-text-dim);font-family:var(--font-mono);">Q1'26</span>
+                <span style="font-size:8px;color:var(--nx-text-dim);font-family:var(--font-mono);">Q2'26</span>
+              </div>
+              <!-- Q1 -->
+              <div style="flex:1;display:flex;gap:2px;justify-content:center;align-items:flex-end;">
+                <div style="width:12px;height:30px;background:var(--nx-cyan);opacity:0.5;border-radius:2px 2px 0 0;"></div>
+                <div style="width:12px;height:10px;background:var(--nx-green);opacity:0.5;border-radius:2px 2px 0 0;"></div>
+              </div>
+              <!-- Q2 -->
+              <div style="flex:1;display:flex;gap:2px;justify-content:center;align-items:flex-end;">
+                <div style="width:12px;height:35px;background:var(--nx-cyan);opacity:0.5;border-radius:2px 2px 0 0;"></div>
+                <div style="width:12px;height:14px;background:var(--nx-green);opacity:0.5;border-radius:2px 2px 0 0;"></div>
+              </div>
+              <!-- Q3 (earnings event) -->
+              <div style="flex:1;display:flex;gap:2px;justify-content:center;align-items:flex-end;">
+                <div style="width:12px;height:42px;background:var(--nx-cyan);opacity:0.7;border-radius:2px 2px 0 0;"></div>
+                <div style="width:12px;height:28px;background:var(--nx-green);opacity:0.7;border-radius:2px 2px 0 0;"></div>
+              </div>
+              <!-- Q4 (earnings event — big jump) -->
+              <div style="flex:1;display:flex;gap:2px;justify-content:center;align-items:flex-end;">
+                <div style="width:12px;height:50px;background:var(--nx-cyan);border-radius:2px 2px 0 0;"></div>
+                <div style="width:12px;height:52px;background:var(--nx-green);border-radius:2px 2px 0 0;"></div>
+              </div>
+              <!-- Q1'26 -->
+              <div style="flex:1;display:flex;gap:2px;justify-content:center;align-items:flex-end;">
+                <div style="width:12px;height:48px;background:var(--nx-cyan);opacity:0.8;border-radius:2px 2px 0 0;"></div>
+                <div style="width:12px;height:45px;background:var(--nx-green);opacity:0.8;border-radius:2px 2px 0 0;"></div>
+              </div>
+              <!-- Q2'26 (estimate) -->
+              <div style="flex:1;display:flex;gap:2px;justify-content:center;align-items:flex-end;">
+                <div style="width:12px;height:52px;background:var(--nx-cyan);opacity:0.4;border-radius:2px 2px 0 0;border:1px dashed rgba(0,212,255,0.3);"></div>
+                <div style="width:12px;height:48px;background:var(--nx-green);opacity:0.4;border-radius:2px 2px 0 0;border:1px dashed rgba(0,230,138,0.3);"></div>
+              </div>
+            </div>
+            <div style="display:flex;justify-content:space-around;margin-top:4px;">
+              <span style="font-size:9px;color:var(--nx-text-muted);">67.2T</span>
+              <span style="font-size:9px;color:var(--nx-text-muted);">72.8T</span>
+              <span style="font-size:9px;color:var(--nx-green);">81.5T <span style="font-size:8px;">+16%</span></span>
+              <span style="font-size:9px;color:var(--nx-green);font-weight:600;">89.3T <span style="font-size:8px;">+22%</span></span>
+              <span style="font-size:9px;color:var(--nx-green);">85.1T</span>
+              <span style="font-size:9px;color:var(--nx-text-dim);font-style:italic;">Est.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stock List Panel (right sidebar) -->
+        <div class="stock-list-panel" id="stock-list-panel">
+          <div class="stock-tab-bar">
+            <button class="stock-tab active" data-stab="results" onclick="switchStockTab('results')">검색결과</button>
+            <button class="stock-tab" data-stab="watchlist" onclick="switchStockTab('watchlist')">★ 관심종목</button>
+            <button class="stock-tab" data-stab="recent" onclick="switchStockTab('recent')">최근</button>
+          </div>
+          <input type="text" class="stock-search-input" placeholder="🔍 종목 검색...">
+          <div class="stock-list" id="stock-list">
+            <div class="stock-item active" onclick="selectStock(this)" data-code="005930" data-name="Samsung" data-price="78,400" data-change="+2.1%">
+              <span class="stock-star starred" onclick="event.stopPropagation();toggleStar(this)">★</span>
+              <div class="stock-info"><div class="stock-code">005930</div><div class="stock-name">Samsung</div></div>
+              <div class="stock-price"><div style="font-size:11px;font-weight:600;color:var(--nx-green);">78,400</div><div style="font-size:8px;color:var(--nx-green);">+2.1%</div></div>
+            </div>
+            <div class="stock-item" onclick="selectStock(this)" data-code="247540" data-name="ecoprobm" data-price="124,200" data-change="-3.4%">
+              <span class="stock-star" onclick="event.stopPropagation();toggleStar(this)">☆</span>
+              <div class="stock-info"><div class="stock-code">247540</div><div class="stock-name">ecoprobm</div></div>
+              <div class="stock-price"><div style="font-size:11px;font-weight:600;color:var(--nx-red);">124,200</div><div style="font-size:8px;color:var(--nx-red);">-3.4%</div></div>
+            </div>
+            <div class="stock-item" onclick="selectStock(this)" data-code="000660" data-name="SK Hynix" data-price="198,500" data-change="+1.8%">
+              <span class="stock-star starred" onclick="event.stopPropagation();toggleStar(this)">★</span>
+              <div class="stock-info"><div class="stock-code">000660</div><div class="stock-name">SK Hynix</div></div>
+              <div class="stock-price"><div style="font-size:11px;font-weight:600;color:var(--nx-green);">198,500</div><div style="font-size:8px;color:var(--nx-green);">+1.8%</div></div>
+            </div>
+            <div class="stock-item" onclick="selectStock(this)" data-code="068270" data-name="Celltrion" data-price="185,200" data-change="+0.6%">
+              <span class="stock-star" onclick="event.stopPropagation();toggleStar(this)">☆</span>
+              <div class="stock-info"><div class="stock-code">068270</div><div class="stock-name">Celltrion</div></div>
+              <div class="stock-price"><div style="font-size:11px;font-weight:600;color:var(--nx-green);">185,200</div><div style="font-size:8px;color:var(--nx-green);">+0.6%</div></div>
+            </div>
+            <div class="stock-item" onclick="selectStock(this)" data-code="028260" data-name="Samsung C&T" data-price="112,800" data-change="-0.9%">
+              <span class="stock-star" onclick="event.stopPropagation();toggleStar(this)">☆</span>
+              <div class="stock-info"><div class="stock-code">028260</div><div class="stock-name">Samsung C&T</div></div>
+              <div class="stock-price"><div style="font-size:11px;font-weight:600;color:var(--nx-red);">112,800</div><div style="font-size:8px;color:var(--nx-red);">-0.9%</div></div>
+            </div>
+            <div class="stock-item" onclick="selectStock(this)" data-code="035420" data-name="NAVER" data-price="212,000" data-change="+1.2%">
+              <span class="stock-star" onclick="event.stopPropagation();toggleStar(this)">☆</span>
+              <div class="stock-info"><div class="stock-code">035420</div><div class="stock-name">NAVER</div></div>
+              <div class="stock-price"><div style="font-size:11px;font-weight:600;color:var(--nx-green);">212,000</div><div style="font-size:8px;color:var(--nx-green);">+1.2%</div></div>
+            </div>
+            <div class="stock-item" onclick="selectStock(this)" data-code="035720" data-name="Kakao" data-price="42,300" data-change="-2.1%">
+              <span class="stock-star" onclick="event.stopPropagation();toggleStar(this)">☆</span>
+              <div class="stock-info"><div class="stock-code">035720</div><div class="stock-name">Kakao</div></div>
+              <div class="stock-price"><div style="font-size:11px;font-weight:600;color:var(--nx-red);">42,300</div><div style="font-size:8px;color:var(--nx-red);">-2.1%</div></div>
+            </div>
+            <div style="padding:8px 12px;font-size:9px;color:var(--nx-text-dim);text-align:center;">검색결과 18건 중 7건 표시</div>
+          </div>
+        </div>
+
+        <!-- Bottom Info Panel: Financials | AI Fusion | Sector Compare -->
+        <div class="chart-info-bottom">
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+              <span style="font-size:11px;font-family:var(--font-mono);color:var(--nx-green);font-weight:600;">FINANCIALS</span>
+              <span style="font-size:9px;color:var(--nx-text-dim);">Income | Balance | Cash</span>
+            </div>
+            <div class="fin-row"><span class="text-muted">Revenue</span><span class="text-green">301.2T <span style="font-size:10px;">+16%</span></span></div>
+            <div class="fin-row"><span class="text-muted">Op. Profit</span><span class="text-green">32.1T <span style="font-size:10px;">+394%</span></span></div>
+            <div class="fin-row"><span class="text-muted">Net Margin</span><span class="text-green">8.7%</span></div>
+            <div class="fin-row"><span class="text-muted">PER</span><span class="text-green fw-600">8.2x</span></div>
+            <div class="fin-row"><span class="text-muted">PBR</span><span>1.1x</span></div>
+            <div class="fin-row"><span class="text-muted">ROE</span><span class="text-green">15.3%</span></div>
+          </div>
+          <div>
+            <div style="margin-bottom:10px;">
+              <span style="font-size:11px;font-family:var(--font-mono);color:var(--nx-cyan);font-weight:600;">AI FUSION</span>
+            </div>
+            <div style="font-size:12px;color:var(--nx-text-secondary);line-height:1.7;">
+              Op. profit +394% with PER 8.2x (34% below sector avg). MACD signal cross + volume +52%. <span class="text-green fw-600">Buy signal: 8.2/10</span>
+            </div>
+            <div style="margin-top:10px;display:flex;gap:4px;">
+              <span class="fin-badge" style="background:var(--nx-green-dim);color:var(--nx-green);">Undervalued</span>
+              <span class="fin-badge" style="background:var(--nx-cyan-dim);color:var(--nx-cyan);">MACD ↑</span>
+              <span class="fin-badge" style="background:var(--nx-amber-dim);color:var(--nx-amber);">Vol ↑52%</span>
+            </div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+              <span style="font-size:11px;font-family:var(--font-mono);color:var(--nx-blue);font-weight:600;">SECTOR COMPARE</span>
+              <span style="font-size:9px;color:var(--nx-text-dim);">Semiconductor (6)</span>
+            </div>
+            <div style="display:grid;grid-template-columns:auto repeat(4,1fr);gap:0;font-size:10px;">
+              <div style="padding:3px 6px;color:var(--nx-text-dim);font-size:9px;"></div>
+              <div style="padding:3px 4px;color:var(--nx-text-dim);font-size:9px;text-align:right;">PER</div>
+              <div style="padding:3px 4px;color:var(--nx-text-dim);font-size:9px;text-align:right;">ROE</div>
+              <div style="padding:3px 4px;color:var(--nx-text-dim);font-size:9px;text-align:right;">RSI</div>
+              <div style="padding:3px 4px;color:var(--nx-text-dim);font-size:9px;text-align:right;">Score</div>
+              <div style="padding:3px 6px;font-weight:600;color:var(--nx-cyan);background:var(--nx-cyan-dim);border-radius:4px 0 0 4px;">Samsung</div>
+              <div style="padding:3px 4px;text-align:right;color:var(--nx-green);background:var(--nx-cyan-dim);">8.2x</div>
+              <div style="padding:3px 4px;text-align:right;color:var(--nx-green);background:var(--nx-cyan-dim);">15.3%</div>
+              <div style="padding:3px 4px;text-align:right;background:var(--nx-cyan-dim);">42</div>
+              <div style="padding:3px 4px;text-align:right;font-weight:600;color:var(--nx-green);background:var(--nx-cyan-dim);border-radius:0 4px 4px 0;">82</div>
+              <div style="padding:3px 6px;color:var(--nx-text-secondary);">DB HiTek</div>
+              <div style="padding:3px 4px;text-align:right;color:var(--nx-green);">6.1x</div>
+              <div style="padding:3px 4px;text-align:right;color:var(--nx-green);">22.4%</div>
+              <div style="padding:3px 4px;text-align:right;">58</div>
+              <div style="padding:3px 4px;text-align:right;font-weight:600;color:var(--nx-cyan);">91</div>
+              <div style="padding:3px 6px;color:var(--nx-text-secondary);">SK Hynix</div>
+              <div style="padding:3px 4px;text-align:right;">12.4x</div>
+              <div style="padding:3px 4px;text-align:right;color:var(--nx-green);">18.7%</div>
+              <div style="padding:3px 4px;text-align:right;">55</div>
+              <div style="padding:3px 4px;text-align:right;font-weight:600;color:var(--nx-green);">76</div>
+            </div>
+            <div style="margin-top:6px;font-size:9px;color:var(--nx-text-secondary);line-height:1.4;">
+              <span style="color:var(--nx-cyan);font-weight:600;">Samsung</span> ranks <span class="text-green">#2</span> in sector. Below-avg PER + strong ROE.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== PIPELINE BUILDER ==================== -->
+    <div class="page" id="page-pipeline">
+      <!-- Pipeline top bar: Stock + Pipeline + Actions -->
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+        <!-- Stock Selector -->
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--nx-bg-surface);border:1px solid var(--nx-border);border-radius:8px;cursor:pointer;">
+          <span style="font-size:15px;font-weight:700;font-family:var(--font-mono);color:var(--nx-text);">005930</span>
+          <span style="font-size:13px;color:var(--nx-text-secondary);">Samsung</span>
+          <span style="font-size:13px;font-weight:600;color:var(--nx-green);">78,400</span>
+          <span style="font-size:10px;color:var(--nx-text-dim);">&#9660;</span>
+        </div>
+        <div style="width:1px;height:28px;background:var(--nx-border);"></div>
+        <!-- Pipeline Selector -->
+        <select style="background:var(--nx-bg-surface);border:1px solid var(--nx-border);border-radius:8px;padding:8px 14px;color:var(--nx-text);font-size:15px;font-family:var(--font-display);font-weight:700;outline:none;cursor:pointer;min-width:240px;">
+          <option>Semi Value Strategy v2.1</option>
+          <option>Earnings Momentum v1.0</option>
+          <option>Volume Spike Detector v3.2</option>
+          <option>Bio Catalyst Hunter v1.5</option>
+        </select>
+        <button class="btn btn-ghost" style="font-size:12px;padding:6px 12px;">+ New</button>
+        <span id="pipe-reg-status" style="font-size:9px;padding:3px 8px;border-radius:4px;background:var(--nx-green-dim);color:var(--nx-green);">Registered</span>
+        <span style="font-size:10px;color:var(--nx-text-muted);font-family:var(--font-mono);">every 6h &middot; Last: 2h ago</span>
+        <div style="margin-left:auto;display:flex;gap:6px;">
+          <button class="btn btn-ghost" onclick="document.getElementById('ai-gen-panel').style.display=document.getElementById('ai-gen-panel').style.display==='none'?'block':'none'">AI Generate</button>
+          <button class="btn btn-ghost">JSON</button>
+          <button class="btn btn-ghost">Save</button>
+          <button class="btn btn-primary" onclick="document.getElementById('exec-progress').style.display='block'">&#9654; Register &amp; Run</button>
+        </div>
+      </div>
+
+      <!-- D: AI Generate Panel (hidden by default) -->
+      <div id="ai-gen-panel" style="display:none;margin-bottom:16px;background:var(--nx-bg-surface);border:1px solid rgba(167,139,250,0.2);border-radius:12px;padding:20px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+          <span style="font-size:12px;font-family:var(--font-mono);color:var(--nx-purple);font-weight:600;">AI PIPELINE GENERATOR</span>
+          <span style="font-size:10px;color:var(--nx-text-muted);">자연어로 전략을 설명하면 파이프라인을 자동 구성합니다</span>
+        </div>
+        <textarea style="width:100%;height:80px;background:var(--nx-bg-deep);border:1px solid var(--nx-border);border-radius:8px;padding:12px;color:var(--nx-text);font-size:13px;font-family:var(--font-body);resize:vertical;outline:none;" placeholder="예: &quot;2년 최대거래량이 발생한 종목을 찾아서, 뉴스/재무/섹터 분석을 병렬로 돌리고, 종합 판단을 내린 뒤, 뉴스와 공시를 매일 모니터링해줘. 성공 조건은 이벤트 고가 대비 2배, 실패 조건은 120일선 하회.&quot;"></textarea>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
+          <div style="font-size:10px;color:var(--nx-text-dim);">AI가 분석/모니터링/판단 3개 섹션을 자동 구성합니다</div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-ghost" style="font-size:11px;">Cancel</button>
+            <button class="btn btn-primary" style="font-size:11px;background:var(--nx-purple-dim);color:var(--nx-purple);border-color:rgba(167,139,250,0.2);">Generate Pipeline</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- C: Execution Progress (hidden by default) -->
+      <div id="exec-progress" style="display:none;margin-bottom:16px;background:var(--nx-bg-surface);border:1px solid rgba(0,212,255,0.15);border-radius:12px;padding:20px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:12px;font-family:var(--font-mono);color:var(--nx-cyan);font-weight:600;">EXECUTING PIPELINE</span>
+            <span class="tag tag-live" style="background:var(--nx-cyan-dim);color:var(--nx-cyan);animation:pulse 1.5s infinite;">Running</span>
+          </div>
+          <button class="btn btn-ghost" style="font-size:11px;color:var(--nx-red);" onclick="document.getElementById('exec-progress').style.display='none'">Cancel</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <!-- Stage 1 -->
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:24px;height:24px;border-radius:50%;background:var(--nx-green-dim);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--nx-green);">&#10003;</div>
+            <div style="flex:1;">
+              <div style="font-size:12px;font-weight:500;">Stage 1: Volume Spike Detector</div>
+              <div style="font-size:10px;color:var(--nx-green);">Complete — 18 stocks matched</div>
+            </div>
+            <span style="font-size:10px;color:var(--nx-text-muted);font-family:var(--font-mono);">3.2s</span>
+          </div>
+          <!-- Stage 2 -->
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:24px;height:24px;border-radius:50%;background:var(--nx-cyan-dim);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--nx-cyan);">&#8635;</div>
+            <div style="flex:1;">
+              <div style="font-size:12px;font-weight:500;">Stage 2: Parallel Analysis <span style="font-size:10px;color:var(--nx-text-muted);">(4 agents)</span></div>
+              <div style="display:flex;gap:8px;margin-top:4px;">
+                <span style="font-size:9px;padding:2px 6px;background:var(--nx-green-dim);color:var(--nx-green);border-radius:4px;">Valuation ✓</span>
+                <span style="font-size:9px;padding:2px 6px;background:var(--nx-green-dim);color:var(--nx-green);border-radius:4px;">Momentum ✓</span>
+                <span style="font-size:9px;padding:2px 6px;background:var(--nx-cyan-dim);color:var(--nx-cyan);border-radius:4px;">News ⟳</span>
+                <span style="font-size:9px;padding:2px 6px;background:var(--nx-bg-card);color:var(--nx-text-dim);border-radius:4px;">Sector ...</span>
+              </div>
+            </div>
+            <span style="font-size:10px;color:var(--nx-text-muted);font-family:var(--font-mono);">12.4s</span>
+          </div>
+          <!-- Stage 3 -->
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:24px;height:24px;border-radius:50%;background:var(--nx-bg-card);border:1px solid var(--nx-border);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--nx-text-dim);">3</div>
+            <div style="flex:1;">
+              <div style="font-size:12px;font-weight:500;color:var(--nx-text-muted);">Stage 3: AI Verdict</div>
+              <div style="font-size:10px;color:var(--nx-text-dim);">Waiting for Stage 2...</div>
+            </div>
+          </div>
+        </div>
+        <div class="progress mt-12"><div class="progress-fill" style="width:55%;background:var(--nx-cyan);"></div></div>
+        <div style="font-size:10px;color:var(--nx-text-muted);margin-top:6px;text-align:right;">2 of 4 agents complete &middot; ETA ~8s</div>
+      </div>
+
+      <div class="pipeline-layout">
+        <!-- Palette -->
+        <div class="pipeline-palette">
+          <div class="palette-section">
+            <div class="palette-label">Agent Nodes</div>
+            <div class="palette-item"><div class="palette-dot" style="background:var(--nx-amber);"></div> News Analysis</div>
+            <div class="palette-item"><div class="palette-dot" style="background:var(--nx-amber);"></div> Disclosure Watch</div>
+            <div class="palette-item"><div class="palette-dot" style="background:var(--nx-green);"></div> Valuation</div>
+            <div class="palette-item"><div class="palette-dot" style="background:var(--nx-purple);"></div> Momentum</div>
+            <div class="palette-item"><div class="palette-dot" style="background:var(--nx-blue);"></div> Sector Compare</div>
+            <div class="palette-item"><div class="palette-dot" style="background:var(--nx-blue);"></div> Industry Trend</div>
+            <div class="palette-item"><div class="palette-dot" style="background:var(--nx-green);"></div> Profitability</div>
+            <div class="palette-item"><div class="palette-dot" style="background:var(--nx-green);"></div> Cash Flow</div>
+          </div>
+          <div class="palette-section">
+            <div class="palette-label">DSL Nodes</div>
+            <div class="palette-item"><div class="palette-dot" style="background:var(--nx-cyan);"></div> Price Alert</div>
+            <div class="palette-item"><div class="palette-dot" style="background:var(--nx-cyan);"></div> Custom DSL</div>
+            <div class="palette-item"><div class="palette-dot" style="background:var(--nx-cyan);"></div> Volume Trigger</div>
+          </div>
+          <div class="palette-section">
+            <div class="palette-label">Output Nodes</div>
+            <div class="palette-item"><div class="palette-dot" style="background:var(--nx-red);"></div> AI Verdict</div>
+            <div class="palette-item"><div class="palette-dot" style="background:var(--nx-red);"></div> Alert &rarr; Notify</div>
+          </div>
+        </div>
+
+        <!-- Canvas -->
+        <div class="pipeline-canvas">
+
+          <!-- SECTION 1: Analysis (One-time) -->
+          <div class="pipe-section">
+            <div class="pipe-section-header">
+              <div class="pipe-section-num" style="background:var(--nx-cyan-dim);color:var(--nx-cyan);">1</div>
+              <div class="pipe-section-title text-cyan">Analysis</div>
+              <div class="pipe-section-desc">종목 등록 시 1회 실행</div>
+            </div>
+            <div class="pipe-stage">
+              <div class="pipe-stage-label">Parallel Analysis &mdash; 에이전트가 병렬 분석</div>
+              <div class="pipe-blocks">
+                <div class="pipe-block block-green">
+                  <div class="pipe-block-drag">&#8942;&#8942;</div>
+                  <div class="pipe-block-weight">40%</div>
+                  <div class="pipe-block-name">Valuation</div>
+                  <div class="pipe-block-config">PER/PBR/ROE vs sector avg</div>
+                  <div class="pipe-block-output">score: 0-100</div>
+                </div>
+                <div class="pipe-block block-purple">
+                  <div class="pipe-block-drag">&#8942;&#8942;</div>
+                  <div class="pipe-block-weight">25%</div>
+                  <div class="pipe-block-name">Momentum</div>
+                  <div class="pipe-block-config">RSI + MACD + BB position</div>
+                  <div class="pipe-block-output">score: 0-100</div>
+                </div>
+                <div class="pipe-block block-amber">
+                  <div class="pipe-block-drag">&#8942;&#8942;</div>
+                  <div class="pipe-block-weight">20%</div>
+                  <div class="pipe-block-name">News Analysis</div>
+                  <div class="pipe-block-config">30d news sentiment + catalyst</div>
+                  <div class="pipe-block-output">score: 0-100</div>
+                </div>
+                <div class="pipe-block block-blue">
+                  <div class="pipe-block-drag">&#8942;&#8942;</div>
+                  <div class="pipe-block-weight">15%</div>
+                  <div class="pipe-block-name">Sector Compare</div>
+                  <div class="pipe-block-config">Relative rank in sector</div>
+                  <div class="pipe-block-output">score: 0-100</div>
+                </div>
+              </div>
+            </div>
+            <div class="pipe-arrow"><div class="pipe-arrow-line"></div><div>&#9660;</div><div class="pipe-arrow-label">aggregate scores</div></div>
+            <div class="pipe-stage">
+              <div class="pipe-stage-label">AI Verdict &mdash; 종합 판단</div>
+              <div class="pipe-blocks">
+                <div class="pipe-block block-red">
+                  <div class="pipe-block-drag">&#8942;&#8942;</div>
+                  <div class="pipe-block-name">AI Comprehensive Verdict</div>
+                  <div class="pipe-block-config">Weighted score + narrative reasoning + risk assessment</div>
+                  <div class="pipe-block-output">Buy / Hold / Sell + confidence</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION 2: Monitoring (Recurring) -->
+          <div class="pipe-section">
+            <div class="pipe-section-header">
+              <div class="pipe-section-num" style="background:var(--nx-amber-dim);color:var(--nx-amber);">2</div>
+              <div class="pipe-section-title text-amber">Monitoring</div>
+              <div class="pipe-section-desc">백엔드 주기 실행</div>
+            </div>
+            <div class="pipe-blocks" style="flex-direction:column;gap:8px;">
+              <div class="pipe-block block-amber" style="max-width:100%;">
+                <div class="pipe-block-drag">&#8942;&#8942;</div>
+                <div class="pipe-block-cron tag tag-cron">every 6h</div>
+                <div class="pipe-block-name">News Monitor</div>
+                <div class="pipe-block-config">에이전트가 뉴스/공시 검색 &rarr; 센티먼트 분석 &rarr; 중요 변화 감지</div>
+                <div class="pipe-block-output" style="background:rgba(255,92,92,0.15);color:var(--nx-red);">&rarr; Alert 트리거</div>
+              </div>
+              <div class="pipe-block block-amber" style="max-width:100%;">
+                <div class="pipe-block-drag">&#8942;&#8942;</div>
+                <div class="pipe-block-cron tag tag-cron">daily 18:00</div>
+                <div class="pipe-block-name">Disclosure Watch</div>
+                <div class="pipe-block-config">DART 공시 체크 &mdash; 실적, 유증, 대주주 변동, IR자료</div>
+                <div class="pipe-block-output" style="background:rgba(255,92,92,0.15);color:var(--nx-red);">&rarr; Alert 트리거</div>
+              </div>
+              <div class="pipe-block block-cyan" style="max-width:100%;">
+                <div class="pipe-block-drag">&#8942;&#8942;</div>
+                <div class="pipe-block-cron tag tag-cron">1min poll</div>
+                <div class="pipe-block-name">DSL Price Alert</div>
+                <div style="background:var(--nx-bg-deep);border:1px solid var(--nx-border);border-radius:6px;padding:8px 10px;margin:6px 0;font-family:var(--font-mono);font-size:11px;line-height:1.8;">
+                  <div><span class="text-green">success</span> = close &gt;= <span class="text-cyan">event_high</span> * <span class="text-amber">2.0</span></div>
+                  <div><span class="text-red">failure</span> = close &lt; <span class="text-cyan">pre_event_ma</span>(<span class="text-amber">120</span>)</div>
+                  <div style="margin-top:4px;padding-top:4px;border-top:1px solid var(--nx-border);"><span class="text-blue">alert</span>: close &gt;= <span class="text-amber">75000</span> <span style="color:var(--nx-text-dim);">// target approach</span></div>
+                </div>
+                <div class="pipe-block-output" style="background:rgba(255,92,92,0.15);color:var(--nx-red);">&rarr; Alert 트리거</div>
+              </div>
+              <div class="pipe-block block-blue" style="max-width:100%;">
+                <div class="pipe-block-drag">&#8942;&#8942;</div>
+                <div class="pipe-block-cron tag tag-cron">daily close</div>
+                <div class="pipe-block-name">Sector &amp; Industry</div>
+                <div class="pipe-block-config">동종 업계 비교, 산업 동향, 섹터 상관관계 변화 감지</div>
+                <div class="pipe-block-output" style="background:rgba(255,92,92,0.15);color:var(--nx-red);">&rarr; Alert 트리거</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION 3: Alert & Notify -->
+          <div class="pipe-section">
+            <div class="pipe-section-header">
+              <div class="pipe-section-num" style="background:var(--nx-red-dim);color:var(--nx-red);">3</div>
+              <div class="pipe-section-title text-red">Alert &amp; Notify</div>
+              <div class="pipe-section-desc">모니터링 결과 &rarr; 알림 전송</div>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+              <div style="flex:1;min-width:140px;background:var(--nx-bg-card);border:1px solid var(--nx-border);border-radius:10px;padding:14px;text-align:center;">
+                <div style="font-size:20px;margin-bottom:6px;">&#128276;</div>
+                <div style="font-size:12px;font-weight:600;color:var(--nx-text);margin-bottom:4px;">In-App Alert</div>
+                <div style="font-size:10px;color:var(--nx-text-muted);">Dashboard &amp; Alerts 페이지에 표시</div>
+                <div style="margin-top:8px;"><span style="font-size:9px;padding:2px 8px;border-radius:4px;background:var(--nx-green-dim);color:var(--nx-green);">Active</span></div>
+              </div>
+              <div style="flex:1;min-width:140px;background:var(--nx-bg-card);border:1px solid var(--nx-border);border-radius:10px;padding:14px;text-align:center;">
+                <div style="font-size:20px;margin-bottom:6px;">&#128241;</div>
+                <div style="font-size:12px;font-weight:600;color:var(--nx-text);margin-bottom:4px;">Push Notification</div>
+                <div style="font-size:10px;color:var(--nx-text-muted);">모바일 푸시 알림</div>
+                <div style="margin-top:8px;"><span style="font-size:9px;padding:2px 8px;border-radius:4px;background:var(--nx-green-dim);color:var(--nx-green);">Active</span></div>
+              </div>
+              <div style="flex:1;min-width:140px;background:var(--nx-bg-card);border:1px solid var(--nx-border);border-radius:10px;padding:14px;text-align:center;">
+                <div style="font-size:20px;margin-bottom:6px;">&#128172;</div>
+                <div style="font-size:12px;font-weight:600;color:var(--nx-text);margin-bottom:4px;">Slack / Telegram</div>
+                <div style="font-size:10px;color:var(--nx-text-muted);">메신저 채널로 전송</div>
+                <div style="margin-top:8px;"><span style="font-size:9px;padding:2px 8px;border-radius:4px;background:var(--nx-bg-elevated);color:var(--nx-text-dim);">Not configured</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== CASE TIMELINE ==================== -->
+    <div class="page" id="page-case">
+
+      <!-- Header: Case tabs + Selected case info -->
+      <div style="margin-bottom:16px;">
+        <!-- Case tab bar -->
+        <div style="display:flex;align-items:center;gap:8px;padding-bottom:12px;border-bottom:1px solid var(--nx-border);overflow-x:auto;">
+          <div style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--nx-cyan-dim);border:1px solid rgba(0,212,255,0.2);border-radius:6px;cursor:pointer;white-space:nowrap;">
+            <span class="tag tag-live" style="font-size:8px;padding:1px 5px;">LIVE</span>
+            <span class="text-mono fw-600" style="font-size:11px;">247540</span>
+            <span style="font-size:10px;color:var(--nx-text-secondary);">ecoprobm</span>
+            <span class="text-red text-mono" style="font-size:10px;font-weight:600;">-18.4%</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--nx-bg-surface);border:1px solid var(--nx-border);border-radius:6px;cursor:pointer;white-space:nowrap;">
+            <span class="tag tag-live" style="font-size:8px;padding:1px 5px;">LIVE</span>
+            <span class="text-mono" style="font-size:11px;color:var(--nx-text-secondary);">005930</span>
+            <span style="font-size:10px;color:var(--nx-text-dim);">Samsung</span>
+            <span class="text-green text-mono" style="font-size:10px;">+24.8%</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--nx-bg-surface);border:1px solid var(--nx-border);border-radius:6px;cursor:pointer;white-space:nowrap;">
+            <span class="tag tag-live" style="font-size:8px;padding:1px 5px;">LIVE</span>
+            <span class="text-mono" style="font-size:11px;color:var(--nx-text-secondary);">028260</span>
+            <span style="font-size:10px;color:var(--nx-text-dim);">Samsung C&T</span>
+            <span class="text-green text-mono" style="font-size:10px;">+8.1%</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--nx-bg-surface);border:1px solid var(--nx-border);border-radius:6px;cursor:pointer;white-space:nowrap;">
+            <span class="tag tag-success" style="font-size:8px;padding:1px 5px;">SUCCESS</span>
+            <span class="text-mono" style="font-size:11px;color:var(--nx-text-secondary);">000660</span>
+            <span style="font-size:10px;color:var(--nx-text-dim);">SK Hynix</span>
+            <span class="text-green text-mono" style="font-size:10px;">+42.1%</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--nx-bg-surface);border:1px solid var(--nx-border);border-radius:6px;cursor:pointer;white-space:nowrap;">
+            <span class="tag tag-closed" style="font-size:8px;padding:1px 5px;">FAILED</span>
+            <span class="text-mono" style="font-size:11px;color:var(--nx-text-secondary);">373220</span>
+            <span style="font-size:10px;color:var(--nx-text-dim);">LG Energy</span>
+            <span class="text-red text-mono" style="font-size:10px;">-15.2%</span>
+          </div>
+          <div style="margin-left:auto;display:flex;gap:6px;">
+            <select style="background:var(--nx-bg-surface);border:1px solid var(--nx-border);border-radius:6px;padding:4px 8px;color:var(--nx-text);font-size:10px;outline:none;cursor:pointer;">
+              <option>All Status</option><option>LIVE</option><option>SUCCESS</option><option>FAILED</option>
+            </select>
+          </div>
+        </div>
+        <!-- Selected case summary -->
+        <div style="display:flex;align-items:center;gap:12px;padding-top:12px;">
+          <span style="font-family:var(--font-display);font-size:18px;font-weight:700;">247540</span>
+          <span class="text-secondary">ecoprobm</span>
+          <span class="tag tag-live">LIVE</span>
+          <span class="text-muted text-mono" style="font-size:12px;">D+127</span>
+          <span style="font-size:11px;color:var(--nx-text-dim);">Semi Value Strategy</span>
+          <div style="margin-left:auto;display:flex;gap:16px;font-size:11px;">
+            <div><span class="text-muted">Return</span> <span class="text-red fw-600">-18.4%</span></div>
+            <div><span class="text-muted">Peak</span> <span class="text-green fw-600">+42.1%</span></div>
+            <div><span class="text-muted">TradeVal</span> <span>4,280B</span></div>
+            <div><span class="text-muted">Sector</span> <span class="text-amber">Battery</span></div>
+          </div>
+          <button class="btn btn-primary" style="margin-left:12px;">Add Trade</button>
+        </div>
+      </div>
+
+      <!-- Main: Timeline (left 50%) + Detail (right 50%) -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+
+        <!-- LEFT: Timeline -->
+        <div class="card" style="height:fit-content;">
+          <div class="card-header">
+            <span class="card-title">Timeline</span>
+            <div class="flex gap-8">
+              <span class="tag tag-cron">News</span>
+              <span class="tag tag-live">Disclosure</span>
+              <span class="tag tag-running">Sector</span>
+              <span class="tag tag-backtest">Trade</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="timeline">
+              <div class="tl-node">
+                <div class="tl-dot" style="background:var(--nx-red-dim);border:2px solid var(--nx-red);color:var(--nx-red);font-size:9px;">&#9889;</div>
+                <div class="tl-date"><strong class="text-red">D-Day: 2025-11-12</strong> <span class="tag tag-cron">EVENT</span></div>
+                <div class="tl-card" style="border-color:rgba(255,92,92,0.2);">
+                  <h4 class="text-red">2yr Max Volume &middot; TradeVal 4,280B</h4>
+                  <p>Volume surged 847% vs prior day. Intraday limit-up touch, closed +15%.</p>
+                  <div class="tl-detail-grid">
+                    <div class="tl-detail" style="background:var(--nx-amber-dim);border-color:rgba(255,176,32,0.15);">
+                      <div class="tl-detail-label">Catalyst</div>
+                      <div style="font-size:12px;">US IRA subsidy finalized &mdash; direct beneficiary for cathode materials</div>
+                    </div>
+                    <div class="tl-detail" style="background:var(--nx-blue-dim);border-color:rgba(96,165,250,0.15);">
+                      <div class="tl-detail-label">Sector Impact</div>
+                      <div style="font-size:12px;">Battery sector +6.2%. LG Energy +8.1%. <span class="text-green">Co-movement confirmed</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="tl-node">
+                <div class="tl-dot" style="background:var(--nx-green-dim);border:2px solid var(--nx-green);color:var(--nx-green);font-size:8px;">+7</div>
+                <div class="tl-date"><strong>D+7: 2025-11-19</strong> <span class="text-green text-mono" style="font-size:11px;">+22.3%</span></div>
+                <div class="tl-card">
+                  <h4 class="text-green">Strong rally &mdash; Foreign buying streak</h4>
+                  <p>Foreign net buy 48.2B for 7 consecutive days. Sector correlation 0.85.</p>
+                </div>
+              </div>
+
+              <div class="tl-node">
+                <div class="tl-dot" style="background:var(--nx-purple-dim);border:2px solid var(--nx-purple);color:var(--nx-purple);font-size:7px;">BUY</div>
+                <div class="tl-date"><strong>D+12: 2025-11-24</strong> <span class="tag tag-backtest">TRADE</span></div>
+                <div class="tl-card" style="border-color:rgba(167,139,250,0.2);">
+                  <h4 class="text-purple">Bought 200 shares @ 168,500</h4>
+                  <p>Total: 33,700,000 KRW &middot; Fee: 16,850 KRW</p>
+                </div>
+              </div>
+
+              <div class="tl-node">
+                <div class="tl-dot" style="background:var(--nx-green-dim);border:2px solid var(--nx-green);color:var(--nx-green);font-size:7px;">+34</div>
+                <div class="tl-date"><strong>D+34: 2025-12-16</strong> <span class="text-green text-mono" style="font-size:11px;">+42.1% (peak)</span></div>
+                <div class="tl-card" style="border-color:rgba(0,230,138,0.2);">
+                  <h4 class="text-green">&#9650; Peak return reached</h4>
+                  <p>RSI 82 overbought zone. Volume declining. AI: "Technical overheating &mdash; partial exit recommended"</p>
+                </div>
+              </div>
+
+              <div class="tl-node">
+                <div class="tl-dot" style="background:var(--nx-cyan-dim);border:2px solid var(--nx-cyan);color:var(--nx-cyan);font-size:7px;">now</div>
+                <div class="tl-date"><strong class="text-cyan">D+127: 2026-03-18 (today)</strong> <span class="text-red text-mono" style="font-size:11px;">-18.4%</span></div>
+                <div class="tl-card" style="border-color:rgba(0,212,255,0.2);">
+                  <h4 class="text-cyan">Current state</h4>
+                  <p>Sector correlation recovering to 0.72. Awaiting IRA final implementation rules.<br><span class="text-cyan">AI: "Policy risk resolution pending. Re-entry on next catalyst."</span></p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: Detail panels -->
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <!-- Success/Failure Conditions -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div class="card">
+              <div class="card-body" style="padding:12px 14px;">
+                <div style="font-size:10px;font-family:var(--font-mono);color:var(--nx-green);font-weight:600;margin-bottom:8px;">SUCCESS CONDITION</div>
+                <div style="font-size:11px;font-family:var(--font-mono);color:var(--nx-text-secondary);margin-bottom:6px;">close &gt;= <span class="text-cyan">event_high</span> * <span class="text-amber">2.0</span></div>
+                <div class="progress"><div class="progress-fill" style="width:0%;background:var(--nx-green);"></div></div>
+                <div style="font-size:9px;color:var(--nx-text-dim);margin-top:4px;">Target: 304,000 &middot; Need: +144.8%</div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-body" style="padding:12px 14px;">
+                <div style="font-size:10px;font-family:var(--font-mono);color:var(--nx-red);font-weight:600;margin-bottom:8px;">FAILURE CONDITION <span style="color:var(--nx-amber);font-weight:400;">68% danger</span></div>
+                <div style="font-size:11px;font-family:var(--font-mono);color:var(--nx-text-secondary);margin-bottom:6px;">close &lt; <span class="text-cyan">pre_event_ma</span>(<span class="text-amber">120</span>)</div>
+                <div class="progress"><div class="progress-fill" style="width:68%;background:var(--nx-red);"></div></div>
+                <div style="font-size:9px;color:var(--nx-red);margin-top:4px;">Stop: 118,400 &middot; Buffer: 4.9%</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Return Tracking -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title" style="font-size:12px;">Return Tracking</span>
+              <span style="font-size:9px;color:var(--nx-text-muted);font-family:var(--font-mono);">vs KOSPI &middot; vs Sector</span>
+            </div>
+            <div class="card-body" style="padding:8px 12px;">
+              <div style="display:grid;grid-template-columns:auto repeat(3,1fr);gap:0;font-size:10px;">
+                <div style="padding:4px 8px;color:var(--nx-text-dim);font-family:var(--font-mono);font-size:9px;"></div>
+                <div style="padding:4px 6px;color:var(--nx-text-dim);font-family:var(--font-mono);font-size:9px;text-align:right;">Return</div>
+                <div style="padding:4px 6px;color:var(--nx-text-dim);font-family:var(--font-mono);font-size:9px;text-align:right;">vs KOSPI</div>
+                <div style="padding:4px 6px;color:var(--nx-text-dim);font-family:var(--font-mono);font-size:9px;text-align:right;">vs Sector</div>
+                <div style="padding:4px 8px;color:var(--nx-text-secondary);">D+1</div>
+                <div style="padding:4px 6px;text-align:right;color:var(--nx-green);">+5.2%</div>
+                <div style="padding:4px 6px;text-align:right;color:var(--nx-green);">+4.8%</div>
+                <div style="padding:4px 6px;text-align:right;color:var(--nx-green);">+3.1%</div>
+                <div style="padding:4px 8px;color:var(--nx-text-secondary);font-weight:600;">Peak (D+34)</div>
+                <div style="padding:4px 6px;text-align:right;color:var(--nx-green);font-weight:600;">+42.1%</div>
+                <div style="padding:4px 6px;text-align:right;color:var(--nx-green);">+38.8%</div>
+                <div style="padding:4px 6px;text-align:right;color:var(--nx-green);">+32.4%</div>
+                <div style="padding:4px 8px;color:var(--nx-text-secondary);">D+90</div>
+                <div style="padding:4px 6px;text-align:right;color:var(--nx-red);">-8.2%</div>
+                <div style="padding:4px 6px;text-align:right;color:var(--nx-red);">-10.5%</div>
+                <div style="padding:4px 6px;text-align:right;color:var(--nx-red);">-12.1%</div>
+                <div style="padding:4px 8px;color:var(--nx-cyan);font-weight:600;">Current (D+127)</div>
+                <div style="padding:4px 6px;text-align:right;color:var(--nx-red);font-weight:600;">-18.4%</div>
+                <div style="padding:4px 6px;text-align:right;color:var(--nx-red);">-20.1%</div>
+                <div style="padding:4px 6px;text-align:right;color:var(--nx-red);">-22.8%</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Trade History + Price Alerts -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div class="card">
+              <div class="card-header">
+                <span class="card-title" style="font-size:11px;">Trade History</span>
+                <button class="btn btn-primary" style="font-size:9px;padding:2px 8px;">+ Add</button>
+              </div>
+              <div class="card-body" style="padding:8px 10px;">
+                <div style="padding:6px 8px;background:var(--nx-bg-card);border:1px solid var(--nx-border);border-radius:6px;margin-bottom:6px;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:9px;padding:1px 5px;background:var(--nx-green-dim);color:var(--nx-green);border-radius:3px;font-weight:600;">BUY</span>
+                    <span style="font-size:9px;color:var(--nx-text-muted);">D+12</span>
+                  </div>
+                  <div style="font-size:10px;margin-top:4px;">200주 @ 168,500</div>
+                </div>
+                <div style="padding:6px 8px;background:var(--nx-bg-card);border:1px solid var(--nx-border);border-radius:6px;margin-bottom:6px;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:9px;padding:1px 5px;background:var(--nx-red-dim);color:var(--nx-red);border-radius:3px;font-weight:600;">SELL</span>
+                    <span style="font-size:9px;color:var(--nx-text-muted);">D+35</span>
+                  </div>
+                  <div style="font-size:10px;margin-top:4px;">100주 @ 212,000</div>
+                </div>
+                <div style="padding:6px 8px;background:var(--nx-bg-surface);border:1px solid var(--nx-border);border-radius:6px;font-size:9px;">
+                  <div style="display:flex;justify-content:space-between;"><span class="text-muted">Total P&L</span><span class="text-red fw-600" style="font-family:var(--font-mono);">-107,450</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                <span class="card-title" style="font-size:11px;">Price Alerts</span>
+                <button class="btn btn-ghost" style="font-size:9px;padding:2px 8px;">+ Add</button>
+              </div>
+              <div class="card-body" style="padding:8px 10px;">
+                <div style="padding:6px 8px;background:var(--nx-bg-card);border:1px solid var(--nx-border);border-radius:6px;margin-bottom:6px;">
+                  <div style="font-size:10px;font-family:var(--font-mono);">close &gt;= <span class="text-amber">150,000</span></div>
+                  <div style="display:flex;justify-content:space-between;margin-top:2px;">
+                    <span style="font-size:9px;color:var(--nx-text-muted);">목표가 1차</span>
+                    <span style="font-size:8px;padding:1px 5px;background:var(--nx-bg-elevated);color:var(--nx-text-muted);border-radius:3px;">Pending</span>
+                  </div>
+                </div>
+                <div style="padding:6px 8px;background:var(--nx-green-dim);border:1px solid rgba(0,230,138,0.15);border-radius:6px;">
+                  <div style="font-size:10px;font-family:var(--font-mono);">close &gt;= <span class="text-amber">180,000</span></div>
+                  <div style="display:flex;justify-content:space-between;margin-top:2px;">
+                    <span style="font-size:9px;color:var(--nx-green);">2차 매수 진입점</span>
+                    <span style="font-size:8px;padding:1px 5px;background:var(--nx-green-dim);color:var(--nx-green);border-radius:3px;">Triggered D+28</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== BACKTEST ==================== -->
+    <div class="page" id="page-backtest">
+      <!-- LIVE / BACKTEST Mode Toggle -->
+      <div style="display:flex;align-items:center;gap:0;margin-bottom:16px;">
+        <div style="padding:8px 20px;font-size:12px;color:var(--nx-text-muted);background:var(--nx-bg-surface);border:1px solid var(--nx-border);border-radius:8px 0 0 8px;cursor:pointer;">LIVE Mode</div>
+        <div style="padding:8px 20px;font-size:12px;color:var(--nx-purple);background:var(--nx-purple-dim);border:1px solid rgba(167,139,250,0.3);border-radius:0 8px 8px 0;font-weight:600;cursor:pointer;">BACKTEST Mode</div>
+      </div>
+
+      <div class="flex items-center justify-between mb-16">
+        <div>
+          <div style="font-family:var(--font-display);font-size:18px;font-weight:700;">
+            <span class="text-purple">&#9716;</span> Backtest: Semi Value Strategy
+          </div>
+          <div class="text-muted text-mono" style="font-size:12px;margin-top:4px;">2020-01 ~ 2025-12 &middot; 247 events &middot; 142 stocks</div>
+        </div>
+        <div class="flex gap-8">
+          <!-- Period Setting UI -->
+          <div style="display:flex;align-items:center;gap:6px;">
+            <input type="month" style="background:var(--nx-bg-surface);border:1px solid var(--nx-border);border-radius:6px;padding:4px 8px;color:var(--nx-text);font-size:11px;font-family:var(--font-mono);outline:none;" value="2020-01">
+            <span style="color:var(--nx-text-muted);font-size:11px;">~</span>
+            <input type="month" style="background:var(--nx-bg-surface);border:1px solid var(--nx-border);border-radius:6px;padding:4px 8px;color:var(--nx-text);font-size:11px;font-family:var(--font-mono);outline:none;" value="2025-12">
+          </div>
+          <select style="background:var(--nx-bg-surface);border:1px solid var(--nx-border);border-radius:6px;padding:4px 8px;color:var(--nx-text);font-size:11px;outline:none;cursor:pointer;">
+            <option>Semi Value Strategy</option>
+            <option>Earnings Momentum</option>
+            <option>Volume Spike</option>
+          </select>
+          <button class="btn btn-primary" style="background:var(--nx-purple-dim);color:var(--nx-purple);border-color:rgba(167,139,250,0.2);">Run Backtest</button>
+        </div>
+      </div>
+
+      <div class="stat-grid bt-stats mb-24">
+        <div class="stat-box">
+          <div class="stat-label">Events</div>
+          <div class="stat-value text-purple">247</div>
+          <div class="stat-sub">142 stocks</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Avg 1Y Return</div>
+          <div class="stat-value text-green">+18.7%</div>
+          <div class="stat-sub">vs KOSPI +7.5%</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Win Rate</div>
+          <div class="stat-value text-green">64.8%</div>
+          <div class="stat-sub">160/247</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Best Case</div>
+          <div class="stat-value text-green">+312%</div>
+          <div class="stat-sub">ecopro (2023-01)</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Worst Case</div>
+          <div class="stat-value text-red">-67%</div>
+          <div class="stat-sub">Celltrion H (2021-09)</div>
+        </div>
+      </div>
+
+      <div class="bt-grid">
+        <!-- Cumulative chart -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Cumulative Return</span>
+          </div>
+          <div class="card-body">
+            <div class="bt-legend">
+              <span><span class="bt-legend-dot" style="background:var(--nx-cyan);"></span> Strategy</span>
+              <span><span class="bt-legend-dot" style="background:var(--nx-text-dim);"></span> KOSPI</span>
+              <span><span class="bt-legend-dot" style="background:var(--nx-red);opacity:0.5;"></span> Events</span>
+            </div>
+            <div class="bt-chart-area">
+              <svg viewBox="0 0 700 200" style="width:100%;height:200px;" preserveAspectRatio="none">
+                <line x1="0" y1="50" x2="700" y2="50" stroke="#1e2a3e" stroke-width="0.5"/>
+                <line x1="0" y1="100" x2="700" y2="100" stroke="#1e2a3e" stroke-width="0.5"/>
+                <line x1="0" y1="150" x2="700" y2="150" stroke="#1e2a3e" stroke-width="0.5"/>
+
+                <polyline points="30,175 100,160 170,145 240,120 310,100 380,110 450,85 520,60 590,50 660,35" fill="none" stroke="#00d4ff" stroke-width="2.5"/>
+                <polyline points="30,175 100,165 170,155 240,148 310,152 380,158 450,150 520,142 590,138 660,130" fill="none" stroke="#5a6478" stroke-width="1.5" opacity="0.6"/>
+
+                <circle cx="100" cy="160" r="3" fill="#ff5c5c" opacity="0.5"/>
+                <circle cx="240" cy="120" r="3" fill="#ff5c5c" opacity="0.5"/>
+                <circle cx="380" cy="110" r="3" fill="#ff5c5c" opacity="0.5"/>
+                <circle cx="520" cy="60" r="3" fill="#ff5c5c" opacity="0.5"/>
+                <circle cx="590" cy="50" r="3" fill="#ff5c5c" opacity="0.5"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sector breakdown -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">By Sector</span>
+          </div>
+          <div class="card-body">
+            <div class="bt-bar-row"><span class="text-secondary">Battery</span><span class="text-green text-mono">78% (32/41)</span></div>
+            <div class="bt-bar"><div class="bt-bar-fill" style="width:78%;background:var(--nx-green);"></div></div>
+            <div class="bt-bar-row" style="margin-top:12px;"><span class="text-secondary">Semiconductor</span><span class="text-green text-mono">71% (24/34)</span></div>
+            <div class="bt-bar"><div class="bt-bar-fill" style="width:71%;background:var(--nx-green);"></div></div>
+            <div class="bt-bar-row" style="margin-top:12px;"><span class="text-secondary">Bio</span><span class="text-amber text-mono">52% (18/35)</span></div>
+            <div class="bt-bar"><div class="bt-bar-fill" style="width:52%;background:var(--nx-amber);"></div></div>
+            <div class="bt-bar-row" style="margin-top:12px;"><span class="text-secondary">Entertainment</span><span class="text-red text-mono">41% (9/22)</span></div>
+            <div class="bt-bar"><div class="bt-bar-fill" style="width:41%;background:var(--nx-red);"></div></div>
+
+            <div style="margin-top:20px;padding:12px;background:var(--nx-bg-card);border:1px solid var(--nx-border);border-radius:8px;">
+              <div style="font-size:10px;font-family:var(--font-mono);color:var(--nx-purple);margin-bottom:4px;">AI SUGGESTION</div>
+              <div style="font-size:12px;color:var(--nx-text-secondary);line-height:1.6;">Filter to "Policy/Regulation" catalyst + sector co-movement &ge; 5% to boost win rate to <span class="text-green fw-600">82%</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Catalyst Type Performance -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">By Catalyst Type</span>
+          </div>
+          <div class="card-body">
+            <div class="bt-bar-row"><span class="text-secondary">Policy / Regulation</span><span class="text-green text-mono">82% (48/59)</span></div>
+            <div class="bt-bar"><div class="bt-bar-fill" style="width:82%;background:var(--nx-green);"></div></div>
+            <div style="font-size:9px;color:var(--nx-text-muted);margin-top:2px;margin-bottom:10px;">Avg return: +28.4% &middot; Best: ecopro +312%</div>
+
+            <div class="bt-bar-row"><span class="text-secondary">Earnings Surprise</span><span class="text-green text-mono">71% (55/78)</span></div>
+            <div class="bt-bar"><div class="bt-bar-fill" style="width:71%;background:var(--nx-green);"></div></div>
+            <div style="font-size:9px;color:var(--nx-text-muted);margin-top:2px;margin-bottom:10px;">Avg return: +19.2% &middot; Best: SK Hynix +145%</div>
+
+            <div class="bt-bar-row"><span class="text-secondary">M&A / Restructuring</span><span class="text-amber text-mono">58% (22/38)</span></div>
+            <div class="bt-bar"><div class="bt-bar-fill" style="width:58%;background:var(--nx-amber);"></div></div>
+            <div style="font-size:9px;color:var(--nx-text-muted);margin-top:2px;margin-bottom:10px;">Avg return: +14.8% &middot; High variance</div>
+
+            <div class="bt-bar-row"><span class="text-secondary">New Business / Theme</span><span class="text-amber text-mono">54% (24/45)</span></div>
+            <div class="bt-bar"><div class="bt-bar-fill" style="width:54%;background:var(--nx-amber);"></div></div>
+            <div style="font-size:9px;color:var(--nx-text-muted);margin-top:2px;margin-bottom:10px;">Avg return: +8.2% &middot; Short-lived rallies</div>
+
+            <div class="bt-bar-row"><span class="text-secondary">Technical Only</span><span class="text-red text-mono">41% (11/27)</span></div>
+            <div class="bt-bar"><div class="bt-bar-fill" style="width:41%;background:var(--nx-red);"></div></div>
+            <div style="font-size:9px;color:var(--nx-text-muted);margin-top:2px;">Avg return: -2.1% &middot; Weak without catalyst</div>
+          </div>
+        </div>
+
+        <!-- Pattern matching -->
+        <div class="card" style="grid-column:1/-1;">
+          <div class="card-header">
+            <span class="card-title text-amber">Pattern Match &mdash; Similar Cases</span>
+            <span class="text-mono text-muted" style="font-size:11px;">18 matches / 247 total</span>
+          </div>
+          <div class="card-body">
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+              <div class="match-card">
+                <h4>LG Energy Solution (2023-04)</h4>
+                <div class="match-similarity"><span class="text-green">91% match</span> &middot; Battery &middot; Policy</div>
+                <div class="match-outcome" style="background:var(--nx-green-dim);border:1px solid rgba(0,230,138,0.15);">
+                  <span class="text-green fw-600">+34.2% (1Y)</span><br>
+                  <span class="text-muted" style="font-size:10px;">Peak +52.1% at D+28</span>
+                </div>
+              </div>
+              <div class="match-card">
+                <h4>POSCO Future M (2022-08)</h4>
+                <div class="match-similarity"><span class="text-green">84% match</span> &middot; Battery &middot; Policy</div>
+                <div class="match-outcome" style="background:var(--nx-green-dim);border:1px solid rgba(0,230,138,0.15);">
+                  <span class="text-green fw-600">+28.7% (1Y)</span><br>
+                  <span class="text-muted" style="font-size:10px;">Peak +61.3% at D+42</span>
+                </div>
+              </div>
+              <div class="match-card">
+                <h4>Samsung SDI (2023-07)</h4>
+                <div class="match-similarity"><span class="text-amber">76% match</span> &middot; Battery &middot; Earnings</div>
+                <div class="match-outcome" style="background:var(--nx-red-dim);border:1px solid rgba(255,92,92,0.15);">
+                  <span class="text-red fw-600">-12.4% (1Y)</span><br>
+                  <span class="text-muted" style="font-size:10px;">Peak +18.3% at D+15</span>
+                </div>
+              </div>
+              <div class="match-card">
+                <h4>SK Innovation (2021-01)</h4>
+                <div class="match-similarity"><span class="text-amber">71% match</span> &middot; Battery &middot; Policy</div>
+                <div class="match-outcome" style="background:var(--nx-green-dim);border:1px solid rgba(0,230,138,0.15);">
+                  <span class="text-green fw-600">+45.8% (1Y)</span><br>
+                  <span class="text-muted" style="font-size:10px;">Peak +89.2% at D+55</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MONITORING removed — integrated into Dashboard -->
+    <div style="display:none;">
+        <div class="flex gap-8">
+          <button class="btn btn-ghost" style="color:var(--nx-amber);">Pause All</button>
+          <button class="btn btn-ghost">Refresh</button>
+        </div>
+      </div>
+
+      <!-- Monitoring Stats -->
+      <div class="stat-grid" style="grid-template-columns:repeat(5,1fr);margin-bottom:24px;">
+        <div class="stat-box">
+          <div class="stat-label">Active Cases</div>
+          <div class="stat-value text-cyan">12</div>
+          <div class="stat-sub">monitoring enabled</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Agent Blocks</div>
+          <div class="stat-value text-amber">47</div>
+          <div class="stat-sub">running across all cases</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Price Polls</div>
+          <div class="stat-value text-green">12</div>
+          <div class="stat-sub">1min interval</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Events Today</div>
+          <div class="stat-value text-purple">23</div>
+          <div class="stat-sub">8 require attention</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">API Usage</div>
+          <div class="stat-value">62%</div>
+          <div class="stat-sub">KIS rate limit</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <!-- Agent Monitoring Blocks -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title text-amber">Agent Monitoring Blocks</span>
+            <span style="font-size:10px;color:var(--nx-text-muted);">47 active</span>
+          </div>
+          <div class="card-body" style="padding:8px 12px;">
+            <!-- Group by type -->
+            <div style="margin-bottom:12px;">
+              <div style="font-size:10px;font-family:var(--font-mono);color:var(--nx-amber);margin-bottom:6px;">NEWS MONITOR <span style="color:var(--nx-text-muted);">&middot; every 6h &middot; 8 cases</span></div>
+              <div style="display:flex;flex-wrap:wrap;gap:4px;">
+                <span style="font-size:9px;padding:3px 8px;background:var(--nx-green-dim);color:var(--nx-green);border-radius:4px;">247540 ✓ 12m ago</span>
+                <span style="font-size:9px;padding:3px 8px;background:var(--nx-green-dim);color:var(--nx-green);border-radius:4px;">005930 ✓ 12m ago</span>
+                <span style="font-size:9px;padding:3px 8px;background:var(--nx-green-dim);color:var(--nx-green);border-radius:4px;">028260 ✓ 12m ago</span>
+                <span style="font-size:9px;padding:3px 8px;background:var(--nx-green-dim);color:var(--nx-green);border-radius:4px;">068270 ✓ 12m ago</span>
+                <span style="font-size:9px;padding:3px 8px;background:var(--nx-bg-elevated);color:var(--nx-text-muted);border-radius:4px;">+4 more</span>
+              </div>
+              <div style="font-size:9px;color:var(--nx-text-muted);margin-top:4px;">Next run: 5h 48m &middot; Last: 2 alerts generated</div>
+            </div>
+            <div style="margin-bottom:12px;">
+              <div style="font-size:10px;font-family:var(--font-mono);color:var(--nx-blue);margin-bottom:6px;">DISCLOSURE WATCH <span style="color:var(--nx-text-muted);">&middot; daily 18:00 &middot; 12 cases</span></div>
+              <div style="display:flex;flex-wrap:wrap;gap:4px;">
+                <span style="font-size:9px;padding:3px 8px;background:var(--nx-green-dim);color:var(--nx-green);border-radius:4px;">All 12 ✓</span>
+              </div>
+              <div style="font-size:9px;color:var(--nx-text-muted);margin-top:4px;">Next run: 2h 15m &middot; Last: 0 alerts</div>
+            </div>
+            <div style="margin-bottom:12px;">
+              <div style="font-size:10px;font-family:var(--font-mono);color:var(--nx-purple);margin-bottom:6px;">SECTOR MOVEMENT <span style="color:var(--nx-text-muted);">&middot; daily close &middot; 10 cases</span></div>
+              <div style="display:flex;flex-wrap:wrap;gap:4px;">
+                <span style="font-size:9px;padding:3px 8px;background:var(--nx-amber-dim);color:var(--nx-amber);border-radius:4px;">028260 ⚠ decoupling</span>
+                <span style="font-size:9px;padding:3px 8px;background:var(--nx-green-dim);color:var(--nx-green);border-radius:4px;">9 normal</span>
+              </div>
+              <div style="font-size:9px;color:var(--nx-text-muted);margin-top:4px;">Next run: market close &middot; Last: 1 alert</div>
+            </div>
+            <div>
+              <div style="font-size:10px;font-family:var(--font-mono);color:var(--nx-cyan);margin-bottom:6px;">INDUSTRY TREND <span style="color:var(--nx-text-muted);">&middot; weekly Mon &middot; 6 cases</span></div>
+              <div style="display:flex;flex-wrap:wrap;gap:4px;">
+                <span style="font-size:9px;padding:3px 8px;background:var(--nx-green-dim);color:var(--nx-green);border-radius:4px;">All 6 ✓</span>
+              </div>
+              <div style="font-size:9px;color:var(--nx-text-muted);margin-top:4px;">Next run: Mon 09:00 &middot; Last: Battery sector momentum shift</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Price Polling Status -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title text-green">Price Polling (DSL)</span>
+            <span class="tag tag-live" style="background:var(--nx-green-dim);color:var(--nx-green);font-size:9px;">LIVE</span>
+          </div>
+          <div class="card-body" style="padding:8px 12px;">
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div style="padding:8px 10px;background:var(--nx-bg-card);border:1px solid var(--nx-border);border-radius:6px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <span style="font-size:12px;font-weight:500;">005930 Samsung</span>
+                  <span style="font-size:10px;color:var(--nx-green);font-weight:600;">Near Success</span>
+                </div>
+                <div style="font-size:10px;font-family:var(--font-mono);color:var(--nx-text-secondary);margin-top:4px;">
+                  close=78,400 &middot; target=82,000 (<span class="text-green">95.6%</span>)
+                </div>
+                <div class="progress mt-8"><div class="progress-fill" style="width:95.6%;background:var(--nx-green);"></div></div>
+              </div>
+              <div style="padding:8px 10px;background:var(--nx-bg-card);border:1px solid rgba(255,92,92,0.15);border-radius:6px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <span style="font-size:12px;font-weight:500;">068270 Celltrion</span>
+                  <span style="font-size:10px;color:var(--nx-red);font-weight:600;">Near Failure</span>
+                </div>
+                <div style="font-size:10px;font-family:var(--font-mono);color:var(--nx-text-secondary);margin-top:4px;">
+                  close=185,200 &middot; stop=182,500 (<span class="text-red">1.5% buffer</span>)
+                </div>
+                <div class="progress mt-8"><div class="progress-fill" style="width:85%;background:var(--nx-red);"></div></div>
+              </div>
+              <div style="padding:8px 10px;background:var(--nx-bg-card);border:1px solid var(--nx-border);border-radius:6px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <span style="font-size:12px;font-weight:500;">247540 ecoprobm</span>
+                  <span style="font-size:10px;color:var(--nx-text-muted);">Active</span>
+                </div>
+                <div style="font-size:10px;font-family:var(--font-mono);color:var(--nx-text-secondary);margin-top:4px;">
+                  close=124,200 &middot; target=304,000 (<span class="text-muted">40.9%</span>)
+                </div>
+                <div class="progress mt-8"><div class="progress-fill" style="width:40.9%;background:var(--nx-cyan);"></div></div>
+              </div>
+              <div style="padding:8px 10px;background:var(--nx-bg-card);border:1px solid var(--nx-border);border-radius:6px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <span style="font-size:12px;font-weight:500;">028260 Samsung C&T</span>
+                  <span style="font-size:10px;color:var(--nx-text-muted);">Active</span>
+                </div>
+                <div style="font-size:10px;font-family:var(--font-mono);color:var(--nx-text-secondary);margin-top:4px;">
+                  close=142,000 &middot; target=186,000 (<span class="text-muted">76.3%</span>)
+                </div>
+                <div class="progress mt-8"><div class="progress-fill" style="width:76.3%;background:var(--nx-cyan);"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Monitoring Events -->
+        <div class="card" style="grid-column:1/-1;">
+          <div class="card-header">
+            <span class="card-title text-purple">Recent Monitoring Events</span>
+            <div style="display:flex;gap:6px;">
+              <span style="font-size:9px;padding:3px 8px;background:var(--nx-amber-dim);color:var(--nx-amber);border-radius:4px;cursor:pointer;">News</span>
+              <span style="font-size:9px;padding:3px 8px;background:var(--nx-blue-dim);color:var(--nx-blue);border-radius:4px;cursor:pointer;">Disclosure</span>
+              <span style="font-size:9px;padding:3px 8px;background:var(--nx-purple-dim);color:var(--nx-purple);border-radius:4px;cursor:pointer;">Sector</span>
+              <span style="font-size:9px;padding:3px 8px;background:var(--nx-green-dim);color:var(--nx-green);border-radius:4px;cursor:pointer;">Price</span>
+            </div>
+          </div>
+          <div class="card-body" style="padding:0;">
+            <div class="search-result-item">
+              <span style="font-size:9px;padding:2px 6px;background:var(--nx-green-dim);color:var(--nx-green);border-radius:3px;min-width:50px;text-align:center;">PRICE</span>
+              <span class="text-mono" style="min-width:60px;font-size:11px;">005930</span>
+              <span style="flex:1;font-size:12px;">Success condition 95.6% — approaching target 82,000</span>
+              <span style="font-size:10px;color:var(--nx-text-muted);">2 min ago</span>
+            </div>
+            <div class="search-result-item">
+              <span style="font-size:9px;padding:2px 6px;background:var(--nx-amber-dim);color:var(--nx-amber);border-radius:3px;min-width:50px;text-align:center;">NEWS</span>
+              <span class="text-mono" style="min-width:60px;font-size:11px;">247540</span>
+              <span style="flex:1;font-size:12px;">IRA subsidy implementation rule update — Impact 7/10, Positive</span>
+              <span style="font-size:10px;color:var(--nx-text-muted);">35 min ago</span>
+            </div>
+            <div class="search-result-item">
+              <span style="font-size:9px;padding:2px 6px;background:var(--nx-purple-dim);color:var(--nx-purple);border-radius:3px;min-width:50px;text-align:center;">SECTOR</span>
+              <span class="text-mono" style="min-width:60px;font-size:11px;">028260</span>
+              <span style="flex:1;font-size:12px;">Sector decoupling detected — correlation 0.81 → 0.42</span>
+              <span style="font-size:10px;color:var(--nx-text-muted);">1h ago</span>
+            </div>
+            <div class="search-result-item">
+              <span style="font-size:9px;padding:2px 6px;background:var(--nx-red-dim);color:var(--nx-red);border-radius:3px;min-width:50px;text-align:center;">PRICE</span>
+              <span class="text-mono" style="min-width:60px;font-size:11px;">068270</span>
+              <span style="flex:1;font-size:12px;">Approaching failure condition — 1.5% buffer to stop loss</span>
+              <span style="font-size:10px;color:var(--nx-text-muted);">2h ago</span>
+            </div>
+            <div class="search-result-item">
+              <span style="font-size:9px;padding:2px 6px;background:var(--nx-blue-dim);color:var(--nx-blue);border-radius:3px;min-width:50px;text-align:center;">DART</span>
+              <span class="text-mono" style="min-width:60px;font-size:11px;">005930</span>
+              <span style="flex:1;font-size:12px;">4Q earnings report filed — Revenue 89.3T (+22% YoY)</span>
+              <span style="font-size:10px;color:var(--nx-text-muted);">5h ago</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div><!-- end hidden monitoring -->
+
+    <!-- ==================== ALERTS ==================== -->
+    <div class="page" id="page-alerts">
+      <div class="flex items-center justify-between mb-16">
+        <div>
+          <div style="font-family:var(--font-display);font-size:18px;font-weight:700;">Alerts</div>
+          <div style="font-size:12px;color:var(--nx-text-muted);">12 unread &middot; 148 total</div>
+        </div>
+        <div class="flex gap-8">
+          <button class="btn btn-ghost">Mark All Read</button>
+          <button class="btn btn-ghost" style="color:var(--nx-cyan);">&#9881; Settings</button>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 320px;gap:16px;">
+        <!-- Alert List -->
+        <div>
+          <!-- Filter tabs -->
+          <div style="display:flex;gap:0;margin-bottom:12px;">
+            <div style="padding:6px 16px;font-size:11px;font-weight:600;color:var(--nx-cyan);background:var(--nx-cyan-dim);border:1px solid rgba(0,212,255,0.2);border-radius:6px 0 0 6px;cursor:pointer;">All <span style="font-size:9px;color:var(--nx-text-muted);">148</span></div>
+            <div style="padding:6px 16px;font-size:11px;color:var(--nx-text-muted);background:var(--nx-bg-surface);border:1px solid var(--nx-border);cursor:pointer;">Unread <span style="font-size:9px;">12</span></div>
+            <div style="padding:6px 16px;font-size:11px;color:var(--nx-text-muted);background:var(--nx-bg-surface);border:1px solid var(--nx-border);cursor:pointer;">Price</div>
+            <div style="padding:6px 16px;font-size:11px;color:var(--nx-text-muted);background:var(--nx-bg-surface);border:1px solid var(--nx-border);cursor:pointer;">News</div>
+            <div style="padding:6px 16px;font-size:11px;color:var(--nx-text-muted);background:var(--nx-bg-surface);border:1px solid var(--nx-border);cursor:pointer;">Disclosure</div>
+            <div style="padding:6px 16px;font-size:11px;color:var(--nx-text-muted);background:var(--nx-bg-surface);border:1px solid var(--nx-border);border-radius:0 6px 6px 0;cursor:pointer;">Sector</div>
+          </div>
+
+          <!-- Alert items -->
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <div style="padding:12px 16px;background:var(--nx-bg-surface);border:1px solid rgba(0,230,138,0.15);border-left:3px solid var(--nx-green);border-radius:8px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="width:6px;height:6px;border-radius:50%;background:var(--nx-cyan);"></span>
+                  <span style="font-size:13px;font-weight:600;">005930 Samsung</span>
+                  <span style="font-size:9px;padding:2px 6px;background:var(--nx-green-dim);color:var(--nx-green);border-radius:3px;">SUCCESS APPROACHING</span>
+                </div>
+                <span style="font-size:10px;color:var(--nx-text-muted);">2 min ago</span>
+              </div>
+              <div style="font-size:12px;color:var(--nx-text-secondary);">close = 78,400 (target: 82,000 = event_high * 2.0). 95.6% reached.</div>
+            </div>
+
+            <div style="padding:12px 16px;background:var(--nx-bg-surface);border:1px solid rgba(255,176,32,0.15);border-left:3px solid var(--nx-amber);border-radius:8px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="width:6px;height:6px;border-radius:50%;background:var(--nx-cyan);"></span>
+                  <span style="font-size:13px;font-weight:600;">247540 ecoprobm</span>
+                  <span style="font-size:9px;padding:2px 6px;background:var(--nx-amber-dim);color:var(--nx-amber);border-radius:3px;">NEWS</span>
+                </div>
+                <span style="font-size:10px;color:var(--nx-text-muted);">35 min ago</span>
+              </div>
+              <div style="font-size:12px;color:var(--nx-text-secondary);">IRA subsidy implementation rule update. AI Impact: 7/10 — Policy clarity improving for cathode materials.</div>
+            </div>
+
+            <div style="padding:12px 16px;background:var(--nx-bg-surface);border:1px solid rgba(96,165,250,0.15);border-left:3px solid var(--nx-blue);border-radius:8px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="width:6px;height:6px;border-radius:50%;background:var(--nx-cyan);"></span>
+                  <span style="font-size:13px;font-weight:600;">028260 Samsung C&T</span>
+                  <span style="font-size:9px;padding:2px 6px;background:var(--nx-blue-dim);color:var(--nx-blue);border-radius:3px;">SECTOR</span>
+                </div>
+                <span style="font-size:10px;color:var(--nx-text-muted);">1h ago</span>
+              </div>
+              <div style="font-size:12px;color:var(--nx-text-secondary);">Sector decoupling detected. Correlation dropped from 0.81 to 0.42. Consider reviewing thesis.</div>
+            </div>
+
+            <div style="padding:12px 16px;background:var(--nx-bg-surface);border:1px solid rgba(255,92,92,0.15);border-left:3px solid var(--nx-red);border-radius:8px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="width:6px;height:6px;border-radius:50%;background:var(--nx-cyan);"></span>
+                  <span style="font-size:13px;font-weight:600;">068270 Celltrion</span>
+                  <span style="font-size:9px;padding:2px 6px;background:var(--nx-red-dim);color:var(--nx-red);border-radius:3px;">FAILURE WARNING</span>
+                </div>
+                <span style="font-size:10px;color:var(--nx-text-muted);">2h ago</span>
+              </div>
+              <div style="font-size:12px;color:var(--nx-text-secondary);">Approaching failure condition. close = 185,200, stop = pre_event_ma(120) = 182,500. 1.5% buffer.</div>
+            </div>
+
+            <div style="padding:12px 16px;background:var(--nx-bg-card);border:1px solid var(--nx-border);border-radius:8px;opacity:0.7;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="font-size:13px;font-weight:500;color:var(--nx-text-secondary);">005930 Samsung</span>
+                  <span style="font-size:9px;padding:2px 6px;background:var(--nx-blue-dim);color:var(--nx-blue);border-radius:3px;">DART</span>
+                </div>
+                <span style="font-size:10px;color:var(--nx-text-dim);">5h ago &middot; read</span>
+              </div>
+              <div style="font-size:12px;color:var(--nx-text-muted);">4Q earnings report filed. Revenue 89.3T (+22% YoY), Op. Profit 32.1T (+394%).</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Alert Settings Sidebar -->
+        <div>
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title" style="font-size:12px;">Telegram Integration</span>
+              <span class="tag tag-live" style="background:var(--nx-green-dim);color:var(--nx-green);font-size:9px;">Connected</span>
+            </div>
+            <div class="card-body" style="padding:12px 16px;">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+                <div style="width:36px;height:36px;background:var(--nx-blue-dim);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;">&#9993;</div>
+                <div>
+                  <div style="font-size:12px;font-weight:500;">@nexus_alert_bot</div>
+                  <div style="font-size:10px;color:var(--nx-green);">Active &middot; Last sent 2 min ago</div>
+                </div>
+              </div>
+              <div style="font-size:10px;color:var(--nx-text-muted);margin-bottom:8px;">Push notification rules:</div>
+              <div style="display:flex;flex-direction:column;gap:4px;">
+                <div style="display:flex;justify-content:space-between;font-size:11px;padding:4px 0;">
+                  <span>Success/Failure alerts</span>
+                  <span class="text-green">&#10003; Always</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:11px;padding:4px 0;">
+                  <span>Price target alerts</span>
+                  <span class="text-green">&#10003; Always</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:11px;padding:4px 0;">
+                  <span>News (Impact ≥ 7)</span>
+                  <span class="text-green">&#10003; On</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:11px;padding:4px 0;">
+                  <span>Disclosure (Major)</span>
+                  <span class="text-green">&#10003; On</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:11px;padding:4px 0;">
+                  <span>Sector alerts</span>
+                  <span class="text-amber">&#9679; Digest</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:12px;">
+            <div class="card-header">
+              <span class="card-title" style="font-size:12px;">Alert Summary</span>
+            </div>
+            <div class="card-body" style="padding:12px 16px;">
+              <div class="fin-row"><span class="text-muted">Today</span><span class="text-cyan fw-600">23</span></div>
+              <div class="fin-row"><span class="text-muted">This Week</span><span>87</span></div>
+              <div class="fin-row"><span class="text-muted">Price Alerts</span><span class="text-green">12</span></div>
+              <div class="fin-row"><span class="text-muted">News/Disclosure</span><span class="text-amber">48</span></div>
+              <div class="fin-row"><span class="text-muted">Sector</span><span class="text-blue">27</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== PORTFOLIO ==================== -->
+    <div class="page" id="page-portfolio">
+      <div class="flex items-center justify-between mb-16">
+        <div style="font-family:var(--font-display);font-size:18px;font-weight:700;">Portfolio</div>
+        <div class="flex gap-8">
+          <button class="btn btn-ghost">Export</button>
+          <button class="btn btn-ghost">Tax Simulation</button>
+          <button class="btn btn-primary">Rebalance</button>
+        </div>
+      </div>
+
+      <!-- Portfolio Stats -->
+      <div class="stat-grid" style="grid-template-columns:repeat(6,1fr);margin-bottom:24px;">
+        <div class="stat-box">
+          <div class="stat-label">Total Value</div>
+          <div class="stat-value text-cyan" style="font-size:20px;">248.5M</div>
+          <div class="stat-sub">6 holdings</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Invested</div>
+          <div class="stat-value" style="font-size:20px;">229.8M</div>
+          <div class="stat-sub">cost basis</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Unrealized P&L</div>
+          <div class="stat-value text-green" style="font-size:20px;">+18.7M</div>
+          <div class="stat-sub">+8.1%</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Realized P&L</div>
+          <div class="stat-value text-green" style="font-size:20px;">+12.4M</div>
+          <div class="stat-sub">YTD</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Fees/Tax</div>
+          <div class="stat-value text-red" style="font-size:20px;">-1.8M</div>
+          <div class="stat-sub">commission + tax</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Net Return</div>
+          <div class="stat-value text-green" style="font-size:20px;">+12.8%</div>
+          <div class="stat-sub">vs KOSPI +4.2%</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:16px;">
+        <!-- Holdings Table -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Holdings</span>
+            <span style="font-size:10px;color:var(--nx-text-muted);">Linked from Case trades</span>
+          </div>
+          <div class="card-body" style="padding:0;">
+            <div style="display:grid;grid-template-columns:auto 1fr repeat(4,auto);gap:0;font-size:11px;">
+              <!-- Header -->
+              <div style="padding:8px 12px;color:var(--nx-text-dim);font-size:9px;font-family:var(--font-mono);border-bottom:1px solid var(--nx-border);">Symbol</div>
+              <div style="padding:8px 6px;color:var(--nx-text-dim);font-size:9px;font-family:var(--font-mono);border-bottom:1px solid var(--nx-border);">Name</div>
+              <div style="padding:8px 6px;color:var(--nx-text-dim);font-size:9px;font-family:var(--font-mono);border-bottom:1px solid var(--nx-border);text-align:right;">Qty</div>
+              <div style="padding:8px 6px;color:var(--nx-text-dim);font-size:9px;font-family:var(--font-mono);border-bottom:1px solid var(--nx-border);text-align:right;">Avg Cost</div>
+              <div style="padding:8px 6px;color:var(--nx-text-dim);font-size:9px;font-family:var(--font-mono);border-bottom:1px solid var(--nx-border);text-align:right;">Current</div>
+              <div style="padding:8px 12px;color:var(--nx-text-dim);font-size:9px;font-family:var(--font-mono);border-bottom:1px solid var(--nx-border);text-align:right;">P&L</div>
+
+              <!-- Samsung -->
+              <div style="padding:6px 12px;font-family:var(--font-mono);font-weight:600;border-bottom:1px solid rgba(30,42,62,0.3);">005930</div>
+              <div style="padding:6px 6px;border-bottom:1px solid rgba(30,42,62,0.3);">Samsung</div>
+              <div style="padding:6px 6px;text-align:right;font-family:var(--font-mono);border-bottom:1px solid rgba(30,42,62,0.3);">500</div>
+              <div style="padding:6px 6px;text-align:right;font-family:var(--font-mono);border-bottom:1px solid rgba(30,42,62,0.3);">62,800</div>
+              <div style="padding:6px 6px;text-align:right;font-family:var(--font-mono);border-bottom:1px solid rgba(30,42,62,0.3);">78,400</div>
+              <div style="padding:6px 12px;text-align:right;font-family:var(--font-mono);color:var(--nx-green);font-weight:600;border-bottom:1px solid rgba(30,42,62,0.3);">+24.8%</div>
+
+              <!-- ecoprobm -->
+              <div style="padding:6px 12px;font-family:var(--font-mono);font-weight:600;border-bottom:1px solid rgba(30,42,62,0.3);">247540</div>
+              <div style="padding:6px 6px;border-bottom:1px solid rgba(30,42,62,0.3);">ecoprobm</div>
+              <div style="padding:6px 6px;text-align:right;font-family:var(--font-mono);border-bottom:1px solid rgba(30,42,62,0.3);">100</div>
+              <div style="padding:6px 6px;text-align:right;font-family:var(--font-mono);border-bottom:1px solid rgba(30,42,62,0.3);">168,500</div>
+              <div style="padding:6px 6px;text-align:right;font-family:var(--font-mono);border-bottom:1px solid rgba(30,42,62,0.3);">124,200</div>
+              <div style="padding:6px 12px;text-align:right;font-family:var(--font-mono);color:var(--nx-red);font-weight:600;border-bottom:1px solid rgba(30,42,62,0.3);">-26.3%</div>
+
+              <!-- Samsung C&T -->
+              <div style="padding:6px 12px;font-family:var(--font-mono);font-weight:600;border-bottom:1px solid rgba(30,42,62,0.3);">028260</div>
+              <div style="padding:6px 6px;border-bottom:1px solid rgba(30,42,62,0.3);">Samsung C&T</div>
+              <div style="padding:6px 6px;text-align:right;font-family:var(--font-mono);border-bottom:1px solid rgba(30,42,62,0.3);">200</div>
+              <div style="padding:6px 6px;text-align:right;font-family:var(--font-mono);border-bottom:1px solid rgba(30,42,62,0.3);">131,500</div>
+              <div style="padding:6px 6px;text-align:right;font-family:var(--font-mono);border-bottom:1px solid rgba(30,42,62,0.3);">142,000</div>
+              <div style="padding:6px 12px;text-align:right;font-family:var(--font-mono);color:var(--nx-green);font-weight:600;border-bottom:1px solid rgba(30,42,62,0.3);">+8.0%</div>
+
+              <!-- Celltrion -->
+              <div style="padding:6px 12px;font-family:var(--font-mono);font-weight:600;">068270</div>
+              <div style="padding:6px 6px;">Celltrion</div>
+              <div style="padding:6px 6px;text-align:right;font-family:var(--font-mono);">150</div>
+              <div style="padding:6px 6px;text-align:right;font-family:var(--font-mono);">179,800</div>
+              <div style="padding:6px 6px;text-align:right;font-family:var(--font-mono);">185,200</div>
+              <div style="padding:6px 12px;text-align:right;font-family:var(--font-mono);color:var(--nx-green);font-weight:600;">+3.0%</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sector Allocation + Tax -->
+        <div>
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title" style="font-size:12px;">Sector Allocation</span>
+            </div>
+            <div class="card-body" style="padding:12px 16px;">
+              <div style="margin-bottom:8px;">
+                <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px;">
+                  <span>Semiconductor</span><span class="text-mono">42.8%</span>
+                </div>
+                <div class="progress"><div class="progress-fill" style="width:42.8%;background:var(--nx-cyan);"></div></div>
+              </div>
+              <div style="margin-bottom:8px;">
+                <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px;">
+                  <span>Battery</span><span class="text-mono">18.2%</span>
+                </div>
+                <div class="progress"><div class="progress-fill" style="width:18.2%;background:var(--nx-amber);"></div></div>
+              </div>
+              <div style="margin-bottom:8px;">
+                <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px;">
+                  <span>Conglomerate</span><span class="text-mono">22.4%</span>
+                </div>
+                <div class="progress"><div class="progress-fill" style="width:22.4%;background:var(--nx-purple);"></div></div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px;">
+                  <span>Bio</span><span class="text-mono">16.6%</span>
+                </div>
+                <div class="progress"><div class="progress-fill" style="width:16.6%;background:var(--nx-green);"></div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:12px;">
+            <div class="card-header">
+              <span class="card-title" style="font-size:12px;">Tax & Fees</span>
+            </div>
+            <div class="card-body" style="padding:12px 16px;">
+              <div class="fin-row"><span class="text-muted">Commission (Buy)</span><span class="text-mono">482,300</span></div>
+              <div class="fin-row"><span class="text-muted">Commission (Sell)</span><span class="text-mono">318,200</span></div>
+              <div class="fin-row"><span class="text-muted">Securities Tax</span><span class="text-mono">928,400</span></div>
+              <div class="fin-row"><span class="text-muted">Est. Capital Gains Tax</span><span class="text-mono text-amber">0</span></div>
+              <div class="fin-row" style="border-top:1px solid var(--nx-border);margin-top:4px;padding-top:8px;"><span style="font-weight:600;">Total Fees</span><span class="text-mono text-red fw-600">1,728,900</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== MARKETPLACE ==================== -->
+    <div class="page" id="page-marketplace">
+      <div class="flex items-center justify-between mb-16">
+        <div style="font-family:var(--font-display);font-size:18px;font-weight:700;">Marketplace</div>
+        <div class="flex gap-8">
+          <input style="background:var(--nx-bg-surface);border:1px solid var(--nx-border);border-radius:8px;padding:6px 14px;color:var(--nx-text);font-size:12px;width:250px;outline:none;font-family:var(--font-body);" placeholder="Search pipelines, blocks, presets...">
+          <button class="btn btn-primary">Publish Mine</button>
+        </div>
+      </div>
+
+      <!-- Category tabs -->
+      <div style="display:flex;gap:0;margin-bottom:16px;">
+        <div style="padding:8px 20px;font-size:12px;font-weight:600;color:var(--nx-cyan);background:var(--nx-cyan-dim);border:1px solid rgba(0,212,255,0.2);border-radius:8px 0 0 8px;cursor:pointer;">Pipelines</div>
+        <div style="padding:8px 20px;font-size:12px;color:var(--nx-text-muted);background:var(--nx-bg-surface);border:1px solid var(--nx-border);cursor:pointer;">Agent Blocks</div>
+        <div style="padding:8px 20px;font-size:12px;color:var(--nx-text-muted);background:var(--nx-bg-surface);border:1px solid var(--nx-border);cursor:pointer;">Search Presets</div>
+        <div style="padding:8px 20px;font-size:12px;color:var(--nx-text-muted);background:var(--nx-bg-surface);border:1px solid var(--nx-border);border-radius:0 8px 8px 0;cursor:pointer;">DSL Scripts</div>
+      </div>
+
+      <!-- Sort -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div style="font-size:11px;color:var(--nx-text-muted);">42 public pipelines</div>
+        <select style="background:var(--nx-bg-surface);border:1px solid var(--nx-border);border-radius:6px;padding:4px 10px;color:var(--nx-text);font-size:11px;outline:none;cursor:pointer;">
+          <option>Most Popular</option>
+          <option>Best Win Rate</option>
+          <option>Newest</option>
+          <option>Most Forked</option>
+        </select>
+      </div>
+
+      <!-- Pipeline Cards -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+        <div class="card" style="cursor:pointer;">
+          <div class="card-body" style="padding:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+              <div>
+                <div style="font-size:14px;font-weight:600;">Volume Breakout Strategy</div>
+                <div style="font-size:10px;color:var(--nx-text-muted);margin-top:2px;">by <span class="text-cyan">quant_master</span></div>
+              </div>
+              <span style="font-size:9px;padding:3px 8px;background:var(--nx-green-dim);color:var(--nx-green);border-radius:4px;font-weight:600;">72% win</span>
+            </div>
+            <div style="font-size:11px;color:var(--nx-text-secondary);line-height:1.6;margin-bottom:12px;">2년 최대거래량 발생 종목에 대한 다차원 분석. 뉴스/재무/섹터를 병렬 분석 후 AI 종합 판단.</div>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px;">
+              <span style="font-size:9px;padding:2px 6px;background:var(--nx-bg-elevated);color:var(--nx-text-muted);border-radius:3px;">5 blocks</span>
+              <span style="font-size:9px;padding:2px 6px;background:var(--nx-bg-elevated);color:var(--nx-text-muted);border-radius:3px;">3 monitors</span>
+              <span style="font-size:9px;padding:2px 6px;background:var(--nx-bg-elevated);color:var(--nx-text-muted);border-radius:3px;">Backtest: 247 events</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:10px;color:var(--nx-text-muted);">3.2k forks &middot; 8.1k views</span>
+              <button class="btn btn-primary" style="font-size:10px;padding:4px 12px;">Fork</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="cursor:pointer;">
+          <div class="card-body" style="padding:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+              <div>
+                <div style="font-size:14px;font-weight:600;">Earnings Momentum Alpha</div>
+                <div style="font-size:10px;color:var(--nx-text-muted);margin-top:2px;">by <span class="text-cyan">alpha_seeker</span></div>
+              </div>
+              <span style="font-size:9px;padding:3px 8px;background:var(--nx-green-dim);color:var(--nx-green);border-radius:4px;font-weight:600;">68% win</span>
+            </div>
+            <div style="font-size:11px;color:var(--nx-text-secondary);line-height:1.6;margin-bottom:12px;">어닝 서프라이즈 발생 종목 탐지 + 외국인/기관 수급 분석. PER 밴드 하단 매수 전략.</div>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px;">
+              <span style="font-size:9px;padding:2px 6px;background:var(--nx-bg-elevated);color:var(--nx-text-muted);border-radius:3px;">4 blocks</span>
+              <span style="font-size:9px;padding:2px 6px;background:var(--nx-bg-elevated);color:var(--nx-text-muted);border-radius:3px;">2 monitors</span>
+              <span style="font-size:9px;padding:2px 6px;background:var(--nx-bg-elevated);color:var(--nx-text-muted);border-radius:3px;">Backtest: 312 events</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:10px;color:var(--nx-text-muted);">1.8k forks &middot; 5.4k views</span>
+              <button class="btn btn-primary" style="font-size:10px;padding:4px 12px;">Fork</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="cursor:pointer;">
+          <div class="card-body" style="padding:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+              <div>
+                <div style="font-size:14px;font-weight:600;">Bio Catalyst Hunter</div>
+                <div style="font-size:10px;color:var(--nx-text-muted);margin-top:2px;">by <span class="text-cyan">bio_trader</span></div>
+              </div>
+              <span style="font-size:9px;padding:3px 8px;background:var(--nx-amber-dim);color:var(--nx-amber);border-radius:4px;font-weight:600;">55% win</span>
+            </div>
+            <div style="font-size:11px;color:var(--nx-text-secondary);line-height:1.6;margin-bottom:12px;">FDA/임상 이벤트 기반 바이오 종목 분석. 파이프라인 단계별 성공 확률 평가.</div>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px;">
+              <span style="font-size:9px;padding:2px 6px;background:var(--nx-bg-elevated);color:var(--nx-text-muted);border-radius:3px;">6 blocks</span>
+              <span style="font-size:9px;padding:2px 6px;background:var(--nx-bg-elevated);color:var(--nx-text-muted);border-radius:3px;">4 monitors</span>
+              <span style="font-size:9px;padding:2px 6px;background:var(--nx-bg-elevated);color:var(--nx-text-muted);border-radius:3px;">Backtest: 89 events</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:10px;color:var(--nx-text-muted);">920 forks &middot; 3.1k views</span>
+              <button class="btn btn-primary" style="font-size:10px;padding:4px 12px;">Fork</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="cursor:pointer;">
+          <div class="card-body" style="padding:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+              <div>
+                <div style="font-size:14px;font-weight:600;">DART Insider Flow</div>
+                <div style="font-size:10px;color:var(--nx-text-muted);margin-top:2px;">by <span class="text-cyan">value_hunter</span></div>
+              </div>
+              <span style="font-size:9px;padding:3px 8px;background:var(--nx-green-dim);color:var(--nx-green);border-radius:4px;font-weight:600;">74% win</span>
+            </div>
+            <div style="font-size:11px;color:var(--nx-text-secondary);line-height:1.6;margin-bottom:12px;">대주주/임원 자사주 매입 공시 기반 전략. 내부자 매수 신호와 밸류에이션 교차 분석.</div>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px;">
+              <span style="font-size:9px;padding:2px 6px;background:var(--nx-bg-elevated);color:var(--nx-text-muted);border-radius:3px;">3 blocks</span>
+              <span style="font-size:9px;padding:2px 6px;background:var(--nx-bg-elevated);color:var(--nx-text-muted);border-radius:3px;">2 monitors</span>
+              <span style="font-size:9px;padding:2px 6px;background:var(--nx-bg-elevated);color:var(--nx-text-muted);border-radius:3px;">Backtest: 156 events</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:10px;color:var(--nx-text-muted);">2.1k forks &middot; 6.8k views</span>
+              <button class="btn btn-primary" style="font-size:10px;padding:4px 12px;">Fork</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="cursor:pointer;">
+          <div class="card-body" style="padding:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+              <div>
+                <div style="font-size:14px;font-weight:600;">Sector Rotation Play</div>
+                <div style="font-size:10px;color:var(--nx-text-muted);margin-top:2px;">by <span class="text-cyan">macro_view</span></div>
+              </div>
+              <span style="font-size:9px;padding:3px 8px;background:var(--nx-amber-dim);color:var(--nx-amber);border-radius:4px;font-weight:600;">61% win</span>
+            </div>
+            <div style="font-size:11px;color:var(--nx-text-secondary);line-height:1.6;margin-bottom:12px;">섹터 로테이션 감지 + 선행 섹터 ETF 흐름 분석. 매크로 환경 변화에 따른 수혜 종목 선별.</div>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px;">
+              <span style="font-size:9px;padding:2px 6px;background:var(--nx-bg-elevated);color:var(--nx-text-muted);border-radius:3px;">7 blocks</span>
+              <span style="font-size:9px;padding:2px 6px;background:var(--nx-bg-elevated);color:var(--nx-text-muted);border-radius:3px;">5 monitors</span>
+              <span style="font-size:9px;padding:2px 6px;background:var(--nx-bg-elevated);color:var(--nx-text-muted);border-radius:3px;">Backtest: 198 events</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:10px;color:var(--nx-text-muted);">1.4k forks &middot; 4.2k views</span>
+              <button class="btn btn-primary" style="font-size:10px;padding:4px 12px;">Fork</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="cursor:pointer;">
+          <div class="card-body" style="padding:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+              <div>
+                <div style="font-size:14px;font-weight:600;">Golden Cross Screener</div>
+                <div style="font-size:10px;color:var(--nx-text-muted);margin-top:2px;">by <span class="text-cyan">tech_signals</span></div>
+              </div>
+              <span style="font-size:9px;padding:3px 8px;background:var(--nx-amber-dim);color:var(--nx-amber);border-radius:4px;font-weight:600;">58% win</span>
+            </div>
+            <div style="font-size:11px;color:var(--nx-text-secondary);line-height:1.6;margin-bottom:12px;">골든크로스 + 거래량 급증 동시 발생 종목. 기술적 + 수급 확인 후 진입.</div>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px;">
+              <span style="font-size:9px;padding:2px 6px;background:var(--nx-bg-elevated);color:var(--nx-text-muted);border-radius:3px;">4 blocks</span>
+              <span style="font-size:9px;padding:2px 6px;background:var(--nx-bg-elevated);color:var(--nx-text-muted);border-radius:3px;">2 monitors</span>
+              <span style="font-size:9px;padding:2px 6px;background:var(--nx-bg-elevated);color:var(--nx-text-muted);border-radius:3px;">Backtest: 421 events</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:10px;color:var(--nx-text-muted);">4.5k forks &middot; 12k views</span>
+              <button class="btn btn-primary" style="font-size:10px;padding:4px 12px;">Fork</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sidebar-item[data-page]').forEach(s => s.classList.remove('active'));
+
+  document.getElementById('page-' + name).classList.add('active');
+  document.querySelector('.sidebar-item[data-page="' + name + '"]').classList.add('active');
+
+  const titles = {
+    dashboard: 'Dashboard',
+    search: 'Stock Search',
+    chart: 'Chart',
+    pipeline: 'Pipeline Builder',
+    case: 'Case Timeline',
+    backtest: 'Backtest',
+    alerts: 'Alerts',
+    portfolio: 'Portfolio',
+    marketplace: 'Marketplace'
+  };
+  document.getElementById('topbar-title').textContent = titles[name] || name;
+}
+
+/* ---- Search Tab Switching ---- */
+function switchSearchTab(tab) {
+  document.querySelectorAll('.search-mode-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.search-tab-content').forEach(c => c.classList.remove('active'));
+  document.querySelector('.search-mode-tab[data-tab="' + tab + '"]').classList.add('active');
+  document.getElementById('search-tab-' + tab).classList.add('active');
+
+  // Update LIVE DSL status based on mode
+  var statusEl = document.getElementById('live-dsl-status');
+  if (tab === 'dsl') {
+    var editor = document.getElementById('dsl-editor-input');
+    if (editor.value.trim()) {
+      syncDslToLive(editor.value);
+      statusEl.className = 'live-dsl-status not-validated';
+      statusEl.innerHTML = '&#x26a0; Not validated';
+    }
+  } else {
+    statusEl.className = 'live-dsl-status validated';
+    statusEl.innerHTML = '&#x2713; Agent validated';
+  }
+}
+
+/* ---- DSL Editor → LIVE DSL sync ---- */
+function highlightDsl(raw) {
+  return raw
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"([^"]*)"/g, '<span class=hl-s>"$1"</span>')
+    .replace(/\b(scan|where|and|or|sort|desc|asc|limit)\b/g, '<span class=hl-k>$1</span>')
+    .replace(/\b(max_volume|min_volume|trade_value|close|open|high|low|volume|per|pbr|roe|rsi|ma|market_cap|sector_avg_per|days_since|max_volume_date)\b/g, '<span class=hl-f>$1</span>')
+    .replace(/\b(\d+)\b/g, '<span class=hl-n>$1</span>');
+}
+
+function syncDslToLive(raw) {
+  var display = document.getElementById('live-dsl-display');
+  var lines = raw.split('\n');
+  display.innerHTML = lines.map(function(l) { return '<div>' + (highlightDsl(l) || '&nbsp;') + '</div>'; }).join('');
+}
+
+(function() {
+  var editor = document.getElementById('dsl-editor-input');
+  if (editor) {
+    editor.addEventListener('input', function() {
+      syncDslToLive(editor.value);
+      var statusEl = document.getElementById('live-dsl-status');
+      if (editor.value.trim()) {
+        statusEl.className = 'live-dsl-status not-validated';
+        statusEl.innerHTML = '&#x26a0; Not validated';
+      }
+    });
+  }
+})();
+
+/* ---- DSL Hint Insertion ---- */
+function insertDslHint(text) {
+  var editor = document.getElementById('dsl-editor-input');
+  var start = editor.selectionStart;
+  var end = editor.selectionEnd;
+  editor.value = editor.value.substring(0, start) + text + editor.value.substring(end);
+  editor.focus();
+  var pos = start + text.length;
+  if (text.indexOf('()') > -1) pos = start + text.indexOf(')');
+  editor.selectionStart = editor.selectionEnd = pos;
+  syncDslToLive(editor.value);
+}
+
+/* ---- Validate / Explain (mock) ---- */
+function validateDsl() {
+  var editor = document.getElementById('dsl-editor-input');
+  var resultEl = document.getElementById('dsl-action-result');
+  var statusEl = document.getElementById('live-dsl-status');
+
+  if (!editor.value.trim()) {
+    resultEl.style.display = 'block';
+    resultEl.style.background = 'var(--nx-red-dim)';
+    resultEl.style.color = 'var(--nx-red)';
+    resultEl.textContent = '✗ Empty expression — enter a DSL query to validate.';
+    statusEl.className = 'live-dsl-status error';
+    statusEl.innerHTML = '&#x2717; Syntax error';
+    return;
+  }
+
+  resultEl.style.display = 'block';
+  resultEl.style.background = 'var(--nx-green-dim)';
+  resultEl.style.color = 'var(--nx-green)';
+  resultEl.textContent = '✓ Valid expression — 5 conditions parsed, scan target: KOSPI+KOSDAQ';
+  statusEl.className = 'live-dsl-status validated';
+  statusEl.innerHTML = '&#x2713; Agent validated';
+}
+
+function explainDsl() {
+  var editor = document.getElementById('dsl-editor-input');
+  var resultEl = document.getElementById('dsl-action-result');
+
+  if (!editor.value.trim()) {
+    resultEl.style.display = 'block';
+    resultEl.style.background = 'var(--nx-red-dim)';
+    resultEl.style.color = 'var(--nx-red)';
+    resultEl.textContent = '✗ Enter a DSL expression first.';
+    return;
+  }
+
+  resultEl.style.display = 'block';
+  resultEl.style.background = 'var(--nx-blue-dim)';
+  resultEl.style.color = 'var(--nx-blue)';
+  resultEl.innerHTML = '💬 <strong>Natural Language Explanation:</strong><br>"KOSPI와 KOSDAQ 전 종목을 대상으로, 504거래일(약 2년) 중 최대 거래량이 현재 거래량과 같고, 해당 최대 거래량 발생일로부터 1,260거래일(약 5년) 이내이며, 거래대금이 3,000억 원 이상인 종목을 검색합니다. 결과는 거래대금 내림차순으로 정렬됩니다."';
+}
+
+/* ---- Preset Chip Click (mock NL fill) ---- */
+function applyPreset(name) {
+  var prompt = document.querySelector('.search-prompt');
+  var presets = {
+    '2yr Max Volume': 'Find stocks where 2-year max volume occurred in the last 5 years with trade value over 300 billion KRW',
+    'Golden Cross': 'Find stocks where 50-day moving average just crossed above 200-day moving average',
+    'Earnings Surprise': 'Find stocks with quarterly earnings surprise over 20% reported in the last 30 days',
+    'RSI Oversold': 'Find stocks with RSI below 30 and market cap over 1 trillion KRW',
+    'Sector Breakout': 'Find stocks hitting 52-week highs with volume 3x above average in their sector'
+  };
+  prompt.value = presets[name] || name;
+  prompt.focus();
+}
+
+/* ---- Chart: Stock List Panel ---- */
+function switchStockTab(tab) {
+  document.querySelectorAll('.stock-tab').forEach(function(t) { t.classList.remove('active'); });
+  document.querySelector('.stock-tab[data-stab="' + tab + '"]').classList.add('active');
+}
+
+function selectStock(el) {
+  document.querySelectorAll('.stock-item').forEach(function(s) { s.classList.remove('active'); });
+  el.classList.add('active');
+  var code = el.getAttribute('data-code');
+  var name = el.getAttribute('data-name');
+  var price = el.getAttribute('data-price');
+  var change = el.getAttribute('data-change');
+  // Update topbar
+  var sym = document.querySelector('.chart-symbol');
+  if (sym) sym.textContent = code;
+  var nameEl = sym ? sym.nextElementSibling : null;
+  if (nameEl) nameEl.textContent = name;
+  var priceEl = document.querySelector('.chart-price');
+  if (priceEl) {
+    priceEl.textContent = price;
+    priceEl.className = 'chart-price ' + (change.charAt(0) === '+' ? 'text-green' : 'text-red');
+  }
+  var changeEl = document.querySelector('.chart-change');
+  if (changeEl) {
+    changeEl.textContent = change;
+    changeEl.className = 'chart-change ' + (change.charAt(0) === '+' ? 'text-green' : 'text-red');
+  }
+}
+
+function toggleStar(el) {
+  el.classList.toggle('starred');
+  el.textContent = el.classList.contains('starred') ? '★' : '☆';
+}
+
+function openChart(code, name, price, change) {
+  showPage('chart');
+  var items = document.querySelectorAll('.stock-item');
+  items.forEach(function(item) {
+    item.classList.remove('active');
+    if (item.getAttribute('data-code') === code) {
+      item.classList.add('active');
+    }
+  });
+  // Update topbar
+  var sym = document.querySelector('.chart-symbol');
+  if (sym) sym.textContent = code;
+  var nameEl = sym ? sym.nextElementSibling : null;
+  if (nameEl) nameEl.textContent = name;
+}
+
+/* ---- Copy LIVE DSL ---- */
+function copyLiveDsl() {
+  var display = document.getElementById('live-dsl-display');
+  var text = display.innerText || display.textContent;
+  navigator.clipboard.writeText(text).then(function() {
+    var btn = document.querySelector('.live-dsl-footer .btn-ghost');
+    var orig = btn.textContent;
+    btn.textContent = 'Copied!';
+    setTimeout(function() { btn.textContent = orig; }, 1500);
+  });
+}
+</script>
+
+</body>
+</html>
