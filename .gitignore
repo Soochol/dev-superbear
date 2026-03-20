@@ -56,3 +56,4 @@ backend/coverage.*
 test-results/
 playwright-report/
 .dev-logs/
+.superpowers/
