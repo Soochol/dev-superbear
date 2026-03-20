@@ -1,6 +1,6 @@
 "use client";
 
-import type { AgentBlock } from "@/entities/agent-block/model/types";
+import type { AgentBlock } from "@/entities/agent-block";
 import AnalysisSection from "./sections/AnalysisSection";
 import MonitoringSection from "./sections/MonitoringSection";
 import JudgmentSection from "./sections/JudgmentSection";

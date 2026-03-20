@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { createChart, LineSeries, HistogramSeries, type IChartApi, type ISeriesApi } from "lightweight-charts";
 import { useChartStore } from "@/features/chart";
 import { calculateMACD } from "@/entities/indicator";
-import { CHART_THEME, toLineData } from "@/features/chart/lib/chart-theme";
+import { CHART_THEME, toLineData } from "@/features/chart";
 
 export function MACDChart() {
   const containerRef = useRef<HTMLDivElement>(null);

@@ -5,7 +5,7 @@ import {
   getToolsByCategory,
   getCategoryLabel,
   type ToolCategory,
-} from "@/entities/agent-block/lib/agent-tools";
+} from "@/entities/agent-block";
 
 interface ToolSelectorProps {
   selected: string[];

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { apiGet, apiPost, apiDelete } from '@/shared/api/client';
-import type { PriceAlert } from '@/entities/price-alert/model/types';
+import type { PriceAlert } from '@/entities/price-alert';
 
 interface AlertState {
   pendingAlerts: PriceAlert[];

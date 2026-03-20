@@ -1,4 +1,4 @@
-export type { AgentBlock, MonitorBlock, AgentBlockTemplate } from './model/types';
+export type { AgentBlock, MonitorBlock, AgentBlockTemplate, PriceAlert } from './model/types';
 
 export {
   AGENT_TOOLS,

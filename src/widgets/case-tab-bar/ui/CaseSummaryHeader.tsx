@@ -1,6 +1,6 @@
 'use client';
 
-import type { Case } from '@/entities/case/model/types';
+import type { Case } from '@/entities/case';
 
 interface CaseSummaryHeaderProps {
   caseData: Case;

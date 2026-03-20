@@ -1,5 +1,5 @@
 import type { StateCreator } from "zustand";
-import type { AgentBlock } from "@/entities/agent-block/model/types";
+import type { AgentBlock } from "@/entities/agent-block";
 import type { MonitorSlice } from "./monitor.slice";
 import type { JudgmentSlice } from "./judgment.slice";
 import type { MetaSlice } from "./pipeline.store";

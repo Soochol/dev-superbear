@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef } from 'react';
-import type { Case } from '@/entities/case/model/types';
+import type { Case } from '@/entities/case';
 
 interface CaseTabBarProps {
   cases: Case[];

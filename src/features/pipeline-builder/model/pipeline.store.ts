@@ -1,5 +1,5 @@
 import { create, type StateCreator } from "zustand";
-import type { Pipeline } from "@/entities/pipeline/model/types";
+import type { Pipeline } from "@/entities/pipeline";
 import {
   createAnalysisSlice,
   type AnalysisSlice,

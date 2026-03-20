@@ -1,6 +1,6 @@
 'use client';
 
-import type { TimelineEvent } from '@/entities/case/model/types';
+import type { TimelineEvent } from '@/entities/case';
 import { formatTimeline, type TimelineItem } from '../lib/timeline-formatter';
 import { TimelineNode } from './TimelineNode';
 import { TimelineDot } from './TimelineDot';

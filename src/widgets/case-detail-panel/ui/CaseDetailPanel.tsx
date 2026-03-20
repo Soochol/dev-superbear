@@ -1,11 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import type { Case } from '@/entities/case/model/types';
+import type { Case } from '@/entities/case';
 import { ConditionProgress } from './ConditionProgress';
 import { ReturnTrackingTable } from './ReturnTrackingTable';
-import { TradeHistory } from '@/features/manage-trades/ui/TradeHistory';
-import { PriceAlertsList } from '@/features/manage-alerts/ui/PriceAlertsList';
+import { TradeHistory } from '@/features/manage-trades';
+import { PriceAlertsList } from '@/features/manage-alerts';
 
 interface CaseDetailPanelProps {
   caseData: Case;

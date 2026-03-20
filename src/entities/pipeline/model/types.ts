@@ -4,7 +4,7 @@ import type {
   AgentBlock,
   MonitorBlock,
   PriceAlert,
-} from "@/entities/agent-block/model/types";
+} from "@/entities/agent-block";
 
 export interface Pipeline {
   id: string;

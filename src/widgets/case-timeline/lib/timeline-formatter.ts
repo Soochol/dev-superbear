@@ -1,4 +1,4 @@
-import type { TimelineEvent, TimelineEventType } from '@/entities/case/model/types';
+import type { TimelineEvent, TimelineEventType } from '@/entities/case';
 
 export type TimelineVariant = 'node' | 'dot' | 'card';
 

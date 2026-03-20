@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, type DragEvent } from "react";
-import type { AgentBlock } from "@/entities/agent-block/model/types";
+import type { AgentBlock } from "@/entities/agent-block";
 import { usePipelineStore } from "../model/pipeline.store";
 
 export interface DragPayload {

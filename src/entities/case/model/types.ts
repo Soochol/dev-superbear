@@ -1,5 +1,5 @@
-import type { Trade } from '@/entities/trade/model/types';
-import type { PriceAlert } from '@/entities/price-alert/model/types';
+import type { Trade } from '@/entities/trade';
+import type { PriceAlert } from '@/entities/price-alert';
 
 export type CaseStatus = 'LIVE' | 'CLOSED_SUCCESS' | 'CLOSED_FAILURE' | 'BACKTEST';
 

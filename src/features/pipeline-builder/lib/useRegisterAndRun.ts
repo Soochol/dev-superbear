@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import { apiGet, apiPost } from "@/shared/api/client";
-import type { Pipeline, PipelineJob } from "@/entities/pipeline/model/types";
+import type { Pipeline, PipelineJob } from "@/entities/pipeline";
 import { usePipelineStore } from "../model/pipeline.store";
 
 interface CreatePipelineBody {

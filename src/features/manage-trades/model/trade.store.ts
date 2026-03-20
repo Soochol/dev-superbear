@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { apiGet, apiPost } from '@/shared/api/client';
-import type { Trade, PnLSummary, CreateTradeInput } from '@/entities/trade/model/types';
+import type { Trade, PnLSummary, CreateTradeInput } from '@/entities/trade';
 
 interface TradeState {
   trades: Trade[];

@@ -1,10 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import type { AgentBlock } from "@/entities/agent-block/model/types";
-import type { StageState } from "@/features/pipeline-builder/model/analysis.slice";
-import type { MonitorBlockState } from "@/features/pipeline-builder/model/monitor.slice";
-import type { PriceAlertState } from "@/features/pipeline-builder/model/judgment.slice";
+import type { AgentBlock } from "@/entities/agent-block";
+import type { StageState, MonitorBlockState, PriceAlertState } from "@/features/pipeline-builder";
 import {
   generatePipeline,
   type GenerateResponse,

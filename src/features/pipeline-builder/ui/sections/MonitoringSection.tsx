@@ -1,8 +1,7 @@
 "use client";
 
 import type { DragEvent } from "react";
-import type { AgentBlock } from "@/entities/agent-block/model/types";
-import MonitorCard from "@/entities/agent-block/ui/MonitorCard";
+import { MonitorCard, type AgentBlock } from "@/entities/agent-block";
 import { usePipelineStore } from "../../model/pipeline.store";
 import { usePipelineDragDrop } from "../../lib/usePipelineDragDrop";
 

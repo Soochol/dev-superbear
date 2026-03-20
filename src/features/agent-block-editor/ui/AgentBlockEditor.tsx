@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type { AgentBlock } from "@/entities/agent-block/model/types";
+import type { AgentBlock } from "@/entities/agent-block";
 import { apiPut } from "@/shared/api/client";
 import ToolSelector from "./ToolSelector";
 
