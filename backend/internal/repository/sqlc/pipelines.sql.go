@@ -114,6 +114,15 @@ func (q *Queries) CreateStage(ctx context.Context, arg CreateStageParams) (Stage
 	return i, err
 }
 
+const deleteMonitorsByPipeline = `-- name: DeleteMonitorsByPipeline :exec
+DELETE FROM monitor_blocks WHERE pipeline_id = $1
+`
+
+func (q *Queries) DeleteMonitorsByPipeline(ctx context.Context, pipelineID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteMonitorsByPipeline, pipelineID)
+	return err
+}
+
 const deletePipeline = `-- name: DeletePipeline :exec
 DELETE FROM pipelines WHERE id = $1 AND user_id = $2
 `
@@ -125,6 +134,15 @@ type DeletePipelineParams struct {
 
 func (q *Queries) DeletePipeline(ctx context.Context, arg DeletePipelineParams) error {
 	_, err := q.db.Exec(ctx, deletePipeline, arg.ID, arg.UserID)
+	return err
+}
+
+const deletePriceAlertsByPipeline = `-- name: DeletePriceAlertsByPipeline :exec
+DELETE FROM price_alerts WHERE pipeline_id = $1
+`
+
+func (q *Queries) DeletePriceAlertsByPipeline(ctx context.Context, pipelineID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deletePriceAlertsByPipeline, pipelineID)
 	return err
 }
 

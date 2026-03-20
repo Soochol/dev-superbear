@@ -48,3 +48,9 @@ RETURNING *;
 -- name: DeleteMonitorBlock :exec
 DELETE FROM monitor_blocks WHERE id = $1;
 
+-- name: ListBlocksByStageIDs :many
+SELECT * FROM agent_blocks WHERE stage_id = ANY($1::uuid[]) ORDER BY stage_id, created_at;
+
+-- name: ListBlocksByIDs :many
+SELECT * FROM agent_blocks WHERE id = ANY($1::uuid[]) ORDER BY created_at;
+

@@ -124,30 +124,14 @@ func (s *PipelineService) Update(ctx context.Context, userID, id string, req *Up
 			return fmt.Errorf("delete stages: %w", err)
 		}
 
-		// 3. Delete existing monitors and their blocks
-		existingMonitors, err := txPipeRepo.ListMonitors(ctx, pid)
-		if err != nil {
-			return fmt.Errorf("list existing monitors: %w", err)
-		}
-		for _, mon := range existingMonitors {
-			if err := txPipeRepo.DeleteMonitor(ctx, mon.ID); err != nil {
-				return fmt.Errorf("delete monitor: %w", err)
-			}
-			// Delete the monitor's block
-			if err := txBlockRepo.Delete(ctx, mon.BlockID, uid); err != nil {
-				// Block may already be deleted by CASCADE; ignore
-			}
+		// 3. Delete existing monitors in bulk
+		if err := txPipeRepo.DeleteMonitors(ctx, pid); err != nil {
+			return fmt.Errorf("delete monitors: %w", err)
 		}
 
-		// 4. Delete existing price alerts
-		existingAlerts, err := txPipeRepo.ListPriceAlerts(ctx, pid)
-		if err != nil {
-			return fmt.Errorf("list existing alerts: %w", err)
-		}
-		for _, alert := range existingAlerts {
-			if err := txPipeRepo.DeletePriceAlert(ctx, alert.ID); err != nil {
-				return fmt.Errorf("delete price alert: %w", err)
-			}
+		// 4. Delete existing price alerts in bulk
+		if err := txPipeRepo.DeletePriceAlerts(ctx, pid); err != nil {
+			return fmt.Errorf("delete price alerts: %w", err)
 		}
 
 		// 5. Recreate stages, blocks, monitors, and price alerts

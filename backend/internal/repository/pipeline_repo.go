@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
@@ -442,6 +441,11 @@ func (r *PipelineRepository) DeleteMonitor(ctx context.Context, id uuid.UUID) er
 	return r.q.DeleteMonitorBlock(ctx, toPgtypeUUID(id))
 }
 
+// DeleteMonitors deletes all monitor_blocks for a pipeline in a single query.
+func (r *PipelineRepository) DeleteMonitors(ctx context.Context, pipelineID uuid.UUID) error {
+	return r.q.DeleteMonitorsByPipeline(ctx, toPgtypeUUID(pipelineID))
+}
+
 // ---------------------------------------------------------------------------
 // Price alert operations
 // ---------------------------------------------------------------------------
@@ -478,53 +482,91 @@ func (r *PipelineRepository) DeletePriceAlert(ctx context.Context, id uuid.UUID)
 	return r.q.DeletePriceAlert(ctx, toPgtypeUUID(id))
 }
 
+// DeletePriceAlerts deletes all price alerts for a pipeline in a single query.
+func (r *PipelineRepository) DeletePriceAlerts(ctx context.Context, pipelineID uuid.UUID) error {
+	return r.q.DeletePriceAlertsByPipeline(ctx, toPgtypeUUID(pipelineID))
+}
+
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
 
 // loadStagesWithBlocks loads all stages for a pipeline, then populates each
-// stage's Blocks slice.
+// stage's Blocks slice using a single batch query instead of N+1.
 func (r *PipelineRepository) loadStagesWithBlocks(ctx context.Context, pipelineID uuid.UUID) ([]domain.Stage, error) {
 	stageRows, err := r.q.ListStagesByPipeline(ctx, toPgtypeUUID(pipelineID))
 	if err != nil {
 		return nil, fmt.Errorf("list stages: %w", err)
 	}
+	if len(stageRows) == 0 {
+		return nil, nil
+	}
 
+	// Collect stage IDs
+	stageIDs := make([]pgtype.UUID, len(stageRows))
+	for i, sr := range stageRows {
+		stageIDs[i] = sr.ID
+	}
+
+	// Single query for all blocks
+	blockRows, err := r.q.ListBlocksByStageIDs(ctx, stageIDs)
+	if err != nil {
+		return nil, fmt.Errorf("list blocks by stage IDs: %w", err)
+	}
+
+	// Group blocks by stage ID
+	blockMap := make(map[uuid.UUID][]domain.AgentBlock)
+	for _, br := range blockRows {
+		sid := toUUID(br.StageID)
+		blockMap[sid] = append(blockMap[sid], toDomainBlock(br))
+	}
+
+	// Assemble stages
 	stages := make([]domain.Stage, len(stageRows))
 	for i, sr := range stageRows {
 		stages[i] = toDomainStage(sr)
-
-		blockRows, err := r.q.ListBlocksByStage(ctx, sr.ID)
-		if err != nil {
-			return nil, fmt.Errorf("list blocks for stage %s: %w", toUUID(sr.ID), err)
+		stages[i].Blocks = blockMap[toUUID(sr.ID)]
+		if stages[i].Blocks == nil {
+			stages[i].Blocks = []domain.AgentBlock{}
 		}
-		blocks := make([]domain.AgentBlock, len(blockRows))
-		for j, br := range blockRows {
-			blocks[j] = toDomainBlock(br)
-		}
-		stages[i].Blocks = blocks
 	}
 	return stages, nil
 }
 
 // loadMonitorsWithBlocks loads all monitors for a pipeline, then attaches each
-// monitor's associated block.
+// monitor's associated block using a single batch query instead of N+1.
 func (r *PipelineRepository) loadMonitorsWithBlocks(ctx context.Context, pipelineID uuid.UUID) ([]domain.MonitorBlock, error) {
 	monitorRows, err := r.q.ListMonitorsByPipeline(ctx, toPgtypeUUID(pipelineID))
 	if err != nil {
 		return nil, fmt.Errorf("list monitors: %w", err)
 	}
+	if len(monitorRows) == 0 {
+		return nil, nil
+	}
 
+	// Collect block IDs
+	blockIDs := make([]pgtype.UUID, len(monitorRows))
+	for i, mr := range monitorRows {
+		blockIDs[i] = mr.BlockID
+	}
+
+	// Single query for all blocks
+	blockRows, err := r.q.ListBlocksByIDs(ctx, blockIDs)
+	if err != nil {
+		return nil, fmt.Errorf("list blocks by IDs: %w", err)
+	}
+
+	// Map blocks by ID
+	blockMap := make(map[uuid.UUID]domain.AgentBlock)
+	for _, br := range blockRows {
+		blockMap[toUUID(br.ID)] = toDomainBlock(br)
+	}
+
+	// Assemble monitors
 	monitors := make([]domain.MonitorBlock, len(monitorRows))
 	for i, mr := range monitorRows {
 		monitors[i] = toDomainMonitor(mr)
-
-		block, err := r.q.GetBlockByID(ctx, mr.BlockID)
-		if err != nil && err != pgx.ErrNoRows {
-			return nil, fmt.Errorf("get monitor block: %w", err)
-		}
-		if err == nil {
-			b := toDomainBlock(block)
+		if b, ok := blockMap[toUUID(mr.BlockID)]; ok {
 			monitors[i].Block = &b
 		}
 	}

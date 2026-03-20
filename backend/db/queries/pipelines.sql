@@ -45,3 +45,9 @@ UPDATE pipeline_jobs
 SET status = $2, result = $3, error = $4, started_at = $5, completed_at = $6
 WHERE id = $1
 RETURNING *;
+
+-- name: DeleteMonitorsByPipeline :exec
+DELETE FROM monitor_blocks WHERE pipeline_id = $1;
+
+-- name: DeletePriceAlertsByPipeline :exec
+DELETE FROM price_alerts WHERE pipeline_id = $1;

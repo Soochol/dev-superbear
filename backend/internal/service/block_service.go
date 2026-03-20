@@ -53,7 +53,7 @@ func (s *BlockService) GetBlock(ctx context.Context, userID, id string) (*domain
 		return nil, err
 	}
 	if !block.IsPublic && block.UserID != uid {
-		return nil, fmt.Errorf("block not found")
+		return nil, fmt.Errorf("block: %w", domain.ErrNotFound)
 	}
 	return block, nil
 }
@@ -112,7 +112,7 @@ func (s *BlockService) UpdateBlock(ctx context.Context, userID, id string, req *
 		return nil, fmt.Errorf("block not found: %w", err)
 	}
 	if existing.UserID != uid {
-		return nil, fmt.Errorf("block not found")
+		return nil, fmt.Errorf("block: %w", domain.ErrNotFound)
 	}
 
 	return s.repo.Update(ctx, bid, &repository.UpdateBlockInput{

@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/dev-superbear/nexus-backend/internal/domain"
 	"github.com/dev-superbear/nexus-backend/internal/middleware"
 	"github.com/dev-superbear/nexus-backend/internal/service"
 )
@@ -225,5 +226,5 @@ func (h *PipelineHandler) Generate(c *gin.Context) {
 
 // isNotFound checks if an error indicates a "not found" condition.
 func isNotFound(err error) bool {
-	return errors.Is(err, pgx.ErrNoRows)
+	return errors.Is(err, pgx.ErrNoRows) || errors.Is(err, domain.ErrNotFound)
 }

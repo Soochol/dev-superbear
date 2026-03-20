@@ -170,12 +170,100 @@ func (q *Queries) GetBlockByID(ctx context.Context, id pgtype.UUID) (AgentBlock,
 	return i, err
 }
 
+const listBlocksByIDs = `-- name: ListBlocksByIDs :many
+SELECT id, user_id, name, instruction, system_prompt, allowed_tools, output_schema, is_public, created_at, objective, input_desc, tools, output_format, constraints, examples, stage_id, is_template, template_id, updated_at FROM agent_blocks WHERE id = ANY($1::uuid[]) ORDER BY created_at
+`
+
+func (q *Queries) ListBlocksByIDs(ctx context.Context, dollar_1 []pgtype.UUID) ([]AgentBlock, error) {
+	rows, err := q.db.Query(ctx, listBlocksByIDs, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AgentBlock{}
+	for rows.Next() {
+		var i AgentBlock
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Name,
+			&i.Instruction,
+			&i.SystemPrompt,
+			&i.AllowedTools,
+			&i.OutputSchema,
+			&i.IsPublic,
+			&i.CreatedAt,
+			&i.Objective,
+			&i.InputDesc,
+			&i.Tools,
+			&i.OutputFormat,
+			&i.Constraints,
+			&i.Examples,
+			&i.StageID,
+			&i.IsTemplate,
+			&i.TemplateID,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listBlocksByStage = `-- name: ListBlocksByStage :many
 SELECT id, user_id, name, instruction, system_prompt, allowed_tools, output_schema, is_public, created_at, objective, input_desc, tools, output_format, constraints, examples, stage_id, is_template, template_id, updated_at FROM agent_blocks WHERE stage_id = $1 ORDER BY created_at
 `
 
 func (q *Queries) ListBlocksByStage(ctx context.Context, stageID pgtype.UUID) ([]AgentBlock, error) {
 	rows, err := q.db.Query(ctx, listBlocksByStage, stageID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []AgentBlock{}
+	for rows.Next() {
+		var i AgentBlock
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Name,
+			&i.Instruction,
+			&i.SystemPrompt,
+			&i.AllowedTools,
+			&i.OutputSchema,
+			&i.IsPublic,
+			&i.CreatedAt,
+			&i.Objective,
+			&i.InputDesc,
+			&i.Tools,
+			&i.OutputFormat,
+			&i.Constraints,
+			&i.Examples,
+			&i.StageID,
+			&i.IsTemplate,
+			&i.TemplateID,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listBlocksByStageIDs = `-- name: ListBlocksByStageIDs :many
+SELECT id, user_id, name, instruction, system_prompt, allowed_tools, output_schema, is_public, created_at, objective, input_desc, tools, output_format, constraints, examples, stage_id, is_template, template_id, updated_at FROM agent_blocks WHERE stage_id = ANY($1::uuid[]) ORDER BY stage_id, created_at
+`
+
+func (q *Queries) ListBlocksByStageIDs(ctx context.Context, dollar_1 []pgtype.UUID) ([]AgentBlock, error) {
+	rows, err := q.db.Query(ctx, listBlocksByStageIDs, dollar_1)
 	if err != nil {
 		return nil, err
 	}
