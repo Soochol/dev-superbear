@@ -62,7 +62,7 @@ func main() {
 
 	// Protected routes
 	auth := api.Group("")
-	auth.Use(middleware.AuthRequired(cfg.JWTSecret))
+	auth.Use(middleware.AuthRequired(cfg.JWTSecret, cfg.Env))
 	auth.GET("/auth/me", authH.Me)
 
 	// Register resource routes
