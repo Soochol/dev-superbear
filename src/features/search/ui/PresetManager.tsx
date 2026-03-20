@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePresetStore } from "../model/preset.store";
 import { useSearchStore } from "../model/search.store";
 import { presetApi } from "../api/preset-api";
@@ -10,14 +10,20 @@ export function PresetManager() {
   const presets = usePresetStore((s) => s.presets);
   const removePreset = usePresetStore((s) => s.removePreset);
   const addPreset = usePresetStore((s) => s.addPreset);
+  const setPresets = usePresetStore((s) => s.setPresets);
   const dslCode = useSearchStore((s) => s.dslCode);
   const setDslCode = useSearchStore((s) => s.setDslCode);
   const nlQuery = useSearchStore((s) => s.nlQuery);
   const setActiveTab = useSearchStore((s) => s.setActiveTab);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const handleSave = async () => {
+  useEffect(() => {
+    presetApi.list().then((res) => setPresets(res.data)).catch(() => {});
+  }, [setPresets]);
+
+  async function handleSave(): Promise<void> {
     if (!dslCode.trim()) return;
     setSaving(true);
     setError(null);
@@ -29,27 +35,32 @@ export function PresetManager() {
         nlQuery: nlQuery || undefined,
       });
       addPreset(response.data);
-    } catch {
+    } catch (err) {
+      console.error("preset save failed:", err);
       setError("저장에 실패했습니다");
     } finally {
       setSaving(false);
     }
-  };
+  }
 
-  const handleLoad = (dsl: string) => {
+  function handleLoad(dsl: string): void {
     setDslCode(dsl);
     setActiveTab("dsl");
-  };
+  }
 
-  const handleDelete = async (id: string) => {
+  async function handleDelete(id: string): Promise<void> {
     setError(null);
+    setDeletingId(id);
     try {
       await presetApi.delete(id);
       removePreset(id);
-    } catch {
+    } catch (err) {
+      console.error("preset delete failed:", err);
       setError("삭제에 실패했습니다");
+    } finally {
+      setDeletingId(null);
     }
-  };
+  }
 
   return (
     <div className="flex flex-col gap-2">
@@ -86,6 +97,7 @@ export function PresetManager() {
               </button>
               <button
                 onClick={() => handleDelete(preset.id)}
+                disabled={deletingId === preset.id}
                 aria-label={`Delete preset ${preset.name}`}
                 className="text-xs text-nexus-text-secondary hover:text-nexus-failure ml-1"
               >

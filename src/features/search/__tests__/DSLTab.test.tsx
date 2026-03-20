@@ -74,6 +74,16 @@ describe("DSLTab", () => {
     });
   });
 
+  it("displays explanation text after Explain button is clicked", async () => {
+    mockedApi.explain.mockResolvedValue({ explanation: "거래량 100만 이상 종목 검색" });
+    useSearchStore.setState({ dslCode: "scan where volume > 1000000" });
+    render(<DSLTab />);
+    fireEvent.click(screen.getByRole("button", { name: /explain/i }));
+    await waitFor(() => {
+      expect(screen.getByText("거래량 100만 이상 종목 검색")).toBeInTheDocument();
+    });
+  });
+
   it("calls dslSearch API when Run Search button is clicked", async () => {
     mockedApi.dslSearch.mockResolvedValue({ results: [] });
     useSearchStore.setState({ dslCode: "scan where volume > 1000000" });

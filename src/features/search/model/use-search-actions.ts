@@ -13,8 +13,19 @@ interface SearchStoreState {
 type GetState = () => SearchStoreState;
 type SetState = (partial: Record<string, unknown>) => void;
 
+function extractErrorMessage(err: unknown, fallback: string): string {
+  return err instanceof Error ? err.message : fallback;
+}
+
 export function createSearchActions(getState: GetState, setState: SetState) {
-  async function runNLSearch() {
+  function setError(err: unknown, fallback = "Unknown error"): void {
+    setState({
+      agentStatus: "error" satisfies AgentStatus,
+      agentMessage: extractErrorMessage(err, fallback),
+    });
+  }
+
+  async function runNLSearch(): Promise<void> {
     const { nlQuery } = getState();
     setState({ agentStatus: "interpreting", agentMessage: "Interpreting query..." });
 
@@ -31,14 +42,12 @@ export function createSearchActions(getState: GetState, setState: SetState) {
         agentMessage: `${response.results.length}개 종목 발견`,
       });
     } catch (err) {
-      setState({
-        agentStatus: "error",
-        agentMessage: err instanceof Error ? err.message : "Unknown error",
-      });
+      console.error("runNLSearch failed:", err);
+      setError(err);
     }
   }
 
-  async function runDSLSearch() {
+  async function runDSLSearch(): Promise<void> {
     const { dslCode } = getState();
     setState({ agentStatus: "scanning", agentMessage: "Scanning stocks..." });
 
@@ -50,38 +59,39 @@ export function createSearchActions(getState: GetState, setState: SetState) {
         agentMessage: `${response.results.length}개 종목 발견`,
       });
     } catch (err) {
-      setState({
-        agentStatus: "error",
-        agentMessage: err instanceof Error ? err.message : "Unknown error",
-      });
+      console.error("runDSLSearch failed:", err);
+      setError(err);
     }
   }
 
-  async function validateDSL() {
+  async function validateDSL(): Promise<void> {
     const { dslCode } = getState();
 
     try {
       const response = await searchApi.validate(dslCode);
+      const state: ValidationState = response.valid ? "valid" : "invalid";
       setState({
-        validationState: response.valid ? "valid" as ValidationState : "invalid" as ValidationState,
+        validationState: state,
         validationMessage: response.error ?? "",
       });
     } catch (err) {
+      console.error("validateDSL failed:", err);
       setState({
-        validationState: "invalid" as ValidationState,
-        validationMessage: err instanceof Error ? err.message : "Validation failed",
+        validationState: "invalid" satisfies ValidationState,
+        validationMessage: extractErrorMessage(err, "Validation failed"),
       });
     }
   }
 
-  async function explainDSL(): Promise<string | null> {
+  async function explainDSL(): Promise<void> {
     const { dslCode } = getState();
 
     try {
       const response = await searchApi.explain(dslCode);
-      return response.explanation;
-    } catch {
-      return null;
+      setState({ explanation: response.explanation });
+    } catch (err) {
+      setState({ explanation: "" });
+      console.error("explainDSL failed:", err);
     }
   }
 

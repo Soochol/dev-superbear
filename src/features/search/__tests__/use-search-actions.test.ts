@@ -114,7 +114,7 @@ describe("createSearchActions", () => {
   });
 
   describe("explainDSL", () => {
-    it("returns explanation text", async () => {
+    it("stores explanation in the store", async () => {
       mockedApi.explain.mockResolvedValue({
         explanation: "이 쿼리는 거래량이 100만 이상인 종목을 검색합니다",
       });
@@ -122,9 +122,10 @@ describe("createSearchActions", () => {
       const actions = createSearchActions(useSearchStore.getState, useSearchStore.setState);
       useSearchStore.setState({ dslCode: "scan where volume > 1000000" });
 
-      const result = await actions.explainDSL();
+      await actions.explainDSL();
 
-      expect(result).toBe("이 쿼리는 거래량이 100만 이상인 종목을 검색합니다");
+      const state = useSearchStore.getState();
+      expect(state.explanation).toBe("이 쿼리는 거래량이 100만 이상인 종목을 검색합니다");
       expect(mockedApi.explain).toHaveBeenCalledWith("scan where volume > 1000000");
     });
   });

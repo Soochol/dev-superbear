@@ -19,6 +19,7 @@ beforeEach(() => {
   usePresetStore.setState(usePresetStore.getInitialState());
   useSearchStore.setState(useSearchStore.getInitialState());
   jest.clearAllMocks();
+  mockedApi.list.mockResolvedValue({ data: [], pagination: { total: 0, page: 1, pageSize: 20, totalPages: 0 } });
 });
 
 describe("PresetManager", () => {

@@ -20,6 +20,8 @@ interface SearchState {
   setResults: (results: SearchResult[]) => void;
   selectedPresetId: string | null;
   setSelectedPresetId: (id: string | null) => void;
+  explanation: string;
+  setExplanation: (text: string) => void;
 }
 
 export const useSearchStore = create<SearchState>()((set) => ({
@@ -41,4 +43,6 @@ export const useSearchStore = create<SearchState>()((set) => ({
   setResults: (results) => set({ results }),
   selectedPresetId: null,
   setSelectedPresetId: (id) => set({ selectedPresetId: id }),
+  explanation: "",
+  setExplanation: (text) => set({ explanation: text }),
 }));

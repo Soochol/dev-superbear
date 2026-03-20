@@ -4,7 +4,19 @@ import { useState, useMemo } from "react";
 import { useSearchStore } from "../model/search.store";
 import { useSearchActions } from "../model/use-search-actions";
 import { highlightDSL } from "@/shared/lib/dsl/highlight";
+import type { ValidationState } from "../model/types";
 import { btnMini } from "./styles";
+
+function getValidationBadge(state: ValidationState): { label: string; className: string } {
+  switch (state) {
+    case "valid":
+      return { label: "Validated", className: "bg-green-500/20 text-green-400" };
+    case "invalid":
+      return { label: "Invalid", className: "bg-red-500/20 text-red-400" };
+    default:
+      return { label: "Not Validated", className: "bg-yellow-500/20 text-yellow-400" };
+  }
+}
 
 export function LiveDSLPanel() {
   const dslCode = useSearchStore((s) => s.dslCode);
@@ -14,40 +26,31 @@ export function LiveDSLPanel() {
   const [copyLabel, setCopyLabel] = useState("Copy");
   const { runDSLSearch } = useSearchActions();
 
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(dslCode);
-      setCopyLabel("Copied!");
-      setTimeout(() => setCopyLabel("Copy"), 2000);
-    } catch {
-      setCopyLabel("Failed");
-      setTimeout(() => setCopyLabel("Copy"), 2000);
-    }
-  };
+  function handleCopy(): void {
+    navigator.clipboard.writeText(dslCode).then(
+      () => {
+        setCopyLabel("Copied!");
+        setTimeout(() => setCopyLabel("Copy"), 2000);
+      },
+      () => {
+        setCopyLabel("Failed");
+        setTimeout(() => setCopyLabel("Copy"), 2000);
+      },
+    );
+  }
+
+  const badge = hasCode ? getValidationBadge(validationState) : null;
 
   return (
     <div className="bg-nexus-surface border border-nexus-border rounded-lg">
-      {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-nexus-border">
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold text-nexus-accent uppercase tracking-wider">
             LIVE DSL
           </span>
-          {hasCode && (
-            <span
-              className={`text-xs px-2 py-0.5 rounded-full ${
-                validationState === "valid"
-                  ? "bg-green-500/20 text-green-400"
-                  : validationState === "invalid"
-                  ? "bg-red-500/20 text-red-400"
-                  : "bg-yellow-500/20 text-yellow-400"
-              }`}
-            >
-              {validationState === "valid"
-                ? "Validated"
-                : validationState === "invalid"
-                ? "Invalid"
-                : "Not Validated"}
+          {badge && (
+            <span className={`text-xs px-2 py-0.5 rounded-full ${badge.className}`}>
+              {badge.label}
             </span>
           )}
         </div>
@@ -73,7 +76,6 @@ export function LiveDSLPanel() {
         )}
       </div>
 
-      {/* Code display */}
       <div className="p-4 font-mono text-sm min-h-[60px]">
         {hasCode ? (
           <pre className="whitespace-pre-wrap">

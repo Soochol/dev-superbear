@@ -8,7 +8,10 @@ import { btnPrimary, btnSecondary } from "./styles";
 export function DSLTab() {
   const dslCode = useSearchStore((s) => s.dslCode);
   const validationState = useSearchStore((s) => s.validationState);
+  const agentStatus = useSearchStore((s) => s.agentStatus);
+  const explanation = useSearchStore((s) => s.explanation);
   const hasCode = dslCode.trim().length > 0;
+  const isSearching = agentStatus !== "idle" && agentStatus !== "done" && agentStatus !== "error";
   const { runDSLSearch, validateDSL, explainDSL } = useSearchActions();
 
   return (
@@ -32,13 +35,19 @@ export function DSLTab() {
         </button>
         <div className="flex-1" />
         <button
-          disabled={!hasCode || validationState === "invalid"}
+          disabled={!hasCode || validationState === "invalid" || isSearching}
           className={btnPrimary}
           onClick={runDSLSearch}
         >
           Run Search
         </button>
       </div>
+
+      {explanation && (
+        <div className="p-3 bg-nexus-surface border border-nexus-border rounded-lg text-sm text-nexus-text-secondary">
+          {explanation}
+        </div>
+      )}
     </div>
   );
 }
