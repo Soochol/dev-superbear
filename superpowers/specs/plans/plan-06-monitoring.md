@@ -232,8 +232,76 @@ MonitorBlock의 cron 스케줄에 따라 에이전트 블록을 실행하고 결
 **Files:**
 - Create: `backend/internal/worker/monitor_agent.go`
 - Create: `backend/internal/worker/scheduler.go`
+- Create: `backend/db/queries/monitoring.sql` (sqlc 쿼리)
 
 **Steps:**
+
+- [ ] sqlc 쿼리 정의 (`backend/db/queries/monitoring.sql`) — 모니터링 엔진에서 사용하는 모든 쿼리
+
+```sql
+-- backend/db/queries/monitoring.sql
+
+-- name: ListActiveMonitorBlocks :many
+-- 스케줄러 동기화: LIVE 케이스의 enabled MonitorBlock 조회
+SELECT mb.id AS monitor_block_id,
+       c.id  AS case_id,
+       c.pipeline_id,
+       c.symbol,
+       mb.cron,
+       ab.instruction AS block_instruction,
+       ab.allowed_tools
+FROM monitor_blocks mb
+JOIN cases c ON c.id = mb.case_id
+JOIN agent_blocks ab ON ab.id = mb.block_id
+WHERE mb.enabled = true AND c.status = 'LIVE';
+
+-- name: GetCaseEventSnapshot :one
+-- 에이전트 핸들러: 케이스 이벤트 스냅샷 조회
+SELECT id, event_snapshot
+FROM cases
+WHERE id = $1;
+
+-- name: ListLiveCases :many
+-- DSL 폴러: LIVE 상태 케이스 목록
+SELECT id, symbol, success_script, failure_script, event_snapshot
+FROM cases
+WHERE status = 'LIVE';
+
+-- name: ListUntriggeredAlertsByCase :many
+-- DSL 폴러: 미트리거 가격 알림 조회
+SELECT id, condition, label
+FROM price_alerts
+WHERE case_id = $1 AND triggered = false;
+
+-- name: DisableMonitorBlocksByCase :exec
+-- 라이프사이클: 케이스의 모든 모니터 블록 비활성화
+UPDATE monitor_blocks SET enabled = false WHERE case_id = $1;
+
+-- name: TriggerPriceAlert :exec
+-- 라이프사이클: 가격 알림 트리거 상태 업데이트
+UPDATE price_alerts SET triggered = true, triggered_at = $2 WHERE id = $1;
+
+-- name: UpdateMonitorBlockEnabled :exec
+-- 서비스: 개별 모니터 블록 활성/비활성
+UPDATE monitor_blocks SET enabled = $2 WHERE id = $1;
+
+-- name: UpdateMonitorBlocksEnabledByCase :exec
+-- 서비스: 케이스 전체 모니터 블록 활성/비활성
+UPDATE monitor_blocks SET enabled = $2 WHERE case_id = $1;
+
+-- name: UpdateCaseDSLPollingEnabled :exec
+-- 서비스: DSL 폴링 활성/비활성 토글
+UPDATE cases SET dsl_polling_enabled = $2 WHERE id = $1;
+
+-- name: ListMonitorBlocksByCase :many
+-- 서비스: 케이스별 모니터 블록 목록 조회
+SELECT mb.id, mb.enabled, mb.cron, mb.last_executed_at, ab.instruction
+FROM monitor_blocks mb
+JOIN agent_blocks ab ON ab.id = mb.block_id
+WHERE mb.case_id = $1;
+```
+
+- [ ] `backend/db/sqlc.yaml`에 `monitoring.sql` 쿼리 파일 등록
 
 - [ ] asynq scheduler 구현 — LIVE 케이스의 활성 MonitorBlock을 조회하고 asynq scheduler에 cron 태스크로 등록
 
@@ -1009,30 +1077,37 @@ git commit -m "feat(monitoring): 케이스 라이프사이클 핸들러 구현 (
 package service
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 
-	"gorm.io/gorm"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 
+	db "your-module/backend/db/generated"
 	"github.com/dev-superbear/nexus-backend/internal/worker"
 )
 
 // MonitoringService manages pause/resume of individual blocks and entire cases.
 type MonitoringService struct {
-	db               *gorm.DB
+	queries          *db.Queries
 	schedulerManager *worker.SchedulerManager
 }
 
-func NewMonitoringService(db *gorm.DB, sm *worker.SchedulerManager) *MonitoringService {
-	return &MonitoringService{db: db, schedulerManager: sm}
+func NewMonitoringService(pool *pgxpool.Pool, sm *worker.SchedulerManager) *MonitoringService {
+	return &MonitoringService{queries: db.New(pool), schedulerManager: sm}
 }
 
 // ToggleMonitorBlock enables or disables a single monitor block
 // and re-syncs the asynq scheduler.
 func (s *MonitoringService) ToggleMonitorBlock(monitorBlockID string, enabled bool) error {
-	if err := s.db.Exec(
-		"UPDATE monitor_blocks SET enabled = ? WHERE id = ?", enabled, monitorBlockID,
-	).Error; err != nil {
+	ctx := context.Background()
+	id, _ := uuid.Parse(monitorBlockID)
+	err := s.queries.UpdateMonitorBlockEnabled(ctx, db.UpdateMonitorBlockEnabledParams{
+		ID:      id,
+		Enabled: enabled,
+	})
+	if err != nil {
 		return fmt.Errorf("update monitor block: %w", err)
 	}
 
@@ -1045,24 +1120,33 @@ func (s *MonitoringService) ToggleMonitorBlock(monitorBlockID string, enabled bo
 // ToggleCaseMonitoring enables or disables all monitor blocks for a case.
 // If keepDSLPolling is true and enabled is false, DSL polling remains active.
 func (s *MonitoringService) ToggleCaseMonitoring(caseID string, enabled bool, keepDSLPolling bool) error {
+	ctx := context.Background()
+	id, _ := uuid.Parse(caseID)
+
 	// 모든 MonitorBlock의 enabled 상태 변경
-	if err := s.db.Exec(
-		"UPDATE monitor_blocks SET enabled = ? WHERE case_id = ?", enabled, caseID,
-	).Error; err != nil {
+	err := s.queries.UpdateMonitorBlocksEnabledByCase(ctx, db.UpdateMonitorBlocksEnabledByCaseParams{
+		CaseID:  id,
+		Enabled: enabled,
+	})
+	if err != nil {
 		return fmt.Errorf("update monitor blocks: %w", err)
 	}
 
 	// DSL 폴링은 선택적으로 유지 가능
 	if !keepDSLPolling && !enabled {
-		if err := s.db.Exec(
-			"UPDATE cases SET dsl_polling_enabled = false WHERE id = ?", caseID,
-		).Error; err != nil {
+		err = s.queries.UpdateCaseDSLPollingEnabled(ctx, db.UpdateCaseDSLPollingEnabledParams{
+			ID:                id,
+			DslPollingEnabled: false,
+		})
+		if err != nil {
 			return fmt.Errorf("disable dsl polling: %w", err)
 		}
 	} else if enabled {
-		if err := s.db.Exec(
-			"UPDATE cases SET dsl_polling_enabled = true WHERE id = ?", caseID,
-		).Error; err != nil {
+		err = s.queries.UpdateCaseDSLPollingEnabled(ctx, db.UpdateCaseDSLPollingEnabledParams{
+			ID:                id,
+			DslPollingEnabled: true,
+		})
+		if err != nil {
 			return fmt.Errorf("enable dsl polling: %w", err)
 		}
 	}
@@ -1075,14 +1159,21 @@ func (s *MonitoringService) ToggleCaseMonitoring(caseID string, enabled bool, ke
 
 // ListMonitorBlocks returns all monitor blocks for a case.
 func (s *MonitoringService) ListMonitorBlocks(caseID string) ([]MonitorBlockInfo, error) {
-	var blocks []MonitorBlockInfo
-	if err := s.db.Raw(`
-		SELECT mb.id, mb.enabled, mb.cron, mb.last_executed_at, ab.instruction
-		FROM monitor_blocks mb
-		JOIN agent_blocks ab ON ab.id = mb.block_id
-		WHERE mb.case_id = ?
-	`, caseID).Scan(&blocks).Error; err != nil {
+	ctx := context.Background()
+	id, _ := uuid.Parse(caseID)
+	rows, err := s.queries.ListMonitorBlocksByCase(ctx, id)
+	if err != nil {
 		return nil, fmt.Errorf("query monitor blocks: %w", err)
+	}
+	blocks := make([]MonitorBlockInfo, len(rows))
+	for i, r := range rows {
+		blocks[i] = MonitorBlockInfo{
+			ID:             r.ID.String(),
+			Enabled:        r.Enabled,
+			Cron:           r.Cron,
+			LastExecutedAt: r.LastExecutedAt,
+			Instruction:    r.Instruction,
+		}
 	}
 	return blocks, nil
 }
@@ -1230,18 +1321,19 @@ func main() {
 	cfg := config.Load()
 	redisOpt := infra.NewRedisClientOpt(cfg.RedisAddr, cfg.RedisPassword)
 
-	// ── DB (GORM) ───────────────────────────────────────────────
-	db := infra.NewDB(cfg) // TODO: GORM DB 초기화 (Plan 의존)
+	// ── DB (pgxpool + sqlc) ─────────────────────────────────────
+	pool := infra.NewPool(cfg) // pgxpool.Pool 초기화 (Plan 1 인프라 제공)
+	defer pool.Close()
 
 	// ── asynq Client (for enqueuing tasks from within handlers) ─
 	client := asynq.NewClient(redisOpt)
 	defer client.Close()
 
 	// ── Handlers ────────────────────────────────────────────────
-	agentHandler := worker.NewAgentHandler(db)
-	dslHandler := worker.NewDSLPollerHandler(db, client)
-	schedulerMgr := worker.NewSchedulerManager(db, redisOpt)
-	lifecycleHandler := worker.NewLifecycleHandler(db, schedulerMgr)
+	agentHandler := worker.NewAgentHandler(pool)
+	dslHandler := worker.NewDSLPollerHandler(pool, client)
+	schedulerMgr := worker.NewSchedulerManager(pool, redisOpt)
+	lifecycleHandler := worker.NewLifecycleHandler(pool, schedulerMgr)
 
 	// ── asynq Server (task processing) ──────────────────────────
 	srv := asynq.NewServer(
@@ -1279,7 +1371,7 @@ func main() {
 
 	// ── Health check HTTP server ────────────────────────────────
 	metricsSvc := service.NewMetricsService(redisOpt)
-	monitoringSvc := service.NewMonitoringService(db, schedulerMgr)
+	monitoringSvc := service.NewMonitoringService(pool, schedulerMgr)
 	monitoringHandler := handler.NewMonitoringHandler(monitoringSvc)
 
 	httpMux := http.NewServeMux()
