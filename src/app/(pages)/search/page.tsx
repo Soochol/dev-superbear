@@ -1,4 +1,4 @@
-import { SearchPageLayout } from "@/features/search/ui/SearchPageLayout";
+import { SearchPageLayout } from "@/features/search";
 
 export default function SearchPage() {
   return <SearchPageLayout />;

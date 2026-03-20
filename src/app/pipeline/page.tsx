@@ -1,17 +1,11 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import type { AgentBlock } from "@/entities/agent-block/model/types";
-import type { StageState } from "@/features/pipeline-builder/model/analysis.slice";
-import type { MonitorBlockState } from "@/features/pipeline-builder/model/monitor.slice";
-import type { PriceAlertState } from "@/features/pipeline-builder/model/judgment.slice";
-import { usePipelineStore } from "@/features/pipeline-builder/model/pipeline.store";
-import PipelineTopbar from "@/features/pipeline-builder/ui/PipelineTopbar";
-import NodePalette from "@/features/pipeline-builder/ui/NodePalette";
-import PipelineCanvas from "@/features/pipeline-builder/ui/PipelineCanvas";
-import AgentBlockEditor from "@/features/agent-block-editor/ui/AgentBlockEditor";
-import AIGenerateModal from "@/features/pipeline-generator/ui/AIGenerateModal";
-import { useRegisterAndRun } from "@/features/pipeline-builder/lib/useRegisterAndRun";
+import type { AgentBlock } from "@/entities/agent-block";
+import type { StageState, MonitorBlockState, PriceAlertState } from "@/features/pipeline-builder";
+import { usePipelineStore, PipelineTopbar, NodePalette, PipelineCanvas, useRegisterAndRun } from "@/features/pipeline-builder";
+import { AgentBlockEditor } from "@/features/agent-block-editor";
+import { AIGenerateModal } from "@/features/pipeline-generator";
 
 export default function PipelinePage() {
   const pipelineName = usePipelineStore((s) => s.pipelineName);

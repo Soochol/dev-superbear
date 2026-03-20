@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useCaseStore } from '@/entities/case/model/case.store';
-import { useTradeStore } from '@/features/manage-trades/model/trade.store';
-import { useAlertStore } from '@/features/manage-alerts/model/alert.store';
+import { useCaseStore } from '@/entities/case';
+import { useTradeStore } from '@/features/manage-trades';
+import { useAlertStore } from '@/features/manage-alerts';
 import { CaseTabBar, CaseSummaryHeader } from '@/widgets/case-tab-bar';
 import { CaseDetailLayout, CaseDetailPanel } from '@/widgets/case-detail-panel';
 import { Timeline } from '@/widgets/case-timeline';

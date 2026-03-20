@@ -1,4 +1,4 @@
-import { MonitorPanel } from "@/features/case/ui/MonitorPanel";
+import { MonitorPanel } from "@/features/case";
 
 export default async function CaseDetailPage({
   params,
