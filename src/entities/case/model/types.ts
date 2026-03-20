@@ -1,3 +1,6 @@
+import type { Trade } from '@/entities/trade/model/types';
+import type { PriceAlert } from '@/entities/price-alert/model/types';
+
 export type CaseStatus = 'LIVE' | 'CLOSED_SUCCESS' | 'CLOSED_FAILURE' | 'BACKTEST';
 
 export type TimelineEventType =
@@ -77,6 +80,3 @@ export interface CaseFilters {
   symbol?: string;
   sector?: string;
 }
-
-import type { Trade } from '@/entities/trade/model/types';
-import type { PriceAlert } from '@/entities/price-alert/model/types';

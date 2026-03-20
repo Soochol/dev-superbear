@@ -233,7 +233,7 @@ func (q *Queries) ListCasesByUserAndStatus(ctx context.Context, arg ListCasesByU
 }
 
 const updateCaseStatus = `-- name: UpdateCaseStatus :one
-UPDATE cases SET status = $2, closed_at = $3, closed_reason = $4 WHERE id = $1 RETURNING id, user_id, pipeline_id, symbol, status, event_date, event_snapshot, success_script, failure_script, closed_at, closed_reason, created_at, updated_at, symbol_name, sector
+UPDATE cases SET status = $2, closed_at = $3, closed_reason = $4 WHERE id = $1 AND user_id = $5 RETURNING id, user_id, pipeline_id, symbol, status, event_date, event_snapshot, success_script, failure_script, closed_at, closed_reason, created_at, updated_at, symbol_name, sector
 `
 
 type UpdateCaseStatusParams struct {
@@ -241,6 +241,7 @@ type UpdateCaseStatusParams struct {
 	Status       CaseStatus  `json:"status"`
 	ClosedAt     pgtype.Date `json:"closed_at"`
 	ClosedReason pgtype.Text `json:"closed_reason"`
+	UserID       pgtype.UUID `json:"user_id"`
 }
 
 func (q *Queries) UpdateCaseStatus(ctx context.Context, arg UpdateCaseStatusParams) (Case, error) {
@@ -249,6 +250,7 @@ func (q *Queries) UpdateCaseStatus(ctx context.Context, arg UpdateCaseStatusPara
 		arg.Status,
 		arg.ClosedAt,
 		arg.ClosedReason,
+		arg.UserID,
 	)
 	var i Case
 	err := row.Scan(

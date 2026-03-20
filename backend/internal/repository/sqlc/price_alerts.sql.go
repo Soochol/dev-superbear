@@ -44,11 +44,16 @@ func (q *Queries) CreatePriceAlert(ctx context.Context, arg CreatePriceAlertPara
 }
 
 const deletePriceAlert = `-- name: DeletePriceAlert :exec
-DELETE FROM price_alerts WHERE id = $1
+DELETE FROM price_alerts WHERE id = $1 AND case_id = $2
 `
 
-func (q *Queries) DeletePriceAlert(ctx context.Context, id pgtype.UUID) error {
-	_, err := q.db.Exec(ctx, deletePriceAlert, id)
+type DeletePriceAlertParams struct {
+	ID     pgtype.UUID `json:"id"`
+	CaseID pgtype.UUID `json:"case_id"`
+}
+
+func (q *Queries) DeletePriceAlert(ctx context.Context, arg DeletePriceAlertParams) error {
+	_, err := q.db.Exec(ctx, deletePriceAlert, arg.ID, arg.CaseID)
 	return err
 }
 

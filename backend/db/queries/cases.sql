@@ -18,7 +18,7 @@ INSERT INTO cases (user_id, pipeline_id, symbol, symbol_name, sector, event_date
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *;
 
 -- name: UpdateCaseStatus :one
-UPDATE cases SET status = $2, closed_at = $3, closed_reason = $4 WHERE id = $1 RETURNING *;
+UPDATE cases SET status = $2, closed_at = $3, closed_reason = $4 WHERE id = $1 AND user_id = $5 RETURNING *;
 
 -- name: DeleteCase :exec
 DELETE FROM cases WHERE id = $1 AND user_id = $2;

@@ -55,11 +55,16 @@ func (q *Queries) CreateTrade(ctx context.Context, arg CreateTradeParams) (Trade
 }
 
 const deleteTrade = `-- name: DeleteTrade :exec
-DELETE FROM trades WHERE id = $1
+DELETE FROM trades WHERE id = $1 AND case_id = $2
 `
 
-func (q *Queries) DeleteTrade(ctx context.Context, id pgtype.UUID) error {
-	_, err := q.db.Exec(ctx, deleteTrade, id)
+type DeleteTradeParams struct {
+	ID     pgtype.UUID `json:"id"`
+	CaseID pgtype.UUID `json:"case_id"`
+}
+
+func (q *Queries) DeleteTrade(ctx context.Context, arg DeleteTradeParams) error {
+	_, err := q.db.Exec(ctx, deleteTrade, arg.ID, arg.CaseID)
 	return err
 }
 
