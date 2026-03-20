@@ -60,15 +60,16 @@ interface SidebarState {
 ### 컴포넌트 트리 (FSD)
 
 ```
+src/shared/model/
+└── sidebar.store.ts              ← Zustand store (FSD: shared 레이어)
+
 src/widgets/app-sidebar/
 ├── ui/
-│   ├── AppSidebar.tsx          ← 메인 컨테이너 (64px ↔ 200px)
-│   ├── SidebarLogo.tsx         ← N 로고
-│   ├── SidebarNavItem.tsx      ← 개별 메뉴 아이템 (아이콘 + 라벨)
-│   ├── SidebarSearch.tsx       ← 검색 (축소: 돋보기 아이콘, 확장: 라벨 포함) — /search 네비게이션 링크
-│   └── SidebarUserInfo.tsx     ← 유저 (축소: 아바타, 확장: 이름 + 아바타)
-├── model/
-│   └── sidebar.store.ts        ← Zustand store
+│   ├── AppSidebar.tsx            ← 메인 컨테이너 (64px ↔ 200px)
+│   ├── SidebarLayout.tsx         ← 사이드바 + 콘텐츠 레이아웃
+│   ├── SidebarLogo.tsx           ← N 로고
+│   ├── SidebarNavItem.tsx        ← 개별 메뉴 아이템 (아이콘 + 라벨). Search도 NavItem으로 통합
+│   └── SidebarUserInfo.tsx       ← 유저 (축소: 아바타, 확장: 이름 + 아바타)
 ```
 
 ### 메뉴 아이템

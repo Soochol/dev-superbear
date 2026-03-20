@@ -53,13 +53,14 @@ src/
 │       │   ├── SidebarLogo.tsx
 │       │   ├── SidebarNavItem.tsx
 │       │   └── SidebarUserInfo.tsx
-│       ├── model/
-│       │   └── sidebar.store.ts
 │       ├── __tests__/
-│       │   ├── sidebar.store.test.ts
 │       │   └── AppSidebar.test.tsx
 │       └── index.ts
 ├── shared/
+│   ├── model/
+│   │   └── sidebar.store.ts               ← CREATE: 사이드바 UI 상태
+│   ├── model/__tests__/
+│   │   └── sidebar.store.test.ts           ← CREATE: store 테스트
 │   └── ui/
 │       └── AppNavigation.tsx               ← DELETE
 ```
@@ -95,14 +96,14 @@ git commit -m "style: add sidebar design tokens"
 ### Task 2: Sidebar Zustand Store (TDD)
 
 **Files:**
-- Create: `src/widgets/app-sidebar/model/sidebar.store.ts`
-- Test: `src/widgets/app-sidebar/__tests__/sidebar.store.test.ts`
+- Create: `src/shared/model/sidebar.store.ts`
+- Test: `src/shared/model/__tests__/sidebar.store.test.ts`
 
 - [ ] **Step 1: Write failing tests**
 
 ```typescript
-// src/widgets/app-sidebar/__tests__/sidebar.store.test.ts
-import { useSidebarStore } from "../model/sidebar.store";
+// src/shared/model/__tests__/sidebar.store.test.ts
+import { useSidebarStore } from "@/shared/model/sidebar.store";
 
 describe("sidebarStore", () => {
   beforeEach(() => {
@@ -159,13 +160,13 @@ describe("sidebarStore", () => {
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `npx jest src/widgets/app-sidebar/__tests__/sidebar.store.test.ts --verbose`
+Run: `npx jest src/shared/model/__tests__/sidebar.store.test.ts --verbose`
 Expected: FAIL — module not found
 
 - [ ] **Step 3: Implement sidebar store**
 
 ```typescript
-// src/widgets/app-sidebar/model/sidebar.store.ts
+// src/shared/model/sidebar.store.ts
 import { create } from "zustand";
 
 interface SidebarState {
@@ -200,13 +201,13 @@ export const useSidebarStore = create<SidebarState>((set, get) => ({
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `npx jest src/widgets/app-sidebar/__tests__/sidebar.store.test.ts --verbose`
+Run: `npx jest src/shared/model/__tests__/sidebar.store.test.ts --verbose`
 Expected: All 6 tests PASS
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/widgets/app-sidebar/model/sidebar.store.ts src/widgets/app-sidebar/__tests__/sidebar.store.test.ts
+git add src/shared/model/sidebar.store.ts src/shared/model/__tests__/sidebar.store.test.ts
 git commit -m "feat: add sidebar zustand store with pin/expand state"
 ```
 
@@ -373,7 +374,7 @@ git commit -m "feat: add SidebarNavItem component with active state and badge"
 `src/widgets/app-sidebar/__tests__/AppSidebar.test.tsx` 하단에 추가:
 
 ```tsx
-import { useSidebarStore } from "../model/sidebar.store";
+import { useSidebarStore } from "@/shared/model/sidebar.store";
 import { AppSidebar } from "../ui/AppSidebar";
 import userEvent from "@testing-library/user-event";
 
@@ -484,7 +485,7 @@ export function SidebarUserInfo({ isExpanded }: SidebarUserInfoProps) {
 // src/widgets/app-sidebar/ui/AppSidebar.tsx
 "use client";
 
-import { useSidebarStore } from "../model/sidebar.store";
+import { useSidebarStore } from "@/shared/model/sidebar.store";
 import { SidebarLogo } from "./SidebarLogo";
 import { SidebarNavItem } from "./SidebarNavItem";
 import { SidebarUserInfo } from "./SidebarUserInfo";
@@ -561,7 +562,7 @@ export function AppSidebar() {
 // src/widgets/app-sidebar/ui/SidebarLayout.tsx
 "use client";
 
-import { useSidebarStore } from "../model/sidebar.store";
+import { useSidebarStore } from "@/shared/model/sidebar.store";
 import { AppSidebar } from "./AppSidebar";
 
 export function SidebarLayout({ children }: { children: React.ReactNode }) {
@@ -590,7 +591,6 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
 // src/widgets/app-sidebar/index.ts
 export { SidebarLayout } from "./ui/SidebarLayout";
 export { AppSidebar } from "./ui/AppSidebar";
-export { useSidebarStore } from "./model/sidebar.store";
 ```
 
 - [ ] **Step 8: Run tests to verify they pass**
