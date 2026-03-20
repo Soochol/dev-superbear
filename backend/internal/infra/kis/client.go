@@ -4,13 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
 	"sync"
 	"time"
+)
+
+const (
+	trIDDailyChart   = "FHKST03010100"
+	trIDCurrentPrice = "FHKST01010100"
 )
 
 type Client struct {
@@ -106,10 +110,6 @@ func (c *Client) GetCandles(ctx context.Context, symbol, startDate, endDate, per
 		return nil, err
 	}
 
-	if period == "" {
-		period = "D"
-	}
-
 	params := url.Values{}
 	params.Set("FID_COND_MRKT_DIV_CODE", "J")
 	params.Set("FID_INPUT_ISCD", symbol)
@@ -126,7 +126,7 @@ func (c *Client) GetCandles(ctx context.Context, symbol, startDate, endDate, per
 		return nil, fmt.Errorf("create candle request: %w", err)
 	}
 	req.Header = c.authHeaders(token)
-	req.Header.Set("tr_id", "FHKST03010100")
+	req.Header.Set("tr_id", trIDDailyChart)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -138,13 +138,8 @@ func (c *Client) GetCandles(ctx context.Context, symbol, startDate, endDate, per
 		return nil, fmt.Errorf("candle request returned status %d", resp.StatusCode)
 	}
 
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("read candle response: %w", err)
-	}
-
 	var candleResp CandleResponse
-	if err := json.Unmarshal(respBody, &candleResp); err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&candleResp); err != nil {
 		return nil, fmt.Errorf("decode candle response: %w", err)
 	}
 
@@ -169,7 +164,7 @@ func (c *Client) GetCurrentPrice(ctx context.Context, symbol string) (*KISPriceR
 		return nil, fmt.Errorf("create price request: %w", err)
 	}
 	req.Header = c.authHeaders(token)
-	req.Header.Set("tr_id", "FHKST01010100")
+	req.Header.Set("tr_id", trIDCurrentPrice)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {

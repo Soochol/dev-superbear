@@ -7,7 +7,7 @@ ORDER BY created_at DESC;
 -- name: AddToWatchlist :one
 INSERT INTO watchlist (user_id, symbol, name)
 VALUES ($1, $2, $3)
-ON CONFLICT (user_id, symbol) DO NOTHING
+ON CONFLICT (user_id, symbol) DO UPDATE SET name = EXCLUDED.name
 RETURNING id, user_id, symbol, name, created_at;
 
 -- name: RemoveFromWatchlist :exec
