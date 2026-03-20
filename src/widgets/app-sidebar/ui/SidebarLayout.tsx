@@ -1,10 +1,15 @@
 "use client";
 
+import { useEffect } from "react";
 import { useSidebarStore } from "@/shared/model/sidebar.store";
 import { AppSidebar } from "./AppSidebar";
 
 export function SidebarLayout({ children }: { children: React.ReactNode }) {
   const isPinned = useSidebarStore((s) => s.isPinned);
+
+  useEffect(() => {
+    useSidebarStore.getState().hydrate();
+  }, []);
 
   return (
     <div className="flex h-screen">

@@ -5,16 +5,18 @@ interface SidebarState {
   isExpanded: boolean;
   togglePin: () => void;
   setExpanded: (expanded: boolean) => void;
-}
-
-function readPinned(): boolean {
-  if (typeof window === "undefined") return false;
-  return localStorage.getItem("sidebar-pinned") === "true";
+  hydrate: () => void;
 }
 
 export const useSidebarStore = create<SidebarState>()((set, get) => ({
-  isPinned: readPinned(),
-  isExpanded: readPinned(),
+  isPinned: false,
+  isExpanded: false,
+  hydrate: () => {
+    if (typeof window !== "undefined") {
+      const pinned = localStorage.getItem("sidebar-pinned") === "true";
+      if (pinned) set({ isPinned: true, isExpanded: true });
+    }
+  },
   togglePin: () => {
     const next = !get().isPinned;
     set({ isPinned: next, isExpanded: next });

@@ -53,4 +53,19 @@ describe("sidebarStore", () => {
     useSidebarStore.getState().togglePin();
     expect(localStorage.getItem("sidebar-pinned")).toBe("false");
   });
+
+  it("hydrate restores pinned state from localStorage", () => {
+    localStorage.setItem("sidebar-pinned", "true");
+    useSidebarStore.getState().hydrate();
+    const state = useSidebarStore.getState();
+    expect(state.isPinned).toBe(true);
+    expect(state.isExpanded).toBe(true);
+  });
+
+  it("hydrate does nothing when localStorage has no pinned value", () => {
+    useSidebarStore.getState().hydrate();
+    const state = useSidebarStore.getState();
+    expect(state.isPinned).toBe(false);
+    expect(state.isExpanded).toBe(false);
+  });
 });
