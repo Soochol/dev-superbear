@@ -56,5 +56,13 @@ export default defineConfig({
       },
       testMatch: /monitoring-api\.spec\.ts/,
     },
+    {
+      name: "case-app",
+      use: {
+        browserName: "chromium",
+        baseURL: "http://localhost:3000",
+      },
+      testMatch: /monitoring-visual\.spec\.ts/,
+    },
   ],
 });
