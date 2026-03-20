@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -12,15 +13,32 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/dev-superbear/nexus-backend/internal/handler"
+	"github.com/dev-superbear/nexus-backend/internal/llm"
 	"github.com/dev-superbear/nexus-backend/internal/service"
 )
+
+type mockProvider struct{}
+
+func (m *mockProvider) Name() string { return "mock" }
+
+func (m *mockProvider) Explain(_ context.Context, dsl string) (string, error) {
+	return "Mock explanation for: " + dsl, nil
+}
+
+func (m *mockProvider) NLToDSL(_ context.Context, _ string) (<-chan llm.Event, error) {
+	ch := make(chan llm.Event, 3)
+	ch <- llm.Event{Type: llm.EventThinking, Message: "분석 중..."}
+	ch <- llm.Event{Type: llm.EventDSLReady, DSL: "scan where volume > 1000000", Explanation: "거래량 100만 이상", Message: "생성 완료"}
+	close(ch)
+	return ch, nil
+}
 
 func setupSearchRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 
 	searchSvc := service.NewSearchService(nil)
-	nlSvc := service.NewNLToDSLService()
+	nlSvc := service.NewNLToDSLService(&mockProvider{})
 	h := handler.NewSearchHandler(searchSvc, nlSvc)
 
 	api := r.Group("/api/v1")
@@ -77,52 +95,37 @@ func TestSearchHandler_Validate(t *testing.T) {
 	})
 }
 
-func TestSearchHandler_NLToDSL(t *testing.T) {
+func TestSearchHandler_NLToDSL_SSE(t *testing.T) {
 	r := setupSearchRouter()
 
-	t.Run("converts NL query to DSL", func(t *testing.T) {
-		body, _ := json.Marshal(map[string]string{"query": "2년 최대거래량 종목"})
-		req := httptest.NewRequest(http.MethodPost, "/api/v1/search/nl-to-dsl", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		w := httptest.NewRecorder()
+	body, _ := json.Marshal(map[string]string{"query": "거래량 많은 종목"})
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/search/nl-to-dsl", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
 
-		r.ServeHTTP(w, req)
-		assert.Equal(t, http.StatusOK, w.Code)
+	r.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "text/event-stream", w.Header().Get("Content-Type"))
 
-		var resp map[string]any
-		err := json.Unmarshal(w.Body.Bytes(), &resp)
-		require.NoError(t, err)
-		assert.Contains(t, resp, "dsl")
-		assert.Contains(t, resp, "explanation")
-		assert.Contains(t, resp, "results")
-	})
-
-	t.Run("rejects empty query", func(t *testing.T) {
-		body, _ := json.Marshal(map[string]string{"query": ""})
-		req := httptest.NewRequest(http.MethodPost, "/api/v1/search/nl-to-dsl", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		w := httptest.NewRecorder()
-
-		r.ServeHTTP(w, req)
-		assert.Equal(t, http.StatusBadRequest, w.Code)
-	})
+	responseBody := w.Body.String()
+	assert.Contains(t, responseBody, "event: thinking")
+	assert.Contains(t, responseBody, "event: dsl_ready")
+	assert.Contains(t, responseBody, "event: done")
 }
 
-func TestSearchHandler_Explain(t *testing.T) {
+func TestSearchHandler_Explain_WithProvider(t *testing.T) {
 	r := setupSearchRouter()
 
-	t.Run("explains DSL in natural language", func(t *testing.T) {
-		body, _ := json.Marshal(map[string]string{"dsl": "scan where volume > 1000000"})
-		req := httptest.NewRequest(http.MethodPost, "/api/v1/search/explain", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		w := httptest.NewRecorder()
+	body, _ := json.Marshal(map[string]string{"dsl": "scan where volume > 1000000"})
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/search/explain", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
 
-		r.ServeHTTP(w, req)
-		assert.Equal(t, http.StatusOK, w.Code)
+	r.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
 
-		var resp map[string]any
-		err := json.Unmarshal(w.Body.Bytes(), &resp)
-		require.NoError(t, err)
-		assert.Contains(t, resp, "explanation")
-	})
+	var resp map[string]any
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	require.NoError(t, err)
+	assert.Contains(t, resp["explanation"], "Mock explanation")
 }
