@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/dev-superbear/nexus-backend/internal/config"
+	"github.com/dev-superbear/nexus-backend/internal/handler"
 	"github.com/dev-superbear/nexus-backend/internal/middleware"
 	"github.com/dev-superbear/nexus-backend/internal/repository/sqlc"
 )
@@ -51,7 +52,7 @@ func main() {
 	auth := api.Group("")
 	auth.Use(middleware.AuthRequired(cfg.JWTSecret))
 
-	registerRoutes(auth, queries)
+	registerRoutes(auth, queries, cfg)
 
 	slog.Info("starting server", "port", cfg.Port)
 	if err := r.Run(":" + cfg.Port); err != nil {
@@ -60,7 +61,29 @@ func main() {
 	}
 }
 
-func registerRoutes(rg *gin.RouterGroup, queries *sqlc.Queries) {
-	// TODO: Task 6에서 핸들러 등록
-	_ = queries
+func registerRoutes(rg *gin.RouterGroup, queries *sqlc.Queries, cfg *config.Config) {
+	authH := handler.NewAuthHandler(queries, cfg.JWTSecret)
+	_ = authH
+
+	caseH := handler.NewCaseHandler(queries)
+	rg.GET("/cases", caseH.List)
+	rg.POST("/cases", caseH.Create)
+	rg.GET("/cases/:id", caseH.Get)
+	rg.DELETE("/cases/:id", caseH.Delete)
+
+	pipeH := handler.NewPipelineHandler(queries)
+	rg.GET("/pipelines", pipeH.List)
+	rg.POST("/pipelines", pipeH.Create)
+	rg.GET("/pipelines/:id", pipeH.Get)
+	rg.PUT("/pipelines/:id", pipeH.Update)
+	rg.DELETE("/pipelines/:id", pipeH.Delete)
+
+	blockH := handler.NewBlockHandler(queries)
+	rg.GET("/blocks", blockH.List)
+	rg.POST("/blocks", blockH.Create)
+	rg.GET("/blocks/:id", blockH.Get)
+	rg.DELETE("/blocks/:id", blockH.Delete)
+
+	searchH := handler.NewSearchHandler()
+	rg.POST("/search/scan", searchH.Scan)
 }
