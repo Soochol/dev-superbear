@@ -1,29 +1,32 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures/search.fixture";
 
-test.describe("Search Page Visual Regression", () => {
-  test("NL tab initial state", async ({ page }) => {
-    await page.goto("/search");
-    await page.waitForLoadState("networkidle");
-    await expect(page).toHaveScreenshot("search-nl-initial.png", {
+test.describe("Search Page Visual Regression", { tag: "@visual" }, () => {
+  test("NL tab initial state", async ({ searchPage }) => {
+    await searchPage.goto();
+    await expect(searchPage.nlTextarea).toBeVisible();
+    await expect(searchPage.page).toHaveScreenshot("search-nl-initial.png", {
       fullPage: true,
       maxDiffPixelRatio: 0.01,
     });
   });
 
-  test("NL tab after preset chip click", async ({ page }) => {
-    await page.goto("/search");
-    await page.getByRole("button", { name: "2yr Max Volume" }).click();
-    await expect(page).toHaveScreenshot("search-nl-preset-filled.png", {
-      fullPage: true,
-      maxDiffPixelRatio: 0.01,
-    });
+  test("NL tab after preset chip click", async ({ searchPage }) => {
+    await searchPage.goto();
+    await searchPage.presetChip2yrMaxVolume.click();
+    await expect(searchPage.page).toHaveScreenshot(
+      "search-nl-preset-filled.png",
+      {
+        fullPage: true,
+        maxDiffPixelRatio: 0.01,
+      }
+    );
   });
 
-  test("DSL tab with editor", async ({ page }) => {
-    await page.goto("/search");
-    await page.getByRole("button", { name: "DSL" }).click();
-    await page.waitForLoadState("networkidle");
-    await expect(page).toHaveScreenshot("search-dsl-tab.png", {
+  test("DSL tab with editor", async ({ searchPage }) => {
+    await searchPage.goto();
+    await searchPage.switchToDsl();
+    await expect(searchPage.dslEditorContainer).toBeVisible();
+    await expect(searchPage.page).toHaveScreenshot("search-dsl-tab.png", {
       fullPage: true,
       maxDiffPixelRatio: 0.01,
     });
