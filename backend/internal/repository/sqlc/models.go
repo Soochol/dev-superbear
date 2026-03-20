@@ -340,21 +340,22 @@ type AgentBlock struct {
 }
 
 type Case struct {
-	ID            pgtype.UUID        `json:"id"`
-	UserID        pgtype.UUID        `json:"user_id"`
-	PipelineID    pgtype.UUID        `json:"pipeline_id"`
-	Symbol        string             `json:"symbol"`
-	Status        CaseStatus         `json:"status"`
-	EventDate     pgtype.Date        `json:"event_date"`
-	EventSnapshot []byte             `json:"event_snapshot"`
-	SuccessScript string             `json:"success_script"`
-	FailureScript string             `json:"failure_script"`
-	ClosedAt      pgtype.Date        `json:"closed_at"`
-	ClosedReason  pgtype.Text        `json:"closed_reason"`
-	CreatedAt     pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
-	SymbolName    string             `json:"symbol_name"`
-	Sector        pgtype.Text        `json:"sector"`
+	ID                pgtype.UUID        `json:"id"`
+	UserID            pgtype.UUID        `json:"user_id"`
+	PipelineID        pgtype.UUID        `json:"pipeline_id"`
+	Symbol            string             `json:"symbol"`
+	Status            CaseStatus         `json:"status"`
+	EventDate         pgtype.Date        `json:"event_date"`
+	EventSnapshot     []byte             `json:"event_snapshot"`
+	SuccessScript     string             `json:"success_script"`
+	FailureScript     string             `json:"failure_script"`
+	ClosedAt          pgtype.Date        `json:"closed_at"`
+	ClosedReason      pgtype.Text        `json:"closed_reason"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
+	SymbolName        string             `json:"symbol_name"`
+	Sector            pgtype.Text        `json:"sector"`
+	DslPollingEnabled bool               `json:"dsl_polling_enabled"`
 }
 
 type FifoLot struct {
@@ -412,13 +413,15 @@ type MarketplaceUsageLog struct {
 }
 
 type MonitorBlock struct {
-	ID         pgtype.UUID        `json:"id"`
-	PipelineID pgtype.UUID        `json:"pipeline_id"`
-	BlockID    pgtype.UUID        `json:"block_id"`
-	Cron       string             `json:"cron"`
-	Enabled    bool               `json:"enabled"`
-	CreatedAt  pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
+	ID             pgtype.UUID        `json:"id"`
+	PipelineID     pgtype.UUID        `json:"pipeline_id"`
+	BlockID        pgtype.UUID        `json:"block_id"`
+	Cron           string             `json:"cron"`
+	Enabled        bool               `json:"enabled"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+	CaseID         pgtype.UUID        `json:"case_id"`
+	LastExecutedAt pgtype.Timestamptz `json:"last_executed_at"`
 }
 
 type Pipeline struct {

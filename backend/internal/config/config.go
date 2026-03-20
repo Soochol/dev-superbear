@@ -17,6 +17,8 @@ type Config struct {
 	KISAppSecret       string
 	KISBaseURL         string
 	DARTApiKey         string
+	RedisAddr          string
+	RedisPassword      string
 }
 
 func Load() *Config {
@@ -42,6 +44,8 @@ func Load() *Config {
 		cfg.GoogleClientSecret = getEnv("GOOGLE_CLIENT_SECRET", "")
 		slog.Warn("using development config defaults")
 	}
+	cfg.RedisAddr = getEnv("REDIS_ADDR", "localhost:6379")
+	cfg.RedisPassword = getEnv("REDIS_PASSWORD", "")
 	return cfg
 }
 

@@ -25,6 +25,18 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
 
   -- 007: marketplace tables
   \i ${MIGRATIONS_DIR}/007_marketplace.sql
+
+  -- 003: pipeline builder (agent blocks, monitor blocks, pipeline jobs)
+  \i ${MIGRATIONS_DIR}/003_pipeline.sql
+
+  -- 009: case enhancements
+  \i ${MIGRATIONS_DIR}/009_case_enhancements.sql
+
+  -- 009: watchlist
+  \i ${MIGRATIONS_DIR}/009_watchlist.sql
+
+  -- 010: monitoring engine (add case_id, last_executed_at, dsl_polling_enabled)
+  \i ${MIGRATIONS_DIR}/010_monitoring.sql
 EOSQL
 
 echo "All migrations applied successfully."

@@ -86,7 +86,7 @@ func (q *Queries) CreateBlock(ctx context.Context, arg CreateBlockParams) (Agent
 const createMonitorBlock = `-- name: CreateMonitorBlock :one
 INSERT INTO monitor_blocks (pipeline_id, block_id, cron, enabled)
 VALUES ($1, $2, $3, $4)
-RETURNING id, pipeline_id, block_id, cron, enabled, created_at, updated_at
+RETURNING id, pipeline_id, block_id, cron, enabled, created_at, updated_at, case_id, last_executed_at
 `
 
 type CreateMonitorBlockParams struct {
@@ -112,6 +112,8 @@ func (q *Queries) CreateMonitorBlock(ctx context.Context, arg CreateMonitorBlock
 		&i.Enabled,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.CaseID,
+		&i.LastExecutedAt,
 	)
 	return i, err
 }
@@ -349,7 +351,7 @@ func (q *Queries) ListBlocksByUser(ctx context.Context, userID pgtype.UUID) ([]A
 }
 
 const listMonitorsByPipeline = `-- name: ListMonitorsByPipeline :many
-SELECT id, pipeline_id, block_id, cron, enabled, created_at, updated_at FROM monitor_blocks WHERE pipeline_id = $1
+SELECT id, pipeline_id, block_id, cron, enabled, created_at, updated_at, case_id, last_executed_at FROM monitor_blocks WHERE pipeline_id = $1
 `
 
 func (q *Queries) ListMonitorsByPipeline(ctx context.Context, pipelineID pgtype.UUID) ([]MonitorBlock, error) {
@@ -369,6 +371,8 @@ func (q *Queries) ListMonitorsByPipeline(ctx context.Context, pipelineID pgtype.
 			&i.Enabled,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.CaseID,
+			&i.LastExecutedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -494,7 +498,7 @@ func (q *Queries) UpdateBlock(ctx context.Context, arg UpdateBlockParams) (Agent
 
 const updateMonitorBlock = `-- name: UpdateMonitorBlock :one
 UPDATE monitor_blocks SET cron = $2, enabled = $3, updated_at = now() WHERE id = $1
-RETURNING id, pipeline_id, block_id, cron, enabled, created_at, updated_at
+RETURNING id, pipeline_id, block_id, cron, enabled, created_at, updated_at, case_id, last_executed_at
 `
 
 type UpdateMonitorBlockParams struct {
@@ -514,6 +518,8 @@ func (q *Queries) UpdateMonitorBlock(ctx context.Context, arg UpdateMonitorBlock
 		&i.Enabled,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.CaseID,
+		&i.LastExecutedAt,
 	)
 	return i, err
 }
