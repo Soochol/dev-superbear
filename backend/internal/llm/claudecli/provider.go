@@ -53,7 +53,8 @@ func (p *Provider) Name() string { return "claude-cli" }
 // newCommand creates a configured exec.Cmd with common options:
 // process-group isolation, signal-based cancellation, and optional MCP config.
 func (p *Provider) newCommand(ctx context.Context, outputFormat string) *exec.Cmd {
-	args := []string{"-p", "--output-format", outputFormat}
+	args := []string{"-p", "--verbose", "--output-format", outputFormat,
+		"--allowedTools", "mcp__nexus-dsl__get_dsl_grammar,mcp__nexus-dsl__list_available_fields,mcp__nexus-dsl__validate_dsl"}
 	if p.cfg.MCPConfigPath != "" {
 		args = append(args, "--mcp-config", p.cfg.MCPConfigPath)
 	}
@@ -358,8 +359,12 @@ func extractDSL(text string) (dsl, explanation string) {
 	lines := strings.Split(text, "\n")
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
+		// Strip markdown bold markers: **DSL:** → DSL:
+		trimmed = strings.ReplaceAll(trimmed, "**", "")
 		if strings.HasPrefix(trimmed, "DSL:") {
 			dsl = strings.TrimSpace(strings.TrimPrefix(trimmed, "DSL:"))
+			// Remove backtick wrapping: `scan where ...` → scan where ...
+			dsl = strings.Trim(dsl, "`")
 		} else if strings.HasPrefix(trimmed, "EXPLANATION:") {
 			explanation = strings.TrimSpace(strings.TrimPrefix(trimmed, "EXPLANATION:"))
 		}
