@@ -31,13 +31,13 @@ test.describe("Sidebar Navigation", () => {
     await page.goto("/dashboard");
     const sidebar = page.getByTestId("sidebar-nav");
 
-    const initialWidth = await sidebar.evaluate((el) => el.offsetWidth);
+    const initialWidth = await sidebar.evaluate((el) => (el as HTMLElement).offsetWidth);
     expect(initialWidth).toBe(64);
 
     await sidebar.hover();
     await page.waitForTimeout(300);
 
-    const expandedWidth = await sidebar.evaluate((el) => el.offsetWidth);
+    const expandedWidth = await sidebar.evaluate((el) => (el as HTMLElement).offsetWidth);
     expect(expandedWidth).toBe(200);
   });
 
@@ -54,7 +54,7 @@ test.describe("Sidebar Navigation", () => {
     await page.mouse.move(500, 500);
     await page.waitForTimeout(300);
 
-    const width = await sidebar.evaluate((el) => el.offsetWidth);
+    const width = await sidebar.evaluate((el) => (el as HTMLElement).offsetWidth);
     expect(width).toBe(200);
   });
 
