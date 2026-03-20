@@ -7,7 +7,8 @@ import { LiveDSLPanel } from "./LiveDSLPanel";
 import { SearchResults } from "./SearchResults";
 
 export function SearchPageLayout() {
-  const { activeTab, setActiveTab } = useSearchStore();
+  const activeTab = useSearchStore((s) => s.activeTab);
+  const setActiveTab = useSearchStore((s) => s.setActiveTab);
 
   return (
     <div className="flex flex-col h-full gap-4 p-6">

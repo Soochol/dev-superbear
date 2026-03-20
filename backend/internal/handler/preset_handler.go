@@ -1,10 +1,10 @@
 package handler
 
 import (
+	"errors"
 	"log/slog"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -19,6 +19,17 @@ type PresetHandler struct {
 // NewPresetHandler creates a new handler backed by the given repository.
 func NewPresetHandler(repo *repository.PresetRepository) *PresetHandler {
 	return &PresetHandler{repo: repo}
+}
+
+// getUserID extracts the authenticated user ID from the context.
+// It returns false and writes a 401 response if the user is not authenticated.
+func getUserID(c *gin.Context) (string, bool) {
+	userID := c.GetString("userID")
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "authentication required"})
+		return "", false
+	}
+	return userID, true
 }
 
 // RegisterRoutes mounts preset routes onto a Gin router group.
@@ -37,9 +48,8 @@ func (h *PresetHandler) RegisterRoutes(rg *gin.RouterGroup) {
 
 // ListPresets returns a paginated list of presets visible to the current user.
 func (h *PresetHandler) ListPresets(c *gin.Context) {
-	userID := c.GetString("userID")
-	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "authentication required"})
+	userID, ok := getUserID(c)
+	if !ok {
 		return
 	}
 
@@ -82,9 +92,8 @@ type CreatePresetRequest struct {
 
 // CreatePreset creates a new search preset for the current user.
 func (h *PresetHandler) CreatePreset(c *gin.Context) {
-	userID := c.GetString("userID")
-	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "authentication required"})
+	userID, ok := getUserID(c)
+	if !ok {
 		return
 	}
 
@@ -94,12 +103,10 @@ func (h *PresetHandler) CreatePreset(c *gin.Context) {
 		return
 	}
 
-	if len(req.Name) > 255 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "name exceeds maximum length of 255 characters"})
+	if !validateInputLength(c, req.Name, "name", 255) {
 		return
 	}
-	if len(req.DSL) > 10000 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "DSL exceeds maximum length of 10000 characters"})
+	if !validateInputLength(c, req.DSL, "dsl", maxDSLLength) {
 		return
 	}
 
@@ -121,16 +128,15 @@ func (h *PresetHandler) CreatePreset(c *gin.Context) {
 
 // DeletePreset removes a preset owned by the current user.
 func (h *PresetHandler) DeletePreset(c *gin.Context) {
-	userID := c.GetString("userID")
-	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "authentication required"})
+	userID, ok := getUserID(c)
+	if !ok {
 		return
 	}
 
 	presetID := c.Param("id")
 
 	if err := h.repo.Delete(c.Request.Context(), presetID, userID); err != nil {
-		if strings.Contains(err.Error(), "not found") {
+		if errors.Is(err, repository.ErrPresetNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "preset not found"})
 		} else {
 			slog.Error("failed to delete preset", "error", err, "presetID", presetID)

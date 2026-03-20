@@ -18,8 +18,6 @@ interface SearchState {
   setValidationState: (state: ValidationState, message?: string) => void;
   results: SearchResult[];
   setResults: (results: SearchResult[]) => void;
-  isSearching: boolean;
-  setIsSearching: (v: boolean) => void;
   selectedPresetId: string | null;
   setSelectedPresetId: (id: string | null) => void;
 }
@@ -41,8 +39,6 @@ export const useSearchStore = create<SearchState>()((set) => ({
     set({ validationState: state, validationMessage: message }),
   results: [],
   setResults: (results) => set({ results }),
-  isSearching: false,
-  setIsSearching: (v) => set({ isSearching: v }),
   selectedPresetId: null,
   setSelectedPresetId: (id) => set({ selectedPresetId: id }),
 }));

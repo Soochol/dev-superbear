@@ -4,7 +4,9 @@ import { useSearchStore } from "../model/search.store";
 import { ResultsTable } from "./ResultsTable";
 
 export function SearchResults() {
-  const { results, isSearching } = useSearchStore();
+  const results = useSearchStore((s) => s.results);
+  const agentStatus = useSearchStore((s) => s.agentStatus);
+  const isSearching = agentStatus !== "idle" && agentStatus !== "done" && agentStatus !== "error";
 
   if (isSearching) {
     return (

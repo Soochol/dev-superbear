@@ -4,10 +4,11 @@ import { useRouter } from "next/navigation";
 import { useSearchStore } from "../model/search.store";
 import { useStockListStore } from "@/entities/stock";
 import type { SearchResult } from "@/entities/search-result";
+import { btnMini } from "./styles";
 
 export function ResultsTable() {
   const router = useRouter();
-  const { results } = useSearchStore();
+  const results = useSearchStore((s) => s.results);
   const { setSearchResults, setSelectedSymbol, addToRecent } = useStockListStore();
 
   const handleChartClick = (symbol: string) => {
@@ -46,8 +47,7 @@ export function ResultsTable() {
               <button
                 onClick={() => handleChartClick(row.symbol)}
                 aria-label="Chart"
-                className="px-3 py-1 text-xs rounded bg-nexus-accent/20 text-nexus-accent
-                           hover:bg-nexus-accent/30 transition-colors"
+                className={btnMini}
               >
                 Chart
               </button>

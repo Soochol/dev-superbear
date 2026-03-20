@@ -13,7 +13,8 @@ const STATUS_CONFIG: Record<AgentStatus, { label: string; color: string; animate
 };
 
 export function AgentStatusIndicator() {
-  const { agentStatus, agentMessage } = useSearchStore();
+  const agentStatus = useSearchStore((s) => s.agentStatus);
+  const agentMessage = useSearchStore((s) => s.agentMessage);
   if (agentStatus === "idle") return null;
 
   const config = STATUS_CONFIG[agentStatus];

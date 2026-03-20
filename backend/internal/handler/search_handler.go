@@ -9,6 +9,16 @@ import (
 	"backend/internal/service"
 )
 
+const maxDSLLength = 10000
+
+func validateInputLength(c *gin.Context, input, field string, max int) bool {
+	if len(input) > max {
+		c.JSON(http.StatusBadRequest, gin.H{"error": field + " exceeds maximum length"})
+		return false
+	}
+	return true
+}
+
 type SearchHandler struct {
 	searchSvc *service.SearchService
 	nlSvc     *service.NLToDSLService
@@ -21,31 +31,24 @@ func NewSearchHandler(searchSvc *service.SearchService, nlSvc *service.NLToDSLSe
 	}
 }
 
-type ExecuteSearchRequest struct {
+// DSLRequest is the common request body for endpoints that accept a single DSL string.
+type DSLRequest struct {
 	DSL string `json:"dsl" binding:"required"`
 }
 
 func (h *SearchHandler) Execute(c *gin.Context) {
-	var req ExecuteSearchRequest
+	var req DSLRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	if len(req.DSL) > 10000 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "DSL input exceeds maximum length of 10000 characters"})
-		return
-	}
-
-	validation := h.searchSvc.Validate(c.Request.Context(), req.DSL)
-	if !validation.Valid {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid DSL: " + validation.Error})
+	if !validateInputLength(c, req.DSL, "dsl", maxDSLLength) {
 		return
 	}
 
 	results, err := h.searchSvc.Execute(c.Request.Context(), req.DSL)
 	if err != nil {
-		slog.Error("failed to execute search", "error", err)
+		slog.Error("search execute failed", "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
@@ -53,19 +56,13 @@ func (h *SearchHandler) Execute(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"results": results})
 }
 
-type ValidateRequest struct {
-	DSL string `json:"dsl" binding:"required"`
-}
-
 func (h *SearchHandler) Validate(c *gin.Context) {
-	var req ValidateRequest
+	var req DSLRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	if len(req.DSL) > 10000 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "DSL input exceeds maximum length of 10000 characters"})
+	if !validateInputLength(c, req.DSL, "dsl", maxDSLLength) {
 		return
 	}
 
@@ -83,9 +80,7 @@ func (h *SearchHandler) NLToDSL(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	if len(req.Query) > 10000 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "query exceeds maximum length of 10000 characters"})
+	if !validateInputLength(c, req.Query, "query", maxDSLLength) {
 		return
 	}
 
@@ -110,19 +105,13 @@ func (h *SearchHandler) NLToDSL(c *gin.Context) {
 	})
 }
 
-type ExplainRequest struct {
-	DSL string `json:"dsl" binding:"required"`
-}
-
 func (h *SearchHandler) Explain(c *gin.Context) {
-	var req ExplainRequest
+	var req DSLRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	if len(req.DSL) > 10000 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "DSL input exceeds maximum length of 10000 characters"})
+	if !validateInputLength(c, req.DSL, "dsl", maxDSLLength) {
 		return
 	}
 

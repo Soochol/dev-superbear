@@ -3,9 +3,12 @@
 import { useSearchStore } from "../model/search.store";
 import { PresetChips } from "./PresetChips";
 import { AgentStatusIndicator } from "./AgentStatusIndicator";
+import { btnPrimary } from "./styles";
 
 export function NLTab() {
-  const { nlQuery, setNlQuery, agentStatus } = useSearchStore();
+  const nlQuery = useSearchStore((s) => s.nlQuery);
+  const setNlQuery = useSearchStore((s) => s.setNlQuery);
+  const agentStatus = useSearchStore((s) => s.agentStatus);
   const isSearching = agentStatus !== "idle" && agentStatus !== "done" && agentStatus !== "error";
 
   return (
@@ -25,9 +28,7 @@ export function NLTab() {
         <AgentStatusIndicator />
         <button
           disabled={isSearching || !nlQuery.trim()}
-          className="px-6 py-2 rounded-lg text-sm font-medium bg-nexus-accent text-white
-                     hover:bg-nexus-accent/90 disabled:opacity-50 disabled:cursor-not-allowed
-                     transition-colors"
+          className={btnPrimary}
         >
           Search
         </button>

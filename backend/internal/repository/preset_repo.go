@@ -8,6 +8,9 @@ import (
 	"time"
 )
 
+// ErrPresetNotFound is returned when a preset does not exist or is not owned by the user.
+var ErrPresetNotFound = fmt.Errorf("preset not found or not owned by user")
+
 // SearchPreset represents a row in the search_presets table.
 type SearchPreset struct {
 	ID        string    `json:"id"`
@@ -113,7 +116,7 @@ func (r *PresetRepository) Delete(ctx context.Context, id, userID string) error 
 		return fmt.Errorf("delete preset check rows: %w", err)
 	}
 	if n == 0 {
-		return fmt.Errorf("preset not found or not owned by user")
+		return ErrPresetNotFound
 	}
 	return nil
 }

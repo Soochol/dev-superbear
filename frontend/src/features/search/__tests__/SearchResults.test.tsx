@@ -53,7 +53,7 @@ describe("SearchResults", () => {
   });
 
   it("shows loading state while searching", () => {
-    useSearchStore.setState({ isSearching: true });
+    useSearchStore.setState({ agentStatus: "interpreting" });
     render(<SearchResults />);
     expect(screen.getByText(/검색 중/i)).toBeInTheDocument();
   });

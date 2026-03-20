@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useSearchStore } from "../model/search.store";
 import { highlightDSL } from "@/shared/lib/dsl/highlight";
+import { btnMini } from "./styles";
 
 export function LiveDSLPanel() {
-  const { dslCode, validationState } = useSearchStore();
+  const dslCode = useSearchStore((s) => s.dslCode);
+  const validationState = useSearchStore((s) => s.validationState);
   const hasCode = dslCode.trim().length > 0;
-  const tokens = hasCode ? highlightDSL(dslCode) : [];
+  const tokens = useMemo(() => hasCode ? highlightDSL(dslCode) : [], [dslCode, hasCode]);
   const [copyLabel, setCopyLabel] = useState("Copy");
 
   const handleCopy = async () => {
@@ -60,8 +62,7 @@ export function LiveDSLPanel() {
             </button>
             <button
               aria-label="Run Search"
-              className="px-3 py-1 text-xs rounded bg-nexus-accent/20 text-nexus-accent
-                         hover:bg-nexus-accent/30 transition-colors"
+              className={btnMini}
             >
               Run
             </button>

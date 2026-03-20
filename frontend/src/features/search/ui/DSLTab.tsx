@@ -2,9 +2,11 @@
 
 import { useSearchStore } from "../model/search.store";
 import { DSLEditor } from "./DSLEditor";
+import { btnPrimary, btnSecondary } from "./styles";
 
 export function DSLTab() {
-  const { dslCode, validationState } = useSearchStore();
+  const dslCode = useSearchStore((s) => s.dslCode);
+  const validationState = useSearchStore((s) => s.validationState);
   const hasCode = dslCode.trim().length > 0;
 
   return (
@@ -14,28 +16,20 @@ export function DSLTab() {
       <div className="flex items-center gap-2">
         <button
           disabled={!hasCode}
-          className="px-4 py-2 rounded-lg text-sm font-medium
-                     bg-nexus-border text-nexus-text-primary
-                     hover:bg-nexus-border/80 disabled:opacity-50 disabled:cursor-not-allowed
-                     transition-colors"
+          className={btnSecondary}
         >
           Validate
         </button>
         <button
           disabled={!hasCode}
-          className="px-4 py-2 rounded-lg text-sm font-medium
-                     bg-nexus-border text-nexus-text-primary
-                     hover:bg-nexus-border/80 disabled:opacity-50 disabled:cursor-not-allowed
-                     transition-colors"
+          className={btnSecondary}
         >
           Explain in NL
         </button>
         <div className="flex-1" />
         <button
           disabled={!hasCode || validationState === "invalid"}
-          className="px-6 py-2 rounded-lg text-sm font-medium bg-nexus-accent text-white
-                     hover:bg-nexus-accent/90 disabled:opacity-50 disabled:cursor-not-allowed
-                     transition-colors"
+          className={btnPrimary}
         >
           Run Search
         </button>

@@ -12,7 +12,7 @@ const PRESETS = [
 ];
 
 export function PresetChips() {
-  const { setNlQuery } = useSearchStore();
+  const setNlQuery = useSearchStore((s) => s.setNlQuery);
 
   return (
     <div className="flex flex-wrap gap-2">
