@@ -29,5 +29,5 @@ func (h *FinancialsHandler) GetFinancials(c *gin.Context) {
 }
 
 func (h *FinancialsHandler) GetSectorCompare(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"data": []interface{}{}})
+	c.JSON(http.StatusOK, gin.H{"data": []any{}})
 }
