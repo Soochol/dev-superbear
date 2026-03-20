@@ -16,7 +16,7 @@ const TAB_TITLES = {
 
 export function StockSearchModal() {
   const { isOpen, activeTab, closeModal, setActiveTab } = useSearchModalStore();
-  const { searchResults, watchlist, recentStocks, addToRecent, isInWatchlist, addToWatchlist, removeFromWatchlist } =
+  const { searchResults, watchlist, recentStocks, addToRecent, isInWatchlist, addToWatchlist, removeFromWatchlist, loadWatchlist } =
     useStockListStore();
   const setCurrentStock = useChartStore((s) => s.setCurrentStock);
 
@@ -33,6 +33,12 @@ export function StockSearchModal() {
       return () => document.removeEventListener("keydown", handleEscape);
     }
   }, [isOpen, handleEscape]);
+
+  useEffect(() => {
+    if (isOpen) {
+      loadWatchlist();
+    }
+  }, [isOpen, loadWatchlist]);
 
   const handleSelect = useCallback(
     (item: SearchResult) => {
