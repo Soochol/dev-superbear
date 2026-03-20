@@ -66,11 +66,15 @@ func (h *AgentHandler) HandleMonitorAgent(ctx context.Context, t *asynq.Task) er
 
 	// 마지막 실행 시간 업데이트
 	monitorUUID, err := stringToUUID(payload.MonitorBlockID)
-	if err == nil {
-		_ = h.queries.UpdateMonitorBlockLastExecuted(ctx, sqlc.UpdateMonitorBlockLastExecutedParams{
-			ID:             monitorUUID,
-			LastExecutedAt: pgtype.Timestamptz{Time: now, Valid: true},
-		})
+	if err != nil {
+		slog.Error("invalid monitor block ID, skipping last-executed update",
+			"monitor_block_id", payload.MonitorBlockID, "error", err)
+	} else if err := h.queries.UpdateMonitorBlockLastExecuted(ctx, sqlc.UpdateMonitorBlockLastExecutedParams{
+		ID:             monitorUUID,
+		LastExecutedAt: pgtype.Timestamptz{Time: now, Valid: true},
+	}); err != nil {
+		slog.Error("failed to update last-executed timestamp",
+			"monitor_block_id", payload.MonitorBlockID, "error", err)
 	}
 
 	slog.Info("monitor agent completed", "case_id", payload.CaseID)

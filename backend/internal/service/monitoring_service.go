@@ -3,11 +3,11 @@ package service
 import (
 	"context"
 	"fmt"
-	"log/slog"
 
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/dev-superbear/nexus-backend/internal/infra/pgutil"
 	"github.com/dev-superbear/nexus-backend/internal/repository/sqlc"
 	"github.com/dev-superbear/nexus-backend/internal/worker"
 )
@@ -39,7 +39,7 @@ func (s *MonitoringService) ToggleMonitorBlock(monitorBlockID string, enabled bo
 	}
 
 	if err := s.schedulerManager.SyncMonitorSchedules(); err != nil {
-		slog.Error("sync schedules after toggle block", "error", err)
+		return fmt.Errorf("sync schedules after toggle block: %w", err)
 	}
 	return nil
 }
@@ -80,7 +80,7 @@ func (s *MonitoringService) ToggleCaseMonitoring(caseID string, enabled bool, ke
 	}
 
 	if err := s.schedulerManager.SyncMonitorSchedules(); err != nil {
-		slog.Error("sync schedules after toggle case", "error", err)
+		return fmt.Errorf("sync schedules after toggle case: %w", err)
 	}
 	return nil
 }
@@ -124,18 +124,9 @@ type MonitorBlockInfo struct {
 }
 
 func parseUUID(s string) (pgtype.UUID, error) {
-	var u pgtype.UUID
-	if err := u.Scan(s); err != nil {
-		return u, fmt.Errorf("invalid UUID: %s", s)
-	}
-	return u, nil
+	return pgutil.ParseUUID(s)
 }
 
 func uuidToString(u pgtype.UUID) string {
-	if !u.Valid {
-		return ""
-	}
-	b := u.Bytes
-	return fmt.Sprintf("%08x-%04x-%04x-%04x-%012x",
-		b[0:4], b[4:6], b[6:8], b[8:10], b[10:16])
+	return pgutil.UUIDToString(u)
 }

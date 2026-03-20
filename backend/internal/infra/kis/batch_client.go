@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -24,9 +25,11 @@ type PriceSnapshot struct {
 
 // FetchPricesBatch retrieves current prices for the given symbols in batches
 // to respect KIS API rate limits. Returns a map keyed by symbol.
+// Returns an error if all price fetches fail.
 func FetchPricesBatch(symbols []string) (map[string]*PriceSnapshot, error) {
 	results := make(map[string]*PriceSnapshot)
 	var mu sync.Mutex
+	var failCount atomic.Int64
 
 	batches := chunk(symbols, batchSize)
 	for i, batch := range batches {
@@ -38,6 +41,7 @@ func FetchPricesBatch(symbols []string) (map[string]*PriceSnapshot, error) {
 				price, err := getPrice(symbol)
 				if err != nil {
 					slog.Error("failed to fetch price", "symbol", symbol, "error", err)
+					failCount.Add(1)
 					return
 				}
 				mu.Lock()
@@ -49,6 +53,14 @@ func FetchPricesBatch(symbols []string) (map[string]*PriceSnapshot, error) {
 		if i < len(batches)-1 {
 			time.Sleep(time.Duration(batchDelayMs) * time.Millisecond)
 		}
+	}
+
+	failed := int(failCount.Load())
+	if failed == len(symbols) {
+		return nil, fmt.Errorf("all %d price fetches failed", failed)
+	}
+	if failed > 0 {
+		slog.Warn("partial price fetch failure", "failed", failed, "total", len(symbols))
 	}
 	return results, nil
 }

@@ -15,6 +15,12 @@ var kstLocation = time.FixedZone("KST", 9*60*60)
 // Does NOT account for holidays or half-day schedules.
 func IsMarketHours(now time.Time) bool {
 	kst := now.In(kstLocation)
+
+	wd := kst.Weekday()
+	if wd == time.Saturday || wd == time.Sunday {
+		return false
+	}
+
 	hour := kst.Hour()
 	minute := kst.Minute()
 

@@ -48,7 +48,6 @@ func (h *DSLPollerHandler) runDSLPollingCycle(ctx context.Context) error {
 		return nil
 	}
 
-	// 고유 심볼 추출 및 배치 가격 조회
 	symbolSet := make(map[string]struct{})
 	for _, c := range liveCases {
 		symbolSet[c.Symbol] = struct{}{}
@@ -62,22 +61,31 @@ func (h *DSLPollerHandler) runDSLPollingCycle(ctx context.Context) error {
 		return fmt.Errorf("fetch prices batch: %w", err)
 	}
 
+	var failCount int
 	for _, c := range liveCases {
 		price, ok := prices[c.Symbol]
 		if !ok {
+			slog.Warn("skipping case: no price data for symbol",
+				"case_id", uuidToString(c.ID), "symbol", c.Symbol)
 			continue
 		}
 		if err := h.evaluateCaseConditions(ctx, c, price); err != nil {
 			slog.Error("evaluate case conditions failed", "case_id", uuidToString(c.ID), "error", err)
+			failCount++
 		}
+	}
+	if failCount == len(liveCases) {
+		return fmt.Errorf("all %d case evaluations failed", failCount)
 	}
 	return nil
 }
 
 // BuildDSLContext creates a typed DSL context from a case event snapshot and a live price.
-func BuildDSLContext(eventSnapshot []byte, price *kis.PriceSnapshot) DSLContext {
+func BuildDSLContext(eventSnapshot []byte, price *kis.PriceSnapshot) (DSLContext, error) {
 	var snapshot map[string]interface{}
-	_ = json.Unmarshal(eventSnapshot, &snapshot)
+	if err := json.Unmarshal(eventSnapshot, &snapshot); err != nil {
+		return DSLContext{}, fmt.Errorf("unmarshal event snapshot: %w", err)
+	}
 
 	floatVal := func(key string) float64 {
 		if v, ok := snapshot[key]; ok {
@@ -116,7 +124,7 @@ func BuildDSLContext(eventSnapshot []byte, price *kis.PriceSnapshot) DSLContext 
 		PreEventMA120: maVal(120),
 		PreEventMA200: maVal(200),
 		PreEventClose: floatVal("preClose"),
-	}
+	}, nil
 }
 
 func (h *DSLPollerHandler) evaluateCaseConditions(
@@ -124,44 +132,25 @@ func (h *DSLPollerHandler) evaluateCaseConditions(
 	caseRow sqlc.ListLiveCasesRow,
 	price *kis.PriceSnapshot,
 ) error {
-	dslCtx := BuildDSLContext(caseRow.EventSnapshot, price)
+	dslCtx, err := BuildDSLContext(caseRow.EventSnapshot, price)
+	if err != nil {
+		return fmt.Errorf("build DSL context for case %s: %w", uuidToString(caseRow.ID), err)
+	}
 	caseID := uuidToString(caseRow.ID)
 
 	// 성공 조건 체크
 	if caseRow.SuccessScript != "" {
 		if evaluateDSL(caseRow.SuccessScript, dslCtx) {
-			payload := LifecyclePayload{
-				CaseID: caseID,
-				Action: "CLOSE_SUCCESS",
-				Reason: fmt.Sprintf("성공 조건 도달: %s (close=%.2f)", caseRow.SuccessScript, price.Close),
-			}
-			task, err := NewLifecycleTask(payload)
-			if err != nil {
-				return err
-			}
-			if _, err := h.enqueuer.EnqueueContext(ctx, task); err != nil {
-				return fmt.Errorf("enqueue lifecycle CLOSE_SUCCESS: %w", err)
-			}
-			return nil
+			return h.enqueueLifecycle(ctx, caseID, "CLOSE_SUCCESS",
+				fmt.Sprintf("성공 조건 도달: %s (close=%.2f)", caseRow.SuccessScript, price.Close))
 		}
 	}
 
 	// 실패 조건 체크
 	if caseRow.FailureScript != "" {
 		if evaluateDSL(caseRow.FailureScript, dslCtx) {
-			payload := LifecyclePayload{
-				CaseID: caseID,
-				Action: "CLOSE_FAILURE",
-				Reason: fmt.Sprintf("실패 조건 도달: %s (close=%.2f)", caseRow.FailureScript, price.Close),
-			}
-			task, err := NewLifecycleTask(payload)
-			if err != nil {
-				return err
-			}
-			if _, err := h.enqueuer.EnqueueContext(ctx, task); err != nil {
-				return fmt.Errorf("enqueue lifecycle CLOSE_FAILURE: %w", err)
-			}
-			return nil
+			return h.enqueueLifecycle(ctx, caseID, "CLOSE_FAILURE",
+				fmt.Sprintf("실패 조건 도달: %s (close=%.2f)", caseRow.FailureScript, price.Close))
 		}
 	}
 
@@ -180,15 +169,25 @@ func (h *DSLPollerHandler) evaluateCaseConditions(
 			}
 			task, err := NewLifecycleTask(payload)
 			if err != nil {
-				slog.Error("create lifecycle task for alert", "alert_id", uuidToString(alert.ID), "error", err)
-				continue
+				return fmt.Errorf("create lifecycle task for alert %s: %w", uuidToString(alert.ID), err)
 			}
 			if _, err := h.enqueuer.EnqueueContext(ctx, task); err != nil {
-				slog.Error("enqueue lifecycle TRIGGER_ALERT", "alert_id", uuidToString(alert.ID), "error", err)
+				return fmt.Errorf("enqueue lifecycle TRIGGER_ALERT for alert %s: %w", uuidToString(alert.ID), err)
 			}
 		}
 	}
 
+	return nil
+}
+
+func (h *DSLPollerHandler) enqueueLifecycle(ctx context.Context, caseID, action, reason string) error {
+	task, err := NewLifecycleTask(LifecyclePayload{CaseID: caseID, Action: action, Reason: reason})
+	if err != nil {
+		return err
+	}
+	if _, err := h.enqueuer.EnqueueContext(ctx, task); err != nil {
+		return fmt.Errorf("enqueue lifecycle %s: %w", action, err)
+	}
 	return nil
 }
 

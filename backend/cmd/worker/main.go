@@ -14,7 +14,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/dev-superbear/nexus-backend/internal/config"
-	"github.com/dev-superbear/nexus-backend/internal/handler"
 	"github.com/dev-superbear/nexus-backend/internal/infra"
 	"github.com/dev-superbear/nexus-backend/internal/service"
 	"github.com/dev-superbear/nexus-backend/internal/worker"
@@ -71,18 +70,11 @@ func main() {
 	mux.HandleFunc(worker.TypeDSLPoller, dslHandler.HandleDSLPoller)
 	mux.HandleFunc(worker.TypeMonitorLifecycle, lifecycleHandler.HandleLifecycle)
 
-	// ── Initial schedule sync ───────────────────────────────────
+	// ── Initial schedule sync (also starts scheduler goroutine) ─
 	if err := schedulerMgr.SyncMonitorSchedules(); err != nil {
 		log.Fatalf("initial schedule sync failed: %v", err)
 	}
 	slog.Info("initial schedule sync completed")
-
-	// ── Start asynq scheduler in a goroutine ────────────────────
-	go func() {
-		if err := schedulerMgr.Run(); err != nil {
-			slog.Error("scheduler stopped", "error", err)
-		}
-	}()
 
 	// ── Schedule sync cron (5-minute safety net) ────────────────
 	syncCron := worker.StartScheduleSync(schedulerMgr)
@@ -90,8 +82,6 @@ func main() {
 
 	// ── Health check HTTP server ────────────────────────────────
 	metricsSvc := service.NewMetricsService(redisOpt)
-	monitoringSvc := service.NewMonitoringService(pool, schedulerMgr)
-	monitoringHandler := handler.NewMonitoringHandler(monitoringSvc)
 
 	httpMux := http.NewServeMux()
 	httpMux.HandleFunc("GET /api/health/workers", func(w http.ResponseWriter, r *http.Request) {
@@ -101,21 +91,19 @@ func main() {
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		if err := json.NewEncoder(w).Encode(map[string]interface{}{
 			"status":  "ok",
 			"metrics": metrics,
-		})
+		}); err != nil {
+			slog.Error("failed to encode health response", "error", err)
+		}
 	})
-
-	// Monitoring control endpoints use gin via the API server.
-	// The worker exposes only the health endpoint directly.
-	_ = monitoringHandler // routes registered via API server's registerRoutes
 
 	go func() {
 		addr := ":8081"
 		slog.Info("health HTTP server starting", "addr", addr)
-		if err := http.ListenAndServe(addr, httpMux); err != nil {
-			slog.Error("HTTP server stopped", "error", err)
+		if err := http.ListenAndServe(addr, httpMux); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("health HTTP server failed: %v", err)
 		}
 	}()
 
@@ -123,7 +111,7 @@ func main() {
 	slog.Info("starting asynq worker server")
 	go func() {
 		if err := srv.Run(mux); err != nil {
-			log.Fatalf("asynq server failed: %v", err)
+			slog.Error("asynq server stopped", "error", err)
 		}
 	}()
 
@@ -135,6 +123,5 @@ func main() {
 
 	srv.Shutdown()
 	schedulerMgr.Shutdown()
-	client.Close()
 	slog.Info("all workers shut down gracefully")
 }

@@ -1,10 +1,12 @@
 package handler
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/dev-superbear/nexus-backend/internal/middleware"
 	"github.com/dev-superbear/nexus-backend/internal/service"
 )
 
@@ -19,6 +21,10 @@ func NewMonitoringHandler(svc *service.MonitoringService) *MonitoringHandler {
 
 // ToggleBlock handles PATCH /api/v1/cases/:id/monitors/:monitorId
 func (h *MonitoringHandler) ToggleBlock(c *gin.Context) {
+	if _, err := middleware.GetUserID(c); err != nil {
+		Error(c, http.StatusUnauthorized, "unauthorized")
+		return
+	}
 	monitorID := c.Param("monitorId")
 	var body struct {
 		Enabled bool `json:"enabled"`
@@ -29,7 +35,8 @@ func (h *MonitoringHandler) ToggleBlock(c *gin.Context) {
 	}
 
 	if err := h.svc.ToggleMonitorBlock(monitorID, body.Enabled); err != nil {
-		Error(c, http.StatusInternalServerError, err.Error())
+		slog.Error("failed to toggle monitor block", "monitorId", monitorID, "error", err)
+		Error(c, http.StatusInternalServerError, "internal server error")
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "ok"})
@@ -37,6 +44,10 @@ func (h *MonitoringHandler) ToggleBlock(c *gin.Context) {
 
 // ToggleCaseMonitoring handles PATCH /api/v1/cases/:id/monitoring-status
 func (h *MonitoringHandler) ToggleCaseMonitoring(c *gin.Context) {
+	if _, err := middleware.GetUserID(c); err != nil {
+		Error(c, http.StatusUnauthorized, "unauthorized")
+		return
+	}
 	caseID := c.Param("id")
 	var body struct {
 		Enabled        bool `json:"enabled"`
@@ -48,7 +59,8 @@ func (h *MonitoringHandler) ToggleCaseMonitoring(c *gin.Context) {
 	}
 
 	if err := h.svc.ToggleCaseMonitoring(caseID, body.Enabled, body.KeepDSLPolling); err != nil {
-		Error(c, http.StatusInternalServerError, err.Error())
+		slog.Error("failed to toggle case monitoring", "caseId", caseID, "error", err)
+		Error(c, http.StatusInternalServerError, "internal server error")
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "ok"})
@@ -56,10 +68,15 @@ func (h *MonitoringHandler) ToggleCaseMonitoring(c *gin.Context) {
 
 // ListMonitors handles GET /api/v1/cases/:id/monitors
 func (h *MonitoringHandler) ListMonitors(c *gin.Context) {
+	if _, err := middleware.GetUserID(c); err != nil {
+		Error(c, http.StatusUnauthorized, "unauthorized")
+		return
+	}
 	caseID := c.Param("id")
 	blocks, err := h.svc.ListMonitorBlocks(caseID)
 	if err != nil {
-		Error(c, http.StatusInternalServerError, err.Error())
+		slog.Error("failed to list monitors", "caseId", caseID, "error", err)
+		Error(c, http.StatusInternalServerError, "internal server error")
 		return
 	}
 	Success(c, blocks)

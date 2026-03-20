@@ -89,7 +89,7 @@ func (h *LifecycleHandler) closeCase(ctx context.Context, caseID string, status 
 
 	// 스케줄 재동기화
 	if err := h.schedulerManager.SyncMonitorSchedules(); err != nil {
-		slog.Error("failed to sync schedules after case close", "case_id", caseID, "error", err)
+		return fmt.Errorf("sync schedules after case close: %w", err)
 	}
 
 	// 4. 알림 전파 (Plan 7)

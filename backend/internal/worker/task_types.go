@@ -25,19 +25,6 @@ type MonitorAgentPayload struct {
 	AllowedTools     []string `json:"allowed_tools"`
 }
 
-type DSLPollingPayload struct {
-	CaseID        string `json:"case_id"`
-	Symbol        string `json:"symbol"`
-	SuccessScript string `json:"success_script"`
-	FailureScript string `json:"failure_script"`
-	PriceAlerts   []struct {
-		ID        string `json:"id"`
-		Condition string `json:"condition"`
-		Label     string `json:"label"`
-	} `json:"price_alerts"`
-	EventSnapshot map[string]interface{} `json:"event_snapshot"`
-}
-
 type LifecyclePayload struct {
 	CaseID  string `json:"case_id"`
 	Action  string `json:"action"` // "CLOSE_SUCCESS" | "CLOSE_FAILURE" | "TRIGGER_ALERT"
@@ -95,5 +82,5 @@ func NewLifecycleTask(p LifecyclePayload) (*asynq.Task, error) {
 	if err != nil {
 		return nil, fmt.Errorf("marshal LifecyclePayload: %w", err)
 	}
-	return asynq.NewTask(TypeMonitorLifecycle, data), nil
+	return asynq.NewTask(TypeMonitorLifecycle, data, asynq.MaxRetry(5)), nil
 }
