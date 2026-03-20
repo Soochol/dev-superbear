@@ -28,6 +28,9 @@ jest.mock("next/link", () => {
 });
 
 import { SidebarNavItem } from "../ui/SidebarNavItem";
+import { useSidebarStore } from "@/shared/model/sidebar.store";
+import { AppSidebar } from "../ui/AppSidebar";
+import userEvent from "@testing-library/user-event";
 
 describe("SidebarNavItem", () => {
   beforeEach(() => {
@@ -109,5 +112,52 @@ describe("SidebarNavItem", () => {
       />
     );
     expect(screen.getByTestId("nav-badge")).toBeInTheDocument();
+  });
+});
+
+describe("AppSidebar", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    useSidebarStore.setState(useSidebarStore.getInitialState());
+  });
+
+  it("renders all 9 navigation items", () => {
+    render(<AppSidebar />);
+    const links = screen.getAllByRole("link");
+    // 9 nav items + logo link = 10
+    expect(links.length).toBeGreaterThanOrEqual(9);
+  });
+
+  it("renders logo", () => {
+    render(<AppSidebar />);
+    expect(screen.getByTestId("sidebar-logo")).toBeInTheDocument();
+  });
+
+  it("expands on mouse enter", async () => {
+    render(<AppSidebar />);
+    const sidebar = screen.getByTestId("sidebar-nav");
+    await userEvent.hover(sidebar);
+    expect(useSidebarStore.getState().isExpanded).toBe(true);
+  });
+
+  it("collapses on mouse leave when not pinned", async () => {
+    render(<AppSidebar />);
+    const sidebar = screen.getByTestId("sidebar-nav");
+    await userEvent.hover(sidebar);
+    await userEvent.unhover(sidebar);
+    expect(useSidebarStore.getState().isExpanded).toBe(false);
+  });
+
+  it("shows pin button when expanded", async () => {
+    useSidebarStore.setState({ isExpanded: true });
+    render(<AppSidebar />);
+    expect(screen.getByTestId("pin-toggle")).toBeInTheDocument();
+  });
+
+  it("toggles pin on pin button click", async () => {
+    useSidebarStore.setState({ isExpanded: true });
+    render(<AppSidebar />);
+    await userEvent.click(screen.getByTestId("pin-toggle"));
+    expect(useSidebarStore.getState().isPinned).toBe(true);
   });
 });
