@@ -39,7 +39,7 @@ export default defineConfig({
         browserName: "chromium",
         baseURL: "http://localhost:3001",
       },
-      testMatch: /search\.spec\.ts/,
+      testMatch: /search.*\.spec\.ts/,
     },
   ],
 });
