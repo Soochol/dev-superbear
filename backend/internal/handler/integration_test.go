@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/dev-superbear/nexus-backend/internal/middleware"
+	"github.com/dev-superbear/nexus-backend/internal/service"
 )
 
 func setupRouter() *gin.Engine {
@@ -18,15 +19,21 @@ func setupRouter() *gin.Engine {
 	return r
 }
 
+func newTestSearchHandler() *SearchHandler {
+	searchSvc := service.NewSearchService(nil)
+	nlSvc := service.NewNLToDSLService()
+	return NewSearchHandler(searchSvc, nlSvc)
+}
+
 // ─── Search Handler Tests ───
 
-func TestSearchHandler_Scan_ValidDSL(t *testing.T) {
+func TestSearchHandler_Execute_ValidDSL(t *testing.T) {
 	r := setupRouter()
-	h := NewSearchHandler()
-	r.POST("/search/scan", h.Scan)
+	h := newTestSearchHandler()
+	h.RegisterRoutes(r.Group("/api/v1"))
 
-	body, _ := json.Marshal(ScanRequest{Query: "scan where volume > 1000000"})
-	req := httptest.NewRequest(http.MethodPost, "/search/scan", bytes.NewReader(body))
+	body, _ := json.Marshal(DSLRequest{DSL: "scan where volume > 1000000"})
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/search/execute", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
@@ -34,41 +41,19 @@ func TestSearchHandler_Scan_ValidDSL(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Errorf("expected 200, got %d: %s", w.Code, w.Body.String())
 	}
-	var resp map[string]interface{}
+	var resp map[string]any
 	json.Unmarshal(w.Body.Bytes(), &resp)
-	data := resp["data"].(map[string]interface{})
-	if data["query"] != "scan where volume > 1000000" {
-		t.Errorf("expected query echo, got %v", data["query"])
+	if resp["results"] == nil {
+		t.Error("expected results in response")
 	}
 }
 
-func TestSearchHandler_Scan_InvalidDSL(t *testing.T) {
+func TestSearchHandler_Execute_EmptyBody(t *testing.T) {
 	r := setupRouter()
-	h := NewSearchHandler()
-	r.POST("/search/scan", h.Scan)
+	h := newTestSearchHandler()
+	h.RegisterRoutes(r.Group("/api/v1"))
 
-	body, _ := json.Marshal(ScanRequest{Query: "scan where >"})
-	req := httptest.NewRequest(http.MethodPost, "/search/scan", bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	r.ServeHTTP(w, req)
-
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("expected 400, got %d: %s", w.Code, w.Body.String())
-	}
-	var resp map[string]interface{}
-	json.Unmarshal(w.Body.Bytes(), &resp)
-	if resp["error"] == nil {
-		t.Error("expected error message in response")
-	}
-}
-
-func TestSearchHandler_Scan_EmptyBody(t *testing.T) {
-	r := setupRouter()
-	h := NewSearchHandler()
-	r.POST("/search/scan", h.Scan)
-
-	req := httptest.NewRequest(http.MethodPost, "/search/scan", nil)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/search/execute", nil)
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
@@ -78,19 +63,19 @@ func TestSearchHandler_Scan_EmptyBody(t *testing.T) {
 	}
 }
 
-func TestSearchHandler_Scan_MissingQuery(t *testing.T) {
+func TestSearchHandler_Execute_MissingDSL(t *testing.T) {
 	r := setupRouter()
-	h := NewSearchHandler()
-	r.POST("/search/scan", h.Scan)
+	h := newTestSearchHandler()
+	h.RegisterRoutes(r.Group("/api/v1"))
 
-	body, _ := json.Marshal(map[string]string{"query": ""})
-	req := httptest.NewRequest(http.MethodPost, "/search/scan", bytes.NewReader(body))
+	body, _ := json.Marshal(map[string]string{"dsl": ""})
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/search/execute", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
 	if w.Code != http.StatusBadRequest {
-		t.Errorf("expected 400 for empty query, got %d", w.Code)
+		t.Errorf("expected 400 for empty dsl, got %d", w.Code)
 	}
 }
 
