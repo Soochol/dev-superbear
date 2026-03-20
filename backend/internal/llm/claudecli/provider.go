@@ -154,10 +154,14 @@ func (p *Provider) NLToDSL(ctx context.Context, query string) (<-chan llm.Event,
 
 			// Track DSL emission and text for post-processing.
 			if event.Type == llm.EventDSLReady {
+				if dslEmitted {
+					continue // skip duplicate dsl_ready
+				}
 				dslEmitted = true
 			}
 			if event.Type == llm.EventDone && event.Message != "" {
 				lastText = event.Message
+				continue // don't forward internal done events; handler sends the real done
 			}
 
 			select {
