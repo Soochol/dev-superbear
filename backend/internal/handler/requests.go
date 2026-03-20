@@ -10,36 +10,6 @@ type CreateCaseRequest struct {
 	FailureScript string                 `json:"failure_script" binding:"required,min=1"`
 }
 
-// CreatePipelineRequest is the JSON body for POST /pipelines.
-type CreatePipelineRequest struct {
-	Name           string        `json:"name" binding:"required,min=1,max=200"`
-	Description    string        `json:"description"`
-	AnalysisStages []interface{} `json:"analysis_stages"`
-	Monitors       []interface{} `json:"monitors"`
-	SuccessScript  string        `json:"success_script"`
-	FailureScript  string        `json:"failure_script"`
-}
-
-// UpdatePipelineRequest is the JSON body for PUT /pipelines/:id.
-type UpdatePipelineRequest struct {
-	Name           string        `json:"name" binding:"required,min=1,max=200"`
-	Description    string        `json:"description"`
-	AnalysisStages []interface{} `json:"analysis_stages"`
-	Monitors       []interface{} `json:"monitors"`
-	SuccessScript  string        `json:"success_script"`
-	FailureScript  string        `json:"failure_script"`
-}
-
-// CreateBlockRequest is the JSON body for POST /blocks.
-type CreateBlockRequest struct {
-	Name         string      `json:"name" binding:"required,min=1,max=200"`
-	Instruction  string      `json:"instruction" binding:"required,min=1"`
-	SystemPrompt *string     `json:"system_prompt"`
-	AllowedTools []string    `json:"allowed_tools"`
-	OutputSchema interface{} `json:"output_schema"`
-	IsPublic     bool        `json:"is_public"`
-}
-
 // CreateTradeRequest is the JSON body for POST /cases/:id/trades.
 type CreateTradeRequest struct {
 	Type     string  `json:"type" binding:"required,oneof=BUY SELL"`

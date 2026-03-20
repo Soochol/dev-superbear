@@ -23,18 +23,18 @@ func (q *Queries) CountPipelinesByUser(ctx context.Context, userID pgtype.UUID) 
 }
 
 const createPipeline = `-- name: CreatePipeline :one
-INSERT INTO pipelines (user_id, name, description, analysis_stages, monitors, success_script, failure_script)
-VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, user_id, name, description, analysis_stages, monitors, success_script, failure_script, is_public, created_at, updated_at
+INSERT INTO pipelines (user_id, name, description, success_script, failure_script, is_public)
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING id, user_id, name, description, success_script, failure_script, is_public, created_at, updated_at
 `
 
 type CreatePipelineParams struct {
-	UserID         pgtype.UUID `json:"user_id"`
-	Name           string      `json:"name"`
-	Description    string      `json:"description"`
-	AnalysisStages []byte      `json:"analysis_stages"`
-	Monitors       []byte      `json:"monitors"`
-	SuccessScript  string      `json:"success_script"`
-	FailureScript  string      `json:"failure_script"`
+	UserID        pgtype.UUID `json:"user_id"`
+	Name          string      `json:"name"`
+	Description   string      `json:"description"`
+	SuccessScript pgtype.Text `json:"success_script"`
+	FailureScript pgtype.Text `json:"failure_script"`
+	IsPublic      bool        `json:"is_public"`
 }
 
 func (q *Queries) CreatePipeline(ctx context.Context, arg CreatePipelineParams) (Pipeline, error) {
@@ -42,10 +42,9 @@ func (q *Queries) CreatePipeline(ctx context.Context, arg CreatePipelineParams) 
 		arg.UserID,
 		arg.Name,
 		arg.Description,
-		arg.AnalysisStages,
-		arg.Monitors,
 		arg.SuccessScript,
 		arg.FailureScript,
+		arg.IsPublic,
 	)
 	var i Pipeline
 	err := row.Scan(
@@ -53,8 +52,6 @@ func (q *Queries) CreatePipeline(ctx context.Context, arg CreatePipelineParams) 
 		&i.UserID,
 		&i.Name,
 		&i.Description,
-		&i.AnalysisStages,
-		&i.Monitors,
 		&i.SuccessScript,
 		&i.FailureScript,
 		&i.IsPublic,
@@ -62,6 +59,68 @@ func (q *Queries) CreatePipeline(ctx context.Context, arg CreatePipelineParams) 
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const createPipelineJob = `-- name: CreatePipelineJob :one
+INSERT INTO pipeline_jobs (pipeline_id, symbol, status)
+VALUES ($1, $2, 'PENDING')
+RETURNING id, pipeline_id, symbol, status, result, error, started_at, completed_at, created_at
+`
+
+type CreatePipelineJobParams struct {
+	PipelineID pgtype.UUID `json:"pipeline_id"`
+	Symbol     string      `json:"symbol"`
+}
+
+func (q *Queries) CreatePipelineJob(ctx context.Context, arg CreatePipelineJobParams) (PipelineJob, error) {
+	row := q.db.QueryRow(ctx, createPipelineJob, arg.PipelineID, arg.Symbol)
+	var i PipelineJob
+	err := row.Scan(
+		&i.ID,
+		&i.PipelineID,
+		&i.Symbol,
+		&i.Status,
+		&i.Result,
+		&i.Error,
+		&i.StartedAt,
+		&i.CompletedAt,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const createStage = `-- name: CreateStage :one
+INSERT INTO stages (pipeline_id, section, order_index)
+VALUES ($1, $2, $3)
+RETURNING id, pipeline_id, section, order_index, created_at
+`
+
+type CreateStageParams struct {
+	PipelineID pgtype.UUID `json:"pipeline_id"`
+	Section    string      `json:"section"`
+	OrderIndex int32       `json:"order_index"`
+}
+
+func (q *Queries) CreateStage(ctx context.Context, arg CreateStageParams) (Stage, error) {
+	row := q.db.QueryRow(ctx, createStage, arg.PipelineID, arg.Section, arg.OrderIndex)
+	var i Stage
+	err := row.Scan(
+		&i.ID,
+		&i.PipelineID,
+		&i.Section,
+		&i.OrderIndex,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const deleteMonitorsByPipeline = `-- name: DeleteMonitorsByPipeline :exec
+DELETE FROM monitor_blocks WHERE pipeline_id = $1
+`
+
+func (q *Queries) DeleteMonitorsByPipeline(ctx context.Context, pipelineID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteMonitorsByPipeline, pipelineID)
+	return err
 }
 
 const deletePipeline = `-- name: DeletePipeline :exec
@@ -78,25 +137,41 @@ func (q *Queries) DeletePipeline(ctx context.Context, arg DeletePipelineParams) 
 	return err
 }
 
-const getPipeline = `-- name: GetPipeline :one
-SELECT id, user_id, name, description, analysis_stages, monitors, success_script, failure_script, is_public, created_at, updated_at FROM pipelines WHERE id = $1 AND user_id = $2
+const deletePriceAlertsByPipeline = `-- name: DeletePriceAlertsByPipeline :exec
+DELETE FROM price_alerts WHERE pipeline_id = $1
 `
 
-type GetPipelineParams struct {
+func (q *Queries) DeletePriceAlertsByPipeline(ctx context.Context, pipelineID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deletePriceAlertsByPipeline, pipelineID)
+	return err
+}
+
+const deleteStagesByPipeline = `-- name: DeleteStagesByPipeline :exec
+DELETE FROM stages WHERE pipeline_id = $1
+`
+
+func (q *Queries) DeleteStagesByPipeline(ctx context.Context, pipelineID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteStagesByPipeline, pipelineID)
+	return err
+}
+
+const getPipelineByID = `-- name: GetPipelineByID :one
+SELECT id, user_id, name, description, success_script, failure_script, is_public, created_at, updated_at FROM pipelines WHERE id = $1 AND user_id = $2
+`
+
+type GetPipelineByIDParams struct {
 	ID     pgtype.UUID `json:"id"`
 	UserID pgtype.UUID `json:"user_id"`
 }
 
-func (q *Queries) GetPipeline(ctx context.Context, arg GetPipelineParams) (Pipeline, error) {
-	row := q.db.QueryRow(ctx, getPipeline, arg.ID, arg.UserID)
+func (q *Queries) GetPipelineByID(ctx context.Context, arg GetPipelineByIDParams) (Pipeline, error) {
+	row := q.db.QueryRow(ctx, getPipelineByID, arg.ID, arg.UserID)
 	var i Pipeline
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
 		&i.Name,
 		&i.Description,
-		&i.AnalysisStages,
-		&i.Monitors,
 		&i.SuccessScript,
 		&i.FailureScript,
 		&i.IsPublic,
@@ -106,8 +181,29 @@ func (q *Queries) GetPipeline(ctx context.Context, arg GetPipelineParams) (Pipel
 	return i, err
 }
 
+const getPipelineJob = `-- name: GetPipelineJob :one
+SELECT id, pipeline_id, symbol, status, result, error, started_at, completed_at, created_at FROM pipeline_jobs WHERE id = $1
+`
+
+func (q *Queries) GetPipelineJob(ctx context.Context, id pgtype.UUID) (PipelineJob, error) {
+	row := q.db.QueryRow(ctx, getPipelineJob, id)
+	var i PipelineJob
+	err := row.Scan(
+		&i.ID,
+		&i.PipelineID,
+		&i.Symbol,
+		&i.Status,
+		&i.Result,
+		&i.Error,
+		&i.StartedAt,
+		&i.CompletedAt,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const listPipelinesByUser = `-- name: ListPipelinesByUser :many
-SELECT id, user_id, name, description, analysis_stages, monitors, success_script, failure_script, is_public, created_at, updated_at FROM pipelines WHERE user_id = $1 ORDER BY updated_at DESC LIMIT $2 OFFSET $3
+SELECT id, user_id, name, description, success_script, failure_script, is_public, created_at, updated_at FROM pipelines WHERE user_id = $1 ORDER BY updated_at DESC LIMIT $2 OFFSET $3
 `
 
 type ListPipelinesByUserParams struct {
@@ -130,8 +226,6 @@ func (q *Queries) ListPipelinesByUser(ctx context.Context, arg ListPipelinesByUs
 			&i.UserID,
 			&i.Name,
 			&i.Description,
-			&i.AnalysisStages,
-			&i.Monitors,
 			&i.SuccessScript,
 			&i.FailureScript,
 			&i.IsPublic,
@@ -148,30 +242,62 @@ func (q *Queries) ListPipelinesByUser(ctx context.Context, arg ListPipelinesByUs
 	return items, nil
 }
 
+const listStagesByPipeline = `-- name: ListStagesByPipeline :many
+SELECT id, pipeline_id, section, order_index, created_at FROM stages WHERE pipeline_id = $1 ORDER BY order_index
+`
+
+func (q *Queries) ListStagesByPipeline(ctx context.Context, pipelineID pgtype.UUID) ([]Stage, error) {
+	rows, err := q.db.Query(ctx, listStagesByPipeline, pipelineID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Stage{}
+	for rows.Next() {
+		var i Stage
+		if err := rows.Scan(
+			&i.ID,
+			&i.PipelineID,
+			&i.Section,
+			&i.OrderIndex,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updatePipeline = `-- name: UpdatePipeline :one
-UPDATE pipelines SET name = $2, description = $3, analysis_stages = $4, monitors = $5, success_script = $6, failure_script = $7
-WHERE id = $1 RETURNING id, user_id, name, description, analysis_stages, monitors, success_script, failure_script, is_public, created_at, updated_at
+UPDATE pipelines
+SET name = $3, description = $4, success_script = $5, failure_script = $6, is_public = $7, updated_at = now()
+WHERE id = $1 AND user_id = $2
+RETURNING id, user_id, name, description, success_script, failure_script, is_public, created_at, updated_at
 `
 
 type UpdatePipelineParams struct {
-	ID             pgtype.UUID `json:"id"`
-	Name           string      `json:"name"`
-	Description    string      `json:"description"`
-	AnalysisStages []byte      `json:"analysis_stages"`
-	Monitors       []byte      `json:"monitors"`
-	SuccessScript  string      `json:"success_script"`
-	FailureScript  string      `json:"failure_script"`
+	ID            pgtype.UUID `json:"id"`
+	UserID        pgtype.UUID `json:"user_id"`
+	Name          string      `json:"name"`
+	Description   string      `json:"description"`
+	SuccessScript pgtype.Text `json:"success_script"`
+	FailureScript pgtype.Text `json:"failure_script"`
+	IsPublic      bool        `json:"is_public"`
 }
 
 func (q *Queries) UpdatePipeline(ctx context.Context, arg UpdatePipelineParams) (Pipeline, error) {
 	row := q.db.QueryRow(ctx, updatePipeline,
 		arg.ID,
+		arg.UserID,
 		arg.Name,
 		arg.Description,
-		arg.AnalysisStages,
-		arg.Monitors,
 		arg.SuccessScript,
 		arg.FailureScript,
+		arg.IsPublic,
 	)
 	var i Pipeline
 	err := row.Scan(
@@ -179,13 +305,51 @@ func (q *Queries) UpdatePipeline(ctx context.Context, arg UpdatePipelineParams) 
 		&i.UserID,
 		&i.Name,
 		&i.Description,
-		&i.AnalysisStages,
-		&i.Monitors,
 		&i.SuccessScript,
 		&i.FailureScript,
 		&i.IsPublic,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const updatePipelineJobStatus = `-- name: UpdatePipelineJobStatus :one
+UPDATE pipeline_jobs
+SET status = $2, result = $3, error = $4, started_at = $5, completed_at = $6
+WHERE id = $1
+RETURNING id, pipeline_id, symbol, status, result, error, started_at, completed_at, created_at
+`
+
+type UpdatePipelineJobStatusParams struct {
+	ID          pgtype.UUID        `json:"id"`
+	Status      string             `json:"status"`
+	Result      []byte             `json:"result"`
+	Error       pgtype.Text        `json:"error"`
+	StartedAt   pgtype.Timestamptz `json:"started_at"`
+	CompletedAt pgtype.Timestamptz `json:"completed_at"`
+}
+
+func (q *Queries) UpdatePipelineJobStatus(ctx context.Context, arg UpdatePipelineJobStatusParams) (PipelineJob, error) {
+	row := q.db.QueryRow(ctx, updatePipelineJobStatus,
+		arg.ID,
+		arg.Status,
+		arg.Result,
+		arg.Error,
+		arg.StartedAt,
+		arg.CompletedAt,
+	)
+	var i PipelineJob
+	err := row.Scan(
+		&i.ID,
+		&i.PipelineID,
+		&i.Symbol,
+		&i.Status,
+		&i.Result,
+		&i.Error,
+		&i.StartedAt,
+		&i.CompletedAt,
+		&i.CreatedAt,
 	)
 	return i, err
 }

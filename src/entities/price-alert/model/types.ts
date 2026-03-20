@@ -1,6 +1,6 @@
 export interface PriceAlert {
   id: string;
-  case_id: string;
+  case_id?: string;
   pipeline_id?: string;
   condition: string;
   label: string;

@@ -326,6 +326,16 @@ type AgentBlock struct {
 	OutputSchema []byte             `json:"output_schema"`
 	IsPublic     bool               `json:"is_public"`
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	Objective    string             `json:"objective"`
+	InputDesc    string             `json:"input_desc"`
+	Tools        []string           `json:"tools"`
+	OutputFormat string             `json:"output_format"`
+	Constraints  pgtype.Text        `json:"constraints"`
+	Examples     pgtype.Text        `json:"examples"`
+	StageID      pgtype.UUID        `json:"stage_id"`
+	IsTemplate   bool               `json:"is_template"`
+	TemplateID   pgtype.UUID        `json:"template_id"`
+	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
 }
 
 type Case struct {
@@ -398,18 +408,38 @@ type MarketplaceUsageLog struct {
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 }
 
+type MonitorBlock struct {
+	ID         pgtype.UUID        `json:"id"`
+	PipelineID pgtype.UUID        `json:"pipeline_id"`
+	BlockID    pgtype.UUID        `json:"block_id"`
+	Cron       string             `json:"cron"`
+	Enabled    bool               `json:"enabled"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
+}
+
 type Pipeline struct {
-	ID             pgtype.UUID        `json:"id"`
-	UserID         pgtype.UUID        `json:"user_id"`
-	Name           string             `json:"name"`
-	Description    string             `json:"description"`
-	AnalysisStages []byte             `json:"analysis_stages"`
-	Monitors       []byte             `json:"monitors"`
-	SuccessScript  string             `json:"success_script"`
-	FailureScript  string             `json:"failure_script"`
-	IsPublic       bool               `json:"is_public"`
-	CreatedAt      pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+	ID            pgtype.UUID        `json:"id"`
+	UserID        pgtype.UUID        `json:"user_id"`
+	Name          string             `json:"name"`
+	Description   string             `json:"description"`
+	SuccessScript pgtype.Text        `json:"success_script"`
+	FailureScript pgtype.Text        `json:"failure_script"`
+	IsPublic      bool               `json:"is_public"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+}
+
+type PipelineJob struct {
+	ID          pgtype.UUID        `json:"id"`
+	PipelineID  pgtype.UUID        `json:"pipeline_id"`
+	Symbol      string             `json:"symbol"`
+	Status      string             `json:"status"`
+	Result      []byte             `json:"result"`
+	Error       pgtype.Text        `json:"error"`
+	StartedAt   pgtype.Timestamptz `json:"started_at"`
+	CompletedAt pgtype.Timestamptz `json:"completed_at"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 }
 
 type PortfolioPosition struct {
@@ -452,6 +482,14 @@ type RealizedPnl struct {
 	NetPnl      pgtype.Numeric     `json:"net_pnl"`
 	RealizedAt  pgtype.Timestamptz `json:"realized_at"`
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+}
+
+type Stage struct {
+	ID         pgtype.UUID        `json:"id"`
+	PipelineID pgtype.UUID        `json:"pipeline_id"`
+	Section    string             `json:"section"`
+	OrderIndex int32              `json:"order_index"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
 }
 
 type TimelineEvent struct {
