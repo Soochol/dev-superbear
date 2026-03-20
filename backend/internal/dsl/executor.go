@@ -3,13 +3,16 @@ package dsl
 import (
 	"context"
 	"fmt"
+	"regexp"
+	"strconv"
+	"strings"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type SearchResult struct {
-	Symbol string `json:"symbol"`
-	Name   string `json:"name"`
-	// MatchedValue holds the value that matched the scan condition.
-	// Concrete types: float64 for numeric matches, string for text matches.
+	Symbol       string   `json:"symbol"`
+	Name         string   `json:"name"`
 	MatchedValue any      `json:"matchedValue"`
 	Close        *float64 `json:"close,omitempty"`
 	Volume       *int64   `json:"volume,omitempty"`
@@ -18,7 +21,6 @@ type SearchResult struct {
 	ChangePct    *float64 `json:"changePct,omitempty"`
 }
 
-// SortDirection represents the direction of a sort operation.
 type SortDirection string
 
 const (
@@ -42,10 +44,16 @@ type ValidationResult struct {
 	Error string `json:"error,omitempty"`
 }
 
-type Executor struct{}
+type Executor struct {
+	pool *pgxpool.Pool
+}
 
-func NewExecutor() *Executor {
-	return &Executor{}
+func NewExecutor(pool ...*pgxpool.Pool) *Executor {
+	e := &Executor{}
+	if len(pool) > 0 {
+		e.pool = pool[0]
+	}
+	return e
 }
 
 func (e *Executor) Validate(input string) ValidationResult {
@@ -75,28 +83,220 @@ func (e *Executor) ParseScan(input string) (*ParsedScanQuery, error) {
 }
 
 func (e *Executor) Execute(ctx context.Context, dslCode string) ([]SearchResult, error) {
-	parsed, err := e.ParseScan(dslCode)
+	ast, err := e.parse(dslCode)
 	if err != nil {
 		return nil, fmt.Errorf("invalid DSL: %w", err)
 	}
-	if parsed == nil {
+	if ast.Type != "ScanQuery" {
 		return nil, fmt.Errorf("not a valid scan query")
 	}
-	// TODO: Fetch stock data and filter by DSL conditions
-	return []SearchResult{}, nil
+	if e.pool == nil {
+		return []SearchResult{}, nil
+	}
+	return e.executeQuery(ctx, ast)
+}
+
+// allowedFields maps DSL field names to SQL expressions.
+var allowedFields = map[string]string{
+	"volume":      "d.volume",
+	"close":       "d.close",
+	"open":        "d.open",
+	"high":        "d.high",
+	"low":         "d.low",
+	"trade_value": "(d.close * d.volume)",
+	"change_pct":  "CASE WHEN prev.close > 0 THEN ((d.close - prev.close)::float / prev.close * 100) ELSE 0 END",
+}
+
+var allowedOps = map[string]string{
+	">": ">", "<": "<", ">=": ">=", "<=": "<=", "=": "=",
+}
+
+func (e *Executor) executeQuery(ctx context.Context, ast *parsedAST) ([]SearchResult, error) {
+	// Build parameterized WHERE clause
+	sqlWhere, args, err := e.buildWhere(ast.Conditions)
+	if err != nil {
+		return nil, err
+	}
+
+	needsPrev := false
+	for _, c := range ast.Conditions {
+		if c.Field == "change_pct" {
+			needsPrev = true
+			break
+		}
+	}
+	if ast.SortBy != nil && ast.SortBy.Field == "change_pct" {
+		needsPrev = true
+	}
+
+	// Query latest date's data per stock
+	prevJoin := ""
+	if needsPrev {
+		prevJoin = `LEFT JOIN LATERAL (
+			SELECT close FROM daily_candles
+			WHERE symbol = d.symbol AND date < d.date
+			ORDER BY date DESC LIMIT 1
+		) prev ON true`
+	} else {
+		prevJoin = "LEFT JOIN LATERAL (SELECT 0::bigint AS close) prev ON true"
+	}
+
+	orderClause := "d.volume DESC"
+	if ast.SortBy != nil {
+		sortCol, ok := allowedFields[ast.SortBy.Field]
+		if ok {
+			dir := "DESC"
+			if ast.SortBy.Direction == SortAsc {
+				dir = "ASC"
+			}
+			orderClause = sortCol + " " + dir
+		}
+	}
+
+	limit := ast.Limit
+	if limit <= 0 || limit > 500 {
+		limit = 50
+	}
+
+	query := fmt.Sprintf(`
+		WITH latest AS (
+			SELECT DISTINCT ON (symbol) symbol, date, open, high, low, close, volume
+			FROM daily_candles
+			WHERE date >= (SELECT MAX(date) - interval '7 days' FROM daily_candles)
+			ORDER BY symbol, date DESC
+		)
+		SELECT s.symbol, s.name, d.close, d.volume,
+			   (d.close * d.volume) AS trade_value,
+			   CASE WHEN prev.close > 0 THEN ((d.close - prev.close)::float / prev.close * 100) ELSE 0 END AS change_pct
+		FROM latest d
+		JOIN stocks s ON s.symbol = d.symbol
+		%s
+		WHERE %s
+		ORDER BY %s
+		LIMIT $%d
+	`, prevJoin, sqlWhere, orderClause, len(args)+1)
+
+	args = append(args, limit)
+
+	rows, err := e.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("query failed: %w", err)
+	}
+	defer rows.Close()
+
+	var results []SearchResult
+	for rows.Next() {
+		var r SearchResult
+		var close, vol, tv int64
+		var changePct float64
+		if err := rows.Scan(&r.Symbol, &r.Name, &close, &vol, &tv, &changePct); err != nil {
+			return nil, fmt.Errorf("scan failed: %w", err)
+		}
+		closeF := float64(close)
+		tvF := float64(tv)
+		r.Close = &closeF
+		r.Volume = &vol
+		r.TradeValue = &tvF
+		r.ChangePct = &changePct
+		r.MatchedValue = vol
+		results = append(results, r)
+	}
+	return results, nil
+}
+
+func (e *Executor) buildWhere(conditions []condition) (string, []any, error) {
+	if len(conditions) == 0 {
+		return "1=1", nil, nil
+	}
+	var parts []string
+	var args []any
+	for _, c := range conditions {
+		col, ok := allowedFields[c.Field]
+		if !ok {
+			return "", nil, fmt.Errorf("unknown field: %s", c.Field)
+		}
+		op, ok := allowedOps[c.Op]
+		if !ok {
+			return "", nil, fmt.Errorf("unknown operator: %s", c.Op)
+		}
+		args = append(args, c.Value)
+		parts = append(parts, fmt.Sprintf("%s %s $%d", col, op, len(args)))
+	}
+	return strings.Join(parts, " AND "), args, nil
+}
+
+// --- Parser ---
+
+type condition struct {
+	Field string
+	Op    string
+	Value float64
 }
 
 type parsedAST struct {
-	Type        string
+	Type       string
+	Conditions []condition
+	SortBy     *SortSpec
+	Limit      int
+	// kept for backward compat
 	WhereClause string
-	SortBy      *SortSpec
-	Limit       int
 }
 
+var scanRe = regexp.MustCompile(`(?i)^scan\s+where\s+(.+)$`)
+var condRe = regexp.MustCompile(`(?i)^(\w+)\s*(>=|<=|>|<|=)\s*([\d.]+)$`)
+var sortRe = regexp.MustCompile(`(?i)\s+sort\s+by\s+(\w+)(?:\s+(asc|desc))?\s*$`)
+var limitRe = regexp.MustCompile(`(?i)\s+limit\s+(\d+)\s*$`)
+
 func (e *Executor) parse(input string) (*parsedAST, error) {
+	input = strings.TrimSpace(input)
 	if len(input) == 0 {
 		return nil, fmt.Errorf("empty input")
 	}
-	// Placeholder - will be replaced with actual DSL parser
-	return &parsedAST{Type: "ScanQuery", Limit: 100}, nil
+
+	m := scanRe.FindStringSubmatch(input)
+	if m == nil {
+		return nil, fmt.Errorf("expected format: scan where <conditions>")
+	}
+
+	rest := m[1]
+	ast := &parsedAST{Type: "ScanQuery", Limit: 50}
+
+	// Extract limit
+	if lm := limitRe.FindStringSubmatch(rest); lm != nil {
+		n, _ := strconv.Atoi(lm[1])
+		ast.Limit = n
+		rest = rest[:len(rest)-len(lm[0])]
+	}
+
+	// Extract sort
+	if sm := sortRe.FindStringSubmatch(rest); sm != nil {
+		dir := SortDesc
+		if strings.EqualFold(sm[2], "asc") {
+			dir = SortAsc
+		}
+		ast.SortBy = &SortSpec{Field: strings.ToLower(sm[1]), Direction: dir}
+		rest = rest[:len(rest)-len(sm[0])]
+	}
+
+	// Parse conditions (AND-separated)
+	ast.WhereClause = strings.TrimSpace(rest)
+	parts := regexp.MustCompile(`(?i)\s+and\s+`).Split(rest, -1)
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		cm := condRe.FindStringSubmatch(p)
+		if cm == nil {
+			return nil, fmt.Errorf("invalid condition: %s", p)
+		}
+		val, err := strconv.ParseFloat(cm[3], 64)
+		if err != nil {
+			return nil, fmt.Errorf("invalid number: %s", cm[3])
+		}
+		ast.Conditions = append(ast.Conditions, condition{
+			Field: strings.ToLower(cm[1]),
+			Op:    cm[2],
+			Value: val,
+		})
+	}
+
+	return ast, nil
 }

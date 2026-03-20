@@ -10,6 +10,7 @@ import (
 
 	"github.com/dev-superbear/nexus-backend/internal/agent"
 	"github.com/dev-superbear/nexus-backend/internal/config"
+	"github.com/dev-superbear/nexus-backend/internal/dsl"
 	"github.com/dev-superbear/nexus-backend/internal/handler"
 	"github.com/dev-superbear/nexus-backend/internal/middleware"
 	"github.com/dev-superbear/nexus-backend/internal/repository"
@@ -98,7 +99,7 @@ func registerRoutes(rg *gin.RouterGroup, queries *sqlc.Queries, pool *pgxpool.Po
 	blockH := handler.NewBlockHandler(blockSvc)
 	blockH.RegisterRoutes(rg)
 
-	searchSvc := service.NewSearchService(nil)
+	searchSvc := service.NewSearchService(dsl.NewExecutor(pool))
 	nlSvc := service.NewNLToDSLService()
 	searchH := handler.NewSearchHandler(searchSvc, nlSvc)
 	searchH.RegisterRoutes(rg)
