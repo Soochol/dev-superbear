@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-nexus-bg: #0a0a0f;
+  --color-nexus-surface: #12121a;
+  --color-nexus-border: #1e1e2e;
+  --color-nexus-accent: #6366f1;
+  --color-nexus-success: #22c55e;
+  --color-nexus-failure: #ef4444;
+  --color-nexus-warning: #f59e0b;
+  --color-nexus-text-primary: #e2e8f0;
+  --color-nexus-text-secondary: #94a3b8;
+  --color-nexus-text-muted: #64748b;
+
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+}
+
+@layer base {
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #0a0a0f;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #1e1e2e;
+    border-radius: 3px;
+  }
+  ::selection {
+    background: rgba(99, 102, 241, 0.3);
+  }
+}
