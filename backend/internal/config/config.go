@@ -3,6 +3,7 @@ package config
 import (
 	"log/slog"
 	"os"
+	"strings"
 )
 
 type Config struct {
@@ -26,7 +27,8 @@ func Load() *Config {
 	cfg := &Config{
 		Env:            env,
 		Port:           getEnv("PORT", "8080"),
-		AllowedOrigins: []string{getEnv("ALLOWED_ORIGIN", "http://localhost:3000")},
+		AllowedOrigins: parseOrigins(getEnv("ALLOWED_ORIGINS",
+			getEnv("ALLOWED_ORIGIN", "http://localhost:3000"))),
 		KISAppKey:      getEnv("KIS_APP_KEY", ""),
 		KISAppSecret:   getEnv("KIS_APP_SECRET", ""),
 		KISBaseURL:     getEnv("KIS_BASE_URL", "https://openapi.koreainvestment.com:9443"),
@@ -63,4 +65,15 @@ func getEnv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+func parseOrigins(s string) []string {
+	parts := strings.Split(s, ",")
+	origins := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if t := strings.TrimSpace(p); t != "" {
+			origins = append(origins, t)
+		}
+	}
+	return origins
 }
