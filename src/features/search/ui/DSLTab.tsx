@@ -1,6 +1,7 @@
 "use client";
 
 import { useSearchStore } from "../model/search.store";
+import { useSearchActions } from "../model/use-search-actions";
 import { DSLEditor } from "./DSLEditor";
 import { btnPrimary, btnSecondary } from "./styles";
 
@@ -8,6 +9,7 @@ export function DSLTab() {
   const dslCode = useSearchStore((s) => s.dslCode);
   const validationState = useSearchStore((s) => s.validationState);
   const hasCode = dslCode.trim().length > 0;
+  const { runDSLSearch, validateDSL, explainDSL } = useSearchActions();
 
   return (
     <div className="flex flex-col gap-4">
@@ -17,12 +19,14 @@ export function DSLTab() {
         <button
           disabled={!hasCode}
           className={btnSecondary}
+          onClick={validateDSL}
         >
           Validate
         </button>
         <button
           disabled={!hasCode}
           className={btnSecondary}
+          onClick={explainDSL}
         >
           Explain in NL
         </button>
@@ -30,6 +34,7 @@ export function DSLTab() {
         <button
           disabled={!hasCode || validationState === "invalid"}
           className={btnPrimary}
+          onClick={runDSLSearch}
         >
           Run Search
         </button>

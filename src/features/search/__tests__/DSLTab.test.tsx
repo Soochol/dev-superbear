@@ -1,6 +1,20 @@
-import { render, screen } from "@testing-library/react";
+/** @jest-environment jsdom */
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { DSLTab } from "../ui/DSLTab";
 import { useSearchStore } from "../model/search.store";
+
+import { searchApi } from "../api/search-api";
+
+jest.mock("../api/search-api", () => ({
+  searchApi: {
+    nlSearch: jest.fn(),
+    dslSearch: jest.fn(),
+    validate: jest.fn(),
+    explain: jest.fn(),
+  },
+}));
+
+const mockedApi = searchApi as jest.Mocked<typeof searchApi>;
 
 // Mock DSLEditor since CodeMirror requires real browser DOM APIs
 jest.mock("../ui/DSLEditor", () => ({
@@ -38,5 +52,35 @@ describe("DSLTab", () => {
     expect(
       screen.getByRole("button", { name: /run|실행/i }),
     ).toBeInTheDocument();
+  });
+
+  it("calls validate API when Validate button is clicked", async () => {
+    mockedApi.validate.mockResolvedValue({ valid: true, error: null });
+    useSearchStore.setState({ dslCode: "scan where volume > 1000000" });
+    render(<DSLTab />);
+    fireEvent.click(screen.getByRole("button", { name: /validate/i }));
+    await waitFor(() => {
+      expect(mockedApi.validate).toHaveBeenCalledWith("scan where volume > 1000000");
+    });
+  });
+
+  it("calls explain API when Explain button is clicked", async () => {
+    mockedApi.explain.mockResolvedValue({ explanation: "test explanation" });
+    useSearchStore.setState({ dslCode: "scan where volume > 1000000" });
+    render(<DSLTab />);
+    fireEvent.click(screen.getByRole("button", { name: /explain/i }));
+    await waitFor(() => {
+      expect(mockedApi.explain).toHaveBeenCalledWith("scan where volume > 1000000");
+    });
+  });
+
+  it("calls dslSearch API when Run Search button is clicked", async () => {
+    mockedApi.dslSearch.mockResolvedValue({ results: [] });
+    useSearchStore.setState({ dslCode: "scan where volume > 1000000" });
+    render(<DSLTab />);
+    fireEvent.click(screen.getByRole("button", { name: /run/i }));
+    await waitFor(() => {
+      expect(mockedApi.dslSearch).toHaveBeenCalledWith("scan where volume > 1000000");
+    });
   });
 });
