@@ -10,6 +10,9 @@ type Config struct {
 	GoogleClientSecret string
 	AllowedOrigins     []string
 	Env                string
+	KISAppKey          string
+	KISAppSecret       string
+	KISBaseURL         string
 }
 
 func Load() *Config {
@@ -21,6 +24,9 @@ func Load() *Config {
 		GoogleClientSecret: getEnv("GOOGLE_CLIENT_SECRET", ""),
 		AllowedOrigins:     []string{getEnv("ALLOWED_ORIGIN", "http://localhost:3000")},
 		Env:                getEnv("APP_ENV", "development"),
+		KISAppKey:          getEnv("KIS_APP_KEY", ""),
+		KISAppSecret:       getEnv("KIS_APP_SECRET", ""),
+		KISBaseURL:         getEnv("KIS_BASE_URL", "https://openapi.koreainvestment.com:9443"),
 	}
 }
 
