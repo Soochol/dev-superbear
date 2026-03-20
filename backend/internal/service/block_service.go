@@ -38,13 +38,24 @@ func (s *BlockService) ListTemplates(ctx context.Context, userID string) ([]doma
 	return s.repo.FindTemplates(ctx, uid)
 }
 
-// GetBlock returns a single block by ID.
-func (s *BlockService) GetBlock(ctx context.Context, id string) (*domain.AgentBlock, error) {
+// GetBlock returns a single block by ID, enforcing ownership for non-public blocks.
+func (s *BlockService) GetBlock(ctx context.Context, userID, id string) (*domain.AgentBlock, error) {
+	uid, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid user ID: %w", err)
+	}
 	bid, err := uuid.Parse(id)
 	if err != nil {
 		return nil, fmt.Errorf("invalid block ID: %w", err)
 	}
-	return s.repo.FindByID(ctx, bid)
+	block, err := s.repo.FindByID(ctx, bid)
+	if err != nil {
+		return nil, err
+	}
+	if !block.IsPublic && block.UserID != uid {
+		return nil, fmt.Errorf("block not found")
+	}
+	return block, nil
 }
 
 // CreateBlock creates a new standalone agent block.
@@ -100,7 +111,7 @@ func (s *BlockService) UpdateBlock(ctx context.Context, userID, id string, req *
 	if err != nil {
 		return nil, fmt.Errorf("block not found: %w", err)
 	}
-	if existing.UserID != uid && !existing.IsPublic {
+	if existing.UserID != uid {
 		return nil, fmt.Errorf("block not found")
 	}
 

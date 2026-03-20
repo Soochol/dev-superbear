@@ -121,14 +121,14 @@ func (r *BlockRepository) FindByStage(ctx context.Context, stageID uuid.UUID) ([
 func (r *BlockRepository) Create(ctx context.Context, userID uuid.UUID, stageID *uuid.UUID, req *CreateBlockInput) (*domain.AgentBlock, error) {
 	allowedToolsJSON, err := json.Marshal(req.AllowedTools)
 	if err != nil {
-		allowedToolsJSON = []byte("[]")
+		return nil, fmt.Errorf("marshal allowed tools: %w", err)
 	}
 
 	var outputSchemaJSON []byte
 	if req.OutputSchema != nil {
 		outputSchemaJSON, err = json.Marshal(req.OutputSchema)
 		if err != nil {
-			outputSchemaJSON = nil
+			return nil, fmt.Errorf("marshal output schema: %w", err)
 		}
 	}
 
@@ -198,14 +198,14 @@ func (r *BlockRepository) CreateFromTemplate(ctx context.Context, templateID, us
 func (r *BlockRepository) Update(ctx context.Context, id uuid.UUID, req *UpdateBlockInput) (*domain.AgentBlock, error) {
 	allowedToolsJSON, err := json.Marshal(req.AllowedTools)
 	if err != nil {
-		allowedToolsJSON = []byte("[]")
+		return nil, fmt.Errorf("marshal allowed tools: %w", err)
 	}
 
 	var outputSchemaJSON []byte
 	if req.OutputSchema != nil {
 		outputSchemaJSON, err = json.Marshal(req.OutputSchema)
 		if err != nil {
-			outputSchemaJSON = nil
+			return nil, fmt.Errorf("marshal output schema: %w", err)
 		}
 	}
 

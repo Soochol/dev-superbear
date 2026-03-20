@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
@@ -122,7 +123,9 @@ func toDomainStage(row sqlc.Stage) domain.Stage {
 func toDomainBlock(row sqlc.AgentBlock) domain.AgentBlock {
 	var allowedTools []string
 	if row.AllowedTools != nil {
-		_ = json.Unmarshal(row.AllowedTools, &allowedTools)
+		if err := json.Unmarshal(row.AllowedTools, &allowedTools); err != nil {
+			slog.Warn("failed to unmarshal allowedTools", "error", err)
+		}
 	}
 
 	var outputSchema *json.RawMessage

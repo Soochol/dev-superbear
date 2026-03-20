@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import { apiPost } from "@/shared/api/client";
+import { apiGet, apiPost } from "@/shared/api/client";
 import type { Pipeline, PipelineJob } from "@/entities/pipeline/model/types";
 import { usePipelineStore } from "../model/pipeline.store";
 
@@ -45,10 +45,19 @@ async function pollJobStatus(
   maxAttempts = 60,
   intervalMs = 2000,
 ): Promise<PipelineJob> {
+  let consecutiveErrors = 0;
   for (let i = 0; i < maxAttempts; i++) {
-    const job = await apiPost<PipelineJob>(`/pipelines/jobs/${jobId}/status`, {});
-    if (job.status === "COMPLETED" || job.status === "FAILED") {
-      return job;
+    try {
+      const job = await apiGet<PipelineJob>(`/pipelines/jobs/${jobId}`);
+      consecutiveErrors = 0;
+      if (job.status === "COMPLETED" || job.status === "FAILED") {
+        return job;
+      }
+    } catch {
+      consecutiveErrors++;
+      if (consecutiveErrors >= 3) {
+        throw new Error("Job polling failed: too many consecutive errors");
+      }
     }
     await new Promise((resolve) => setTimeout(resolve, intervalMs));
   }

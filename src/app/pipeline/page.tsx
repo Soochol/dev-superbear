@@ -31,6 +31,9 @@ export default function PipelinePage() {
   // AI generate modal state
   const [aiModalOpen, setAiModalOpen] = useState(false);
 
+  // Error state
+  const [runError, setRunError] = useState<string | null>(null);
+
   const { registerAndRun } = useRegisterAndRun();
 
   const handleEditBlock = useCallback((block: AgentBlock) => {
@@ -95,11 +98,12 @@ export default function PipelinePage() {
   );
 
   const handleRegisterAndRun = useCallback(async () => {
+    setRunError(null);
     try {
       await registerAndRun();
     } catch (e) {
-      // TODO: surface error to user via toast/notification
-      console.error("Register & Run failed:", e);
+      const msg = e instanceof Error ? e.message : "Register & Run failed";
+      setRunError(msg);
     }
   }, [registerAndRun]);
 
@@ -114,6 +118,15 @@ export default function PipelinePage() {
         onRegisterAndRun={handleRegisterAndRun}
         isRunning={isRunning}
       />
+
+      {runError && (
+        <div className="mx-4 mt-2 px-4 py-2 text-sm text-nexus-failure bg-nexus-failure/10 border border-nexus-failure/20 rounded-md flex items-center justify-between">
+          <span>{runError}</span>
+          <button type="button" onClick={() => setRunError(null)} className="text-nexus-failure hover:text-nexus-failure/80 ml-4">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </button>
+        </div>
+      )}
 
       <div className="flex flex-1 overflow-hidden">
         <NodePalette />

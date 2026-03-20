@@ -1,11 +1,12 @@
 package handler
 
 import (
+	"errors"
 	"log/slog"
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/dev-superbear/nexus-backend/internal/middleware"
 	"github.com/dev-superbear/nexus-backend/internal/service"
@@ -13,12 +14,13 @@ import (
 
 // PipelineHandler is a thin controller for pipeline-related endpoints.
 type PipelineHandler struct {
-	svc *service.PipelineService
+	svc       *service.PipelineService
+	generator *service.PipelineGenerator
 }
 
 // NewPipelineHandler creates a PipelineHandler backed by the given service.
-func NewPipelineHandler(svc *service.PipelineService) *PipelineHandler {
-	return &PipelineHandler{svc: svc}
+func NewPipelineHandler(svc *service.PipelineService, generator *service.PipelineGenerator) *PipelineHandler {
+	return &PipelineHandler{svc: svc, generator: generator}
 }
 
 // RegisterRoutes mounts pipeline routes on the given router group.
@@ -217,6 +219,5 @@ func (h *PipelineHandler) Generate(c *gin.Context) {
 
 // isNotFound checks if an error indicates a "not found" condition.
 func isNotFound(err error) bool {
-	msg := err.Error()
-	return strings.Contains(msg, "no rows") || strings.Contains(msg, "not found")
+	return errors.Is(err, pgx.ErrNoRows)
 }

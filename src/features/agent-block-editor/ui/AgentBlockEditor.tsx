@@ -26,6 +26,7 @@ export default function AgentBlockEditor({
   const [constraints, setConstraints] = useState("");
   const [examples, setExamples] = useState("");
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (block) {
@@ -43,6 +44,7 @@ export default function AgentBlockEditor({
 
   const handleSave = async () => {
     setSaving(true);
+    setError(null);
     try {
       const body = {
         name,
@@ -56,7 +58,7 @@ export default function AgentBlockEditor({
 
       // If the block already has a persisted ID (not local-only), update via API
       if (block.userId) {
-        await apiPut(`/agent-blocks/${block.id}`, body);
+        await apiPut(`/blocks/${block.id}`, body);
       }
 
       const updated: AgentBlock = {
@@ -67,8 +69,8 @@ export default function AgentBlockEditor({
       };
       onSave(updated);
       onClose();
-    } catch {
-      // API error -- keep modal open so user can retry
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to save block");
     } finally {
       setSaving(false);
     }
@@ -198,6 +200,13 @@ export default function AgentBlockEditor({
             />
           </div>
         </div>
+
+        {/* Error */}
+        {error && (
+          <div className="mx-6 mb-2 px-3 py-2 text-sm text-nexus-failure bg-nexus-failure/10 border border-nexus-failure/20 rounded-md">
+            {error}
+          </div>
+        )}
 
         {/* Footer */}
         <div className="sticky bottom-0 bg-nexus-surface border-t border-nexus-border px-6 py-3 flex justify-end gap-2">

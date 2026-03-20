@@ -76,7 +76,7 @@ func (h *BlockHandler) Get(c *gin.Context) {
 	}
 	id := c.Param("id")
 
-	block, err := h.svc.GetBlock(c.Request.Context(), id)
+	block, err := h.svc.GetBlock(c.Request.Context(), userID, id)
 	if err != nil {
 		if isNotFound(err) {
 			Error(c, http.StatusNotFound, "not found")

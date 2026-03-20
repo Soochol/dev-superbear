@@ -75,3 +75,4 @@ CREATE INDEX IF NOT EXISTS idx_pipeline_jobs_status ON pipeline_jobs(status);
 
 -- updated_at triggers for new tables
 CREATE TRIGGER set_updated_at_monitor_blocks BEFORE UPDATE ON monitor_blocks FOR EACH ROW EXECUTE FUNCTION trigger_set_updated_at();
+CREATE TRIGGER set_updated_at_agent_blocks BEFORE UPDATE ON agent_blocks FOR EACH ROW EXECUTE FUNCTION trigger_set_updated_at();

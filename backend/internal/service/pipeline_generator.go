@@ -33,10 +33,7 @@ func (g *PipelineGenerator) Generate(ctx context.Context, description string) (*
 	_ = systemPrompt
 	// TODO: Integrate with Google ADK Go SDK for LLM call
 
-	return &GeneratedPipeline{
-		Name:        fmt.Sprintf("Generated: %s", truncate(description, 50)),
-		Description: description,
-	}, nil
+	return nil, fmt.Errorf("AI pipeline generation is not yet available")
 }
 
 func buildGeneratorSystemPrompt() string {
