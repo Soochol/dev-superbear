@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { createChart, type IChartApi, type ISeriesApi, type CandlestickData, type LineData } from "lightweight-charts";
+import { createChart, CandlestickSeries, LineSeries, type IChartApi, type ISeriesApi } from "lightweight-charts";
 import { useChartStore } from "../model/chart.store";
 import { useChartData } from "../lib/use-chart-data";
 import { calculateMA } from "@/entities/indicator";
@@ -32,7 +32,7 @@ export function MainChart() {
       timeScale: { borderColor: "#1e1e2e" },
     });
 
-    const candleSeries = chart.addCandlestickSeries({
+    const candleSeries = chart.addSeries(CandlestickSeries, {
       upColor: "#22c55e",
       downColor: "#ef4444",
       borderDownColor: "#ef4444",
@@ -59,8 +59,8 @@ export function MainChart() {
   useEffect(() => {
     if (!candleSeriesRef.current || candles.length === 0) return;
 
-    const candleData: CandlestickData[] = candles.map((c) => ({
-      time: c.time as string & { __brand: "UTCDate" },
+    const candleData = candles.map((c) => ({
+      time: c.time,
       open: c.open,
       high: c.high,
       low: c.low,
@@ -93,14 +93,15 @@ export function MainChart() {
       if (!config) continue;
 
       const maValues = calculateMA(closes, config.period);
-      const lineData: LineData[] = candles
-        .map((c, i) => ({
-          time: c.time as string & { __brand: "UTCDate" },
-          value: maValues[i] ?? undefined,
-        }))
-        .filter((d): d is LineData => d.value !== undefined);
+      const lineData = candles
+        .map((c, i) => {
+          const val = maValues[i];
+          if (val === null) return null;
+          return { time: c.time, value: val };
+        })
+        .filter((d): d is { time: string; value: number } => d !== null);
 
-      const series = chartRef.current!.addLineSeries({
+      const series = chartRef.current!.addSeries(LineSeries, {
         color: config.color,
         lineWidth: 1,
         priceLineVisible: false,
