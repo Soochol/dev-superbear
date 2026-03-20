@@ -38,8 +38,10 @@ func (s *MonitoringService) ToggleMonitorBlock(monitorBlockID string, enabled bo
 		return fmt.Errorf("update monitor block: %w", err)
 	}
 
-	if err := s.schedulerManager.SyncMonitorSchedules(); err != nil {
-		return fmt.Errorf("sync schedules after toggle block: %w", err)
+	if s.schedulerManager != nil {
+		if err := s.schedulerManager.SyncMonitorSchedules(); err != nil {
+			return fmt.Errorf("sync schedules after toggle block: %w", err)
+		}
 	}
 	return nil
 }
@@ -72,8 +74,10 @@ func (s *MonitoringService) ToggleCaseMonitoring(caseID string, enabled bool, ke
 		}
 	}
 
-	if err := s.schedulerManager.SyncMonitorSchedules(); err != nil {
-		return fmt.Errorf("sync schedules after toggle case: %w", err)
+	if s.schedulerManager != nil {
+		if err := s.schedulerManager.SyncMonitorSchedules(); err != nil {
+			return fmt.Errorf("sync schedules after toggle case: %w", err)
+		}
 	}
 	return nil
 }

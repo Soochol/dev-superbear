@@ -118,4 +118,11 @@ func registerRoutes(rg *gin.RouterGroup, queries *sqlc.Queries, pool *pgxpool.Po
 	rg.GET("/cases/:id/alerts", alertH.ListAlerts)
 	rg.POST("/cases/:id/alerts", alertH.CreateAlert)
 	rg.DELETE("/cases/:id/alerts/:alertId", alertH.DeleteAlert)
+
+	// Monitoring routes
+	monitoringSvc := service.NewMonitoringService(pool, nil) // nil scheduler — API server doesn't manage schedules
+	monitorH := handler.NewMonitoringHandler(monitoringSvc)
+	rg.GET("/cases/:id/monitors", monitorH.ListMonitors)
+	rg.PATCH("/cases/:id/monitors/:monitorId", monitorH.ToggleBlock)
+	rg.PATCH("/cases/:id/monitoring-status", monitorH.ToggleCaseMonitoring)
 }
