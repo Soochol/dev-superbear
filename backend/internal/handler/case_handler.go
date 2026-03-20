@@ -4,10 +4,14 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 
+	"github.com/dev-superbear/nexus-backend/internal/domain/casedomain"
 	"github.com/dev-superbear/nexus-backend/internal/middleware"
 	"github.com/dev-superbear/nexus-backend/internal/repository/sqlc"
 )
@@ -144,4 +148,153 @@ func (h *CaseHandler) Delete(c *gin.Context) {
 	}
 
 	c.Status(http.StatusNoContent)
+}
+
+// closeCaseRequest is the JSON body for POST /cases/:id/close.
+type closeCaseRequest struct {
+	Status string `json:"status" binding:"required,oneof=CLOSED_SUCCESS CLOSED_FAILURE"`
+	Reason string `json:"reason"`
+}
+
+// Close transitions a case to a closed status.
+func (h *CaseHandler) Close(c *gin.Context) {
+	userID, err := middleware.GetUserID(c)
+	if err != nil {
+		Error(c, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	id := c.Param("id")
+
+	idUUID, err := parseUUID(id)
+	if err != nil {
+		Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	userUUID, err := parseUUID(userID)
+	if err != nil {
+		Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	var req closeCaseRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		Error(c, http.StatusBadRequest, "Validation error: "+err.Error())
+		return
+	}
+
+	result, err := h.queries.UpdateCaseStatus(c.Request.Context(), sqlc.UpdateCaseStatusParams{
+		ID:           idUUID,
+		Status:       sqlc.CaseStatus(req.Status),
+		ClosedAt:     pgtype.Date{Time: time.Now(), Valid: true},
+		ClosedReason: pgtype.Text{String: req.Reason, Valid: true},
+		UserID:       userUUID,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			Error(c, http.StatusNotFound, "not found")
+		} else {
+			slog.Error("failed to close case", "error", err, "userId", userID)
+			Error(c, http.StatusInternalServerError, "internal server error")
+		}
+		return
+	}
+
+	Success(c, result)
+}
+
+// GetTimeline returns timeline events for a case, with optional type filter and paging.
+func (h *CaseHandler) GetTimeline(c *gin.Context) {
+	id := c.Param("id")
+
+	caseUUID, err := parseUUID(id)
+	if err != nil {
+		Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	ctx := c.Request.Context()
+	eventType := c.Query("type")
+	limitStr := c.Query("limit")
+	offsetStr := c.Query("offset")
+
+	if eventType != "" {
+		events, err := h.queries.ListTimelineEventsByType(ctx, sqlc.ListTimelineEventsByTypeParams{
+			CaseID: caseUUID,
+			Type:   sqlc.TimelineEventType(eventType),
+		})
+		if err != nil {
+			slog.Error("failed to list timeline events by type", "error", err, "caseId", id)
+			Error(c, http.StatusInternalServerError, "internal server error")
+			return
+		}
+		Success(c, events)
+		return
+	}
+
+	if limitStr != "" {
+		limit, _ := strconv.Atoi(limitStr)
+		offset, _ := strconv.Atoi(offsetStr)
+		if limit < 1 {
+			limit = 20
+		}
+		events, err := h.queries.ListTimelineEventsWithPaging(ctx, sqlc.ListTimelineEventsWithPagingParams{
+			CaseID: caseUUID,
+			Limit:  int32(limit),
+			Offset: int32(offset),
+		})
+		if err != nil {
+			slog.Error("failed to list timeline events with paging", "error", err, "caseId", id)
+			Error(c, http.StatusInternalServerError, "internal server error")
+			return
+		}
+		Success(c, events)
+		return
+	}
+
+	events, err := h.queries.ListTimelineEventsByCase(ctx, caseUUID)
+	if err != nil {
+		slog.Error("failed to list timeline events", "error", err, "caseId", id)
+		Error(c, http.StatusInternalServerError, "internal server error")
+		return
+	}
+	Success(c, events)
+}
+
+// GetReturnTracking returns return tracking data for a case.
+// Price history is not yet available; returns a stub with empty periods.
+func (h *CaseHandler) GetReturnTracking(c *gin.Context) {
+	userID, err := middleware.GetUserID(c)
+	if err != nil {
+		Error(c, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	id := c.Param("id")
+
+	idUUID, err := parseUUID(id)
+	if err != nil {
+		Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	userUUID, err := parseUUID(userID)
+	if err != nil {
+		Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	_, err = h.queries.GetCase(c.Request.Context(), sqlc.GetCaseParams{
+		ID:     idUUID,
+		UserID: userUUID,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			Error(c, http.StatusNotFound, "not found")
+		} else {
+			slog.Error("failed to get case for return tracking", "error", err, "userId", userID)
+			Error(c, http.StatusInternalServerError, "internal server error")
+		}
+		return
+	}
+
+	result := casedomain.ReturnTrackingData{Periods: []casedomain.ReturnPeriod{}}
+	Success(c, result)
 }
