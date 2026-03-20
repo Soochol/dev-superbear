@@ -1,13 +1,11 @@
-"use client";
-
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 
 interface SidebarNavItemProps {
   href: string;
   icon: string;
   label: string;
   isExpanded: boolean;
+  pathname: string;
   badge?: boolean;
 }
 
@@ -16,9 +14,9 @@ export function SidebarNavItem({
   icon,
   label,
   isExpanded,
+  pathname,
   badge,
 }: SidebarNavItemProps) {
-  const pathname = usePathname();
   const isActive = pathname === href || pathname.startsWith(href + "/");
 
   return (

@@ -1,9 +1,11 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useSidebarStore } from "@/shared/model/sidebar.store";
 import { SidebarLogo } from "./SidebarLogo";
 import { SidebarNavItem } from "./SidebarNavItem";
 import { SidebarUserInfo } from "./SidebarUserInfo";
+import { SIDEBAR_WIDTH_EXPANDED, SIDEBAR_WIDTH_COLLAPSED } from "./constants";
 
 const NAV_ITEMS_TOP = [
   { href: "/dashboard", icon: "■", label: "Dashboard" },
@@ -21,14 +23,18 @@ const NAV_ITEMS_BOTTOM = [
 ];
 
 export function AppSidebar() {
-  const { isPinned, isExpanded, togglePin, setExpanded } = useSidebarStore();
+  const isPinned = useSidebarStore((s) => s.isPinned);
+  const isExpanded = useSidebarStore((s) => s.isExpanded);
+  const togglePin = useSidebarStore((s) => s.togglePin);
+  const setExpanded = useSidebarStore((s) => s.setExpanded);
+  const pathname = usePathname();
   const expanded = isPinned || isExpanded;
 
   return (
     <nav
       data-testid="sidebar-nav"
       className={`absolute inset-y-0 left-0 z-10 flex flex-col py-3 bg-nexus-sidebar border-r border-nexus-border transition-[width] duration-200 ${
-        expanded ? "w-[200px]" : "w-16"
+        expanded ? SIDEBAR_WIDTH_EXPANDED : SIDEBAR_WIDTH_COLLAPSED
       } ${!isPinned && expanded ? "shadow-[4px_0_24px_rgba(0,0,0,0.5)]" : ""}`}
       onMouseEnter={() => setExpanded(true)}
       onMouseLeave={() => setExpanded(false)}
@@ -37,7 +43,7 @@ export function AppSidebar() {
 
       <div className="flex flex-col gap-0.5 px-2">
         {NAV_ITEMS_TOP.map((item) => (
-          <SidebarNavItem key={item.href} {...item} isExpanded={expanded} />
+          <SidebarNavItem key={item.href} {...item} isExpanded={expanded} pathname={pathname} />
         ))}
       </div>
 
@@ -45,7 +51,7 @@ export function AppSidebar() {
 
       <div className="flex flex-col gap-0.5 px-2 mb-2">
         {NAV_ITEMS_BOTTOM.map((item) => (
-          <SidebarNavItem key={item.href} {...item} isExpanded={expanded} />
+          <SidebarNavItem key={item.href} {...item} isExpanded={expanded} pathname={pathname} />
         ))}
       </div>
 

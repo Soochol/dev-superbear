@@ -44,6 +44,7 @@ describe("SidebarNavItem", () => {
         icon="■"
         label="Dashboard"
         isExpanded={false}
+        pathname="/dashboard"
       />
     );
     expect(screen.getByText("■")).toBeInTheDocument();
@@ -56,6 +57,7 @@ describe("SidebarNavItem", () => {
         icon="■"
         label="Dashboard"
         isExpanded={true}
+        pathname="/dashboard"
       />
     );
     expect(screen.getByText("Dashboard")).toBeInTheDocument();
@@ -68,19 +70,20 @@ describe("SidebarNavItem", () => {
         icon="■"
         label="Dashboard"
         isExpanded={false}
+        pathname="/dashboard"
       />
     );
     expect(screen.queryByText("Dashboard")).not.toBeInTheDocument();
   });
 
   it("shows active style when pathname matches", () => {
-    mockPathname = "/dashboard";
     render(
       <SidebarNavItem
         href="/dashboard"
         icon="■"
         label="Dashboard"
         isExpanded={true}
+        pathname="/dashboard"
       />
     );
     const link = screen.getByRole("link");
@@ -88,13 +91,13 @@ describe("SidebarNavItem", () => {
   });
 
   it("shows inactive style when pathname differs", () => {
-    mockPathname = "/search";
     render(
       <SidebarNavItem
         href="/dashboard"
         icon="■"
         label="Dashboard"
         isExpanded={true}
+        pathname="/search"
       />
     );
     const link = screen.getByRole("link");
@@ -108,6 +111,7 @@ describe("SidebarNavItem", () => {
         icon="⚠"
         label="Alerts"
         isExpanded={true}
+        pathname="/alerts"
         badge
       />
     );

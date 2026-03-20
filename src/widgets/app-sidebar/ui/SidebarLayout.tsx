@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useSidebarStore } from "@/shared/model/sidebar.store";
 import { AppSidebar } from "./AppSidebar";
+import { SIDEBAR_WIDTH_EXPANDED, SIDEBAR_WIDTH_COLLAPSED } from "./constants";
 
 export function SidebarLayout({ children }: { children: React.ReactNode }) {
   const isPinned = useSidebarStore((s) => s.isPinned);
@@ -15,7 +16,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
     <div className="flex h-screen">
       <div
         className={`relative flex-shrink-0 transition-[width] duration-200 ${
-          isPinned ? "w-[200px]" : "w-16"
+          isPinned ? SIDEBAR_WIDTH_EXPANDED : SIDEBAR_WIDTH_COLLAPSED
         }`}
       >
         <AppSidebar />

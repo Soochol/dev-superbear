@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { APP_NAME } from "@/shared/config/constants";
 
 interface SidebarLogoProps {
   isExpanded: boolean;
@@ -16,7 +17,7 @@ export function SidebarLogo({ isExpanded }: SidebarLogoProps) {
       </div>
       {isExpanded && (
         <span className="text-sm font-bold text-nexus-text-primary whitespace-nowrap">
-          NEXUS
+          {APP_NAME}
         </span>
       )}
     </Link>
