@@ -92,10 +92,14 @@ func (c *Client) authHeaders(token string) http.Header {
 	return h
 }
 
-func (c *Client) GetCandles(ctx context.Context, symbol, startDate, endDate string) ([]NormalizedCandle, error) {
+func (c *Client) GetCandles(ctx context.Context, symbol, startDate, endDate, period string) ([]NormalizedCandle, error) {
 	token, err := c.getAccessToken(ctx)
 	if err != nil {
 		return nil, err
+	}
+
+	if period == "" {
+		period = "D"
 	}
 
 	params := url.Values{}
@@ -103,7 +107,7 @@ func (c *Client) GetCandles(ctx context.Context, symbol, startDate, endDate stri
 	params.Set("FID_INPUT_ISCD", symbol)
 	params.Set("FID_INPUT_DATE_1", startDate)
 	params.Set("FID_INPUT_DATE_2", endDate)
-	params.Set("FID_PERIOD_DIV_CODE", "D")
+	params.Set("FID_PERIOD_DIV_CODE", period)
 	params.Set("FID_ORG_ADJ_PRC", "0")
 
 	reqURL := fmt.Sprintf("%s/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice?%s",

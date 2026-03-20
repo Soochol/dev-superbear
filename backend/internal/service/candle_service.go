@@ -31,7 +31,7 @@ func (s *CandleService) GetCandles(ctx context.Context, symbol, startDate, endDa
 		"period", period,
 	)
 
-	candles, err := s.kisClient.GetCandles(ctx, symbol, startDate, endDate)
+	candles, err := s.kisClient.GetCandles(ctx, symbol, startDate, endDate, period)
 	if err != nil {
 		slog.Error("failed to fetch candles",
 			"symbol", symbol,

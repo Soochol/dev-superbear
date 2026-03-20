@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { createChart, LineSeries, type IChartApi } from "lightweight-charts";
+import { createChart, LineSeries, type IChartApi, type ISeriesApi } from "lightweight-charts";
 import { useChartStore } from "@/features/chart";
 import { calculateRSI } from "@/entities/indicator";
 
 export function RSIChart() {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
+  const rsiSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
   const { candles } = useChartStore();
 
   useEffect(() => {
@@ -48,12 +49,18 @@ export function RSIChart() {
       })
       .filter((d): d is { time: string; value: number } => d !== null);
 
+    if (rsiSeriesRef.current) {
+      chartRef.current.removeSeries(rsiSeriesRef.current);
+      rsiSeriesRef.current = null;
+    }
+
     const series = chartRef.current.addSeries(LineSeries, {
       color: "#8b5cf6",
       lineWidth: 1,
       priceLineVisible: false,
     });
     series.setData(rsiData);
+    rsiSeriesRef.current = series;
   }, [candles]);
 
   return <div ref={containerRef} className="w-full h-full" />;

@@ -1,13 +1,16 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { createChart, LineSeries, HistogramSeries, type IChartApi } from "lightweight-charts";
+import { createChart, LineSeries, HistogramSeries, type IChartApi, type ISeriesApi } from "lightweight-charts";
 import { useChartStore } from "@/features/chart";
 import { calculateMACD } from "@/entities/indicator";
 
 export function MACDChart() {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
+  const histSeriesRef = useRef<ISeriesApi<"Histogram"> | null>(null);
+  const macdSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
+  const signalSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
   const { candles } = useChartStore();
 
   useEffect(() => {
@@ -64,8 +67,22 @@ export function MACDChart() {
       })
       .filter((d): d is { time: string; value: number; color: string } => d !== null);
 
+    if (histSeriesRef.current) {
+      chartRef.current.removeSeries(histSeriesRef.current);
+      histSeriesRef.current = null;
+    }
+    if (macdSeriesRef.current) {
+      chartRef.current.removeSeries(macdSeriesRef.current);
+      macdSeriesRef.current = null;
+    }
+    if (signalSeriesRef.current) {
+      chartRef.current.removeSeries(signalSeriesRef.current);
+      signalSeriesRef.current = null;
+    }
+
     const histSeries = chartRef.current.addSeries(HistogramSeries, { priceLineVisible: false });
     histSeries.setData(histogramData);
+    histSeriesRef.current = histSeries;
 
     const macdSeries = chartRef.current.addSeries(LineSeries, {
       color: "#6366f1",
@@ -73,6 +90,7 @@ export function MACDChart() {
       priceLineVisible: false,
     });
     macdSeries.setData(macdData);
+    macdSeriesRef.current = macdSeries;
 
     const signalSeries = chartRef.current.addSeries(LineSeries, {
       color: "#f59e0b",
@@ -80,6 +98,7 @@ export function MACDChart() {
       priceLineVisible: false,
     });
     signalSeries.setData(signalData);
+    signalSeriesRef.current = signalSeries;
   }, [candles]);
 
   return <div ref={containerRef} className="w-full h-full" />;

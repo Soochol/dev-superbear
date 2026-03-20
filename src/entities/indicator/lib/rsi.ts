@@ -13,7 +13,7 @@ export function calculateRSI(closes: number[], period: number = 14): (number | n
     } else if (i === period) {
       const avgGain = gains.slice(0, period).reduce((a, b) => a + b, 0) / period;
       const avgLoss = losses.slice(0, period).reduce((a, b) => a + b, 0) / period;
-      result.push(avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss));
+      result.push(avgGain === 0 && avgLoss === 0 ? 50 : avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss));
     } else {
       const prevRSI = result[i - 1];
       if (prevRSI === null) {
@@ -24,7 +24,7 @@ export function calculateRSI(closes: number[], period: number = 14): (number | n
       const prevAvgLoss = losses.slice(0, i - 1).reduce((a, b) => a + b, 0) / (i - 1);
       const avgGain = (prevAvgGain * (period - 1) + gains[i - 1]) / period;
       const avgLoss = (prevAvgLoss * (period - 1) + losses[i - 1]) / period;
-      result.push(avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss));
+      result.push(avgGain === 0 && avgLoss === 0 ? 50 : avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss));
     }
   }
 

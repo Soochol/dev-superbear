@@ -26,5 +26,5 @@ type DARTFinancialItem struct {
 	BsnsYear  string `json:"bsns_year"`
 	CorpCode  string `json:"corp_code"`
 	AccountNm string `json:"account_nm"`
-	ThstrmAmt string `json:"thstrm_amount"`
+	ThstrmAmt string `json:"thstrm_amt"`
 }
