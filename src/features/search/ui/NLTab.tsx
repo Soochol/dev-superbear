@@ -1,6 +1,7 @@
 "use client";
 
 import { useSearchStore } from "../model/search.store";
+import { useSearchActions } from "../model/use-search-actions";
 import { PresetChips } from "./PresetChips";
 import { AgentStatusIndicator } from "./AgentStatusIndicator";
 import { btnPrimary } from "./styles";
@@ -10,6 +11,7 @@ export function NLTab() {
   const setNlQuery = useSearchStore((s) => s.setNlQuery);
   const agentStatus = useSearchStore((s) => s.agentStatus);
   const isSearching = agentStatus !== "idle" && agentStatus !== "done" && agentStatus !== "error";
+  const { runNLSearch } = useSearchActions();
 
   return (
     <div className="flex flex-col gap-4">
@@ -29,6 +31,7 @@ export function NLTab() {
         <button
           disabled={isSearching || !nlQuery.trim()}
           className={btnPrimary}
+          onClick={runNLSearch}
         >
           Search
         </button>
