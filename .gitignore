@@ -1,0 +1,19 @@
+# Worktrees
+.worktrees/
+
+# Node.js
+node_modules/
+.next/
+coverage/
+
+# Environment
+.env
+.env.local
+
+# Go
+backend/bin/
+backend/coverage.*
+
+# IDE
+.vscode/
+.idea/
