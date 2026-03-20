@@ -3,6 +3,7 @@
 import { useChartStore } from "@/features/chart";
 import { useSearchModalStore } from "@/widgets/stock-search-modal";
 import type { Timeframe } from "@/features/chart";
+import { IndicatorSelector } from "./IndicatorSelector";
 
 const TIMEFRAME_GROUPS: { label: string; items: { tf: Timeframe; display: string }[] }[] = [
   {
@@ -84,6 +85,8 @@ export function ChartTopbar() {
             </div>
           </div>
         ))}
+        <div className="w-px h-4 bg-nexus-border mx-2" />
+        <IndicatorSelector />
       </div>
     </div>
   );

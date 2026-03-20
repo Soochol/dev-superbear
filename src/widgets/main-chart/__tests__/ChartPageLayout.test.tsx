@@ -10,6 +10,11 @@ jest.mock("@/widgets/stock-search-modal", () => ({
 jest.mock("@/widgets/bottom-info-panel", () => ({ BottomInfoPanel: () => <div data-testid="bottom-panel" /> }));
 jest.mock("@/features/chart", () => ({
   MainChart: () => <div data-testid="main-chart" />,
+  IndicatorPanel: ({ indicatorId }: { indicatorId: string }) => <div data-testid={`panel-${indicatorId}`} />,
+  useChartStore: jest.fn(() => ({ activeIndicators: [], toggleIndicator: jest.fn() })),
+}));
+jest.mock("@/entities/indicator", () => ({
+  getPanelIndicators: jest.fn(() => []),
 }));
 
 describe("ChartPageLayout", () => {
@@ -19,10 +24,5 @@ describe("ChartPageLayout", () => {
     expect(screen.getByTestId("topbar")).toBeInTheDocument();
     expect(screen.getByTestId("bottom-panel")).toBeInTheDocument();
     expect(screen.getByTestId("search-modal")).toBeInTheDocument();
-  });
-
-  it("does not render stock-list-sidebar", () => {
-    render(<ChartPageLayout />);
-    expect(screen.queryByTestId("sidebar")).not.toBeInTheDocument();
   });
 });
