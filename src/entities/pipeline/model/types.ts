@@ -1,5 +1,11 @@
 // Frontend types -- mirrors Go backend domain models (API response shape)
 
+import type {
+  AgentBlock,
+  MonitorBlock,
+  PriceAlert,
+} from "@/entities/agent-block/model/types";
+
 export interface Pipeline {
   id: string;
   userId: string;
@@ -74,8 +80,4 @@ export interface PipelineExecutionContext {
 }
 
 // Re-export block types for convenience
-export type {
-  AgentBlock,
-  MonitorBlock,
-  PriceAlert,
-} from "@/entities/agent-block/model/types";
+export type { AgentBlock, MonitorBlock, PriceAlert };
