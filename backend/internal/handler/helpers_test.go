@@ -91,3 +91,45 @@ func TestGetPagination_Defaults(t *testing.T) {
 		t.Errorf("expected offset=10, got %d", p.Offset)
 	}
 }
+
+func TestGetPagination_DefaultValues(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodGet, "/", nil)
+	p := GetPagination(c)
+	if p.Page != 1 {
+		t.Errorf("expected page=1, got %d", p.Page)
+	}
+	if p.PageSize != 20 {
+		t.Errorf("expected pageSize=20, got %d", p.PageSize)
+	}
+	if p.Offset != 0 {
+		t.Errorf("expected offset=0, got %d", p.Offset)
+	}
+}
+
+func TestGetPagination_ClampsNegativePage(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodGet, "/?page=-1&pageSize=0", nil)
+	p := GetPagination(c)
+	if p.Page != 1 {
+		t.Errorf("expected page=1, got %d", p.Page)
+	}
+	if p.PageSize != 20 {
+		t.Errorf("expected pageSize=20, got %d", p.PageSize)
+	}
+}
+
+func TestGetPagination_ClampsLargePageSize(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodGet, "/?pageSize=200", nil)
+	p := GetPagination(c)
+	if p.PageSize != 100 {
+		t.Errorf("expected pageSize=100, got %d", p.PageSize)
+	}
+}

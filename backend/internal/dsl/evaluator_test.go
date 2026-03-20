@@ -124,3 +124,88 @@ func TestEvaluator_UndefinedVariable(t *testing.T) {
 		t.Fatal("expected error for undefined variable, got nil")
 	}
 }
+
+func TestEvaluator_DivisionByZero(t *testing.T) {
+	_, err := EvaluateDSL("result = event_high / 0", newTestCtx())
+	if err == nil {
+		t.Error("expected error for division by zero")
+	}
+}
+
+func TestEvaluator_OrLogic(t *testing.T) {
+	// true or false -> true (short-circuit)
+	result, err := EvaluateDSL("close > 70000 or close < 10000", newTestCtx())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != true {
+		t.Errorf("expected true, got %v", result)
+	}
+
+	// false or true -> true
+	result2, err := EvaluateDSL("close < 10000 or close > 70000", newTestCtx())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result2 != true {
+		t.Errorf("expected true, got %v", result2)
+	}
+}
+
+func TestEvaluator_UnaryNot(t *testing.T) {
+	result, err := EvaluateDSL("not true", newTestCtx())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != false {
+		t.Errorf("expected false, got %v", result)
+	}
+}
+
+func TestEvaluator_UnaryMinus(t *testing.T) {
+	result, err := EvaluateDSL("result = -1 * 100", newTestCtx())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// AssignmentExpr returns the assigned value directly as float64
+	if result != -100.0 {
+		t.Errorf("expected -100, got %v", result)
+	}
+}
+
+func TestEvaluator_EqualityOperators(t *testing.T) {
+	result, err := EvaluateDSL("close == 78000", newTestCtx())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != true {
+		t.Errorf("expected true, got %v", result)
+	}
+
+	result2, err := EvaluateDSL("close != 78000", newTestCtx())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result2 != false {
+		t.Errorf("expected false, got %v", result2)
+	}
+}
+
+func TestEvaluator_ScanQueryEvaluation(t *testing.T) {
+	ctx := newTestCtx()
+	// newTestCtx already sets volume to 5000000
+	result, err := EvaluateDSL("scan where volume > 1000000", ctx)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != true {
+		t.Errorf("expected true, got %v", result)
+	}
+}
+
+func TestEvaluator_PreEventMAUnavailable(t *testing.T) {
+	_, err := EvaluateDSL("result = pre_event_ma(999)", newTestCtx())
+	if err == nil {
+		t.Error("expected error for unavailable MA period")
+	}
+}

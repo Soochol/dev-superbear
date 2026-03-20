@@ -166,3 +166,34 @@ func TestLexer_UnexpectedCharacter(t *testing.T) {
 		t.Fatal("expected error for unexpected character '@', got nil")
 	}
 }
+
+func TestLexer_StringLiteral(t *testing.T) {
+	tokens, err := Tokenize(`"hello world"`)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if tokens[0].Type != TOKEN_STRING {
+		t.Errorf("expected STRING, got %v", tokens[0].Type)
+	}
+	if tokens[0].Value != "hello world" {
+		t.Errorf("expected 'hello world', got '%s'", tokens[0].Value)
+	}
+}
+
+func TestLexer_EqualityAndInequality(t *testing.T) {
+	tokens, err := Tokenize("x == 5")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if tokens[1].Type != TOKEN_EQ {
+		t.Errorf("expected EQ, got %v", tokens[1].Type)
+	}
+
+	tokens2, err := Tokenize("x != 5")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if tokens2[1].Type != TOKEN_NEQ {
+		t.Errorf("expected NEQ, got %v", tokens2[1].Type)
+	}
+}

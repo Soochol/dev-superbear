@@ -137,3 +137,21 @@ func TestGetUserID_EmptyString(t *testing.T) {
 		t.Error("expected error when userId is empty string")
 	}
 }
+
+func TestAuthRequired_WrongSecret(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	token, err := GenerateJWT("user-123", "test@example.com", "secret-A")
+	if err != nil {
+		t.Fatalf("failed to generate JWT: %v", err)
+	}
+	r := gin.New()
+	r.Use(AuthRequired("secret-B"))
+	r.GET("/test", func(c *gin.Context) { c.JSON(200, gin.H{"ok": true}) })
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("expected 401 for wrong secret, got %d", w.Code)
+	}
+}
