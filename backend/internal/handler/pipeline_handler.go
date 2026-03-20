@@ -1,25 +1,35 @@
 package handler
 
 import (
-	"errors"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5"
 
 	"github.com/dev-superbear/nexus-backend/internal/middleware"
-	"github.com/dev-superbear/nexus-backend/internal/repository/sqlc"
+	"github.com/dev-superbear/nexus-backend/internal/service"
 )
 
 // PipelineHandler is a thin controller for pipeline-related endpoints.
 type PipelineHandler struct {
-	queries *sqlc.Queries
+	svc *service.PipelineService
 }
 
-// NewPipelineHandler creates a PipelineHandler backed by the given queries.
-func NewPipelineHandler(queries *sqlc.Queries) *PipelineHandler {
-	return &PipelineHandler{queries: queries}
+// NewPipelineHandler creates a PipelineHandler backed by the given service.
+func NewPipelineHandler(svc *service.PipelineService) *PipelineHandler {
+	return &PipelineHandler{svc: svc}
+}
+
+// RegisterRoutes mounts pipeline routes on the given router group.
+func (h *PipelineHandler) RegisterRoutes(rg *gin.RouterGroup) {
+	rg.GET("/pipelines", h.List)
+	rg.POST("/pipelines", h.Create)
+	rg.GET("/pipelines/:id", h.Get)
+	rg.PUT("/pipelines/:id", h.Update)
+	rg.DELETE("/pipelines/:id", h.Delete)
+	rg.POST("/pipelines/:id/execute", h.Execute)
+	rg.GET("/pipelines/jobs/:jobId", h.GetJob)
 }
 
 // List returns a paginated list of pipelines for the authenticated user.
@@ -31,26 +41,9 @@ func (h *PipelineHandler) List(c *gin.Context) {
 	}
 	p := GetPagination(c)
 
-	userUUID, err := parseUUID(userID)
-	if err != nil {
-		Error(c, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	pipelines, err := h.queries.ListPipelinesByUser(c.Request.Context(), sqlc.ListPipelinesByUserParams{
-		UserID: userUUID,
-		Limit:  int32(p.PageSize),
-		Offset: int32(p.Offset),
-	})
+	pipelines, count, err := h.svc.List(c.Request.Context(), userID, int32(p.PageSize), int32(p.Offset))
 	if err != nil {
 		slog.Error("failed to list pipelines", "error", err, "userId", userID)
-		Error(c, http.StatusInternalServerError, "internal server error")
-		return
-	}
-
-	count, err := h.queries.CountPipelinesByUser(c.Request.Context(), userUUID)
-	if err != nil {
-		slog.Error("failed to count pipelines", "error", err, "userId", userID)
 		Error(c, http.StatusInternalServerError, "internal server error")
 		return
 	}
@@ -58,7 +51,7 @@ func (h *PipelineHandler) List(c *gin.Context) {
 	Paginated(c, pipelines, count, p.Page, p.PageSize)
 }
 
-// Get returns a single pipeline by ID, scoped to the authenticated user.
+// Get returns a single pipeline by ID with all relations.
 func (h *PipelineHandler) Get(c *gin.Context) {
 	userID, err := middleware.GetUserID(c)
 	if err != nil {
@@ -67,23 +60,9 @@ func (h *PipelineHandler) Get(c *gin.Context) {
 	}
 	id := c.Param("id")
 
-	idUUID, err := parseUUID(id)
+	pipeline, err := h.svc.GetByID(c.Request.Context(), userID, id)
 	if err != nil {
-		Error(c, http.StatusBadRequest, err.Error())
-		return
-	}
-	userUUID, err := parseUUID(userID)
-	if err != nil {
-		Error(c, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	pipeline, err := h.queries.GetPipelineByID(c.Request.Context(), sqlc.GetPipelineByIDParams{
-		ID:     idUUID,
-		UserID: userUUID,
-	})
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
+		if isNotFound(err) {
 			Error(c, http.StatusNotFound, "not found")
 		} else {
 			slog.Error("failed to get pipeline", "error", err, "userId", userID)
@@ -95,31 +74,60 @@ func (h *PipelineHandler) Get(c *gin.Context) {
 	Success(c, pipeline)
 }
 
-// Create validates the request body and creates a new pipeline (placeholder).
+// Create validates the request body and creates a new pipeline with stages, blocks, monitors, and alerts.
 func (h *PipelineHandler) Create(c *gin.Context) {
-	var req CreatePipelineRequest
+	userID, err := middleware.GetUserID(c)
+	if err != nil {
+		Error(c, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	var req service.CreatePipelineRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		Error(c, http.StatusBadRequest, "Validation error: "+err.Error())
 		return
 	}
 
-	// TODO: wire up full CreatePipeline with JSON marshalling for analysis_stages/monitors
-	Created(c, gin.H{"message": "pipeline created (placeholder)"})
+	pipeline, err := h.svc.Create(c.Request.Context(), userID, &req)
+	if err != nil {
+		slog.Error("failed to create pipeline", "error", err, "userId", userID)
+		Error(c, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	Created(c, pipeline)
 }
 
-// Update validates the request body and updates an existing pipeline (placeholder).
+// Update validates the request body and updates an existing pipeline.
 func (h *PipelineHandler) Update(c *gin.Context) {
-	var req UpdatePipelineRequest
+	userID, err := middleware.GetUserID(c)
+	if err != nil {
+		Error(c, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	id := c.Param("id")
+
+	var req service.UpdatePipelineRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		Error(c, http.StatusBadRequest, "Validation error: "+err.Error())
 		return
 	}
 
-	// TODO: wire up full UpdatePipeline with JSON marshalling
-	Success(c, gin.H{"message": "pipeline updated (placeholder)"})
+	pipeline, err := h.svc.Update(c.Request.Context(), userID, id, &req)
+	if err != nil {
+		if isNotFound(err) {
+			Error(c, http.StatusNotFound, "not found")
+		} else {
+			slog.Error("failed to update pipeline", "error", err, "userId", userID)
+			Error(c, http.StatusInternalServerError, "internal server error")
+		}
+		return
+	}
+
+	Success(c, pipeline)
 }
 
-// Delete removes a pipeline by ID, scoped to the authenticated user.
+// Delete removes a pipeline by ID.
 func (h *PipelineHandler) Delete(c *gin.Context) {
 	userID, err := middleware.GetUserID(c)
 	if err != nil {
@@ -128,26 +136,69 @@ func (h *PipelineHandler) Delete(c *gin.Context) {
 	}
 	id := c.Param("id")
 
-	idUUID, err := parseUUID(id)
-	if err != nil {
-		Error(c, http.StatusBadRequest, err.Error())
-		return
-	}
-	userUUID, err := parseUUID(userID)
-	if err != nil {
-		Error(c, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	err = h.queries.DeletePipeline(c.Request.Context(), sqlc.DeletePipelineParams{
-		ID:     idUUID,
-		UserID: userUUID,
-	})
-	if err != nil {
+	if err := h.svc.Delete(c.Request.Context(), userID, id); err != nil {
 		slog.Error("failed to delete pipeline", "error", err, "userId", userID)
 		Error(c, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
 	c.Status(http.StatusNoContent)
+}
+
+// Execute creates a pipeline execution job.
+func (h *PipelineHandler) Execute(c *gin.Context) {
+	userID, err := middleware.GetUserID(c)
+	if err != nil {
+		Error(c, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	id := c.Param("id")
+
+	var req service.ExecutePipelineRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		Error(c, http.StatusBadRequest, "Validation error: "+err.Error())
+		return
+	}
+
+	job, err := h.svc.Execute(c.Request.Context(), userID, id, req.Symbol)
+	if err != nil {
+		if isNotFound(err) {
+			Error(c, http.StatusNotFound, "pipeline not found")
+		} else {
+			slog.Error("failed to execute pipeline", "error", err, "userId", userID)
+			Error(c, http.StatusInternalServerError, "internal server error")
+		}
+		return
+	}
+
+	Created(c, job)
+}
+
+// GetJob returns a pipeline job by ID.
+func (h *PipelineHandler) GetJob(c *gin.Context) {
+	_, err := middleware.GetUserID(c)
+	if err != nil {
+		Error(c, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	jobID := c.Param("jobId")
+
+	job, err := h.svc.GetJob(c.Request.Context(), jobID)
+	if err != nil {
+		if isNotFound(err) {
+			Error(c, http.StatusNotFound, "job not found")
+		} else {
+			slog.Error("failed to get job", "error", err, "jobId", jobID)
+			Error(c, http.StatusInternalServerError, "internal server error")
+		}
+		return
+	}
+
+	Success(c, job)
+}
+
+// isNotFound checks if an error indicates a "not found" condition.
+func isNotFound(err error) bool {
+	msg := err.Error()
+	return strings.Contains(msg, "no rows") || strings.Contains(msg, "not found")
 }

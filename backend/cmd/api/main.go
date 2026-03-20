@@ -11,7 +11,9 @@ import (
 	"github.com/dev-superbear/nexus-backend/internal/config"
 	"github.com/dev-superbear/nexus-backend/internal/handler"
 	"github.com/dev-superbear/nexus-backend/internal/middleware"
+	"github.com/dev-superbear/nexus-backend/internal/repository"
 	"github.com/dev-superbear/nexus-backend/internal/repository/sqlc"
+	"github.com/dev-superbear/nexus-backend/internal/service"
 )
 
 func main() {
@@ -62,7 +64,7 @@ func main() {
 	auth.GET("/auth/me", authH.Me)
 
 	// Register resource routes
-	registerRoutes(auth, queries, cfg)
+	registerRoutes(auth, queries, pool, cfg)
 
 	slog.Info("starting server", "port", cfg.Port)
 	if err := r.Run(":" + cfg.Port); err != nil {
@@ -71,25 +73,25 @@ func main() {
 	}
 }
 
-func registerRoutes(rg *gin.RouterGroup, queries *sqlc.Queries, cfg *config.Config) {
+func registerRoutes(rg *gin.RouterGroup, queries *sqlc.Queries, pool *pgxpool.Pool, cfg *config.Config) {
 	caseH := handler.NewCaseHandler(queries)
 	rg.GET("/cases", caseH.List)
 	rg.POST("/cases", caseH.Create)
 	rg.GET("/cases/:id", caseH.Get)
 	rg.DELETE("/cases/:id", caseH.Delete)
 
-	pipeH := handler.NewPipelineHandler(queries)
-	rg.GET("/pipelines", pipeH.List)
-	rg.POST("/pipelines", pipeH.Create)
-	rg.GET("/pipelines/:id", pipeH.Get)
-	rg.PUT("/pipelines/:id", pipeH.Update)
-	rg.DELETE("/pipelines/:id", pipeH.Delete)
+	// Pipeline & block repos + services
+	pipelineRepo := repository.NewPipelineRepository(pool)
+	blockRepo := repository.NewBlockRepository(pool)
 
-	blockH := handler.NewBlockHandler(queries)
-	rg.GET("/blocks", blockH.List)
-	rg.POST("/blocks", blockH.Create)
-	rg.GET("/blocks/:id", blockH.Get)
-	rg.DELETE("/blocks/:id", blockH.Delete)
+	pipelineSvc := service.NewPipelineService(pipelineRepo, blockRepo)
+	blockSvc := service.NewBlockService(blockRepo)
+
+	pipeH := handler.NewPipelineHandler(pipelineSvc)
+	pipeH.RegisterRoutes(rg)
+
+	blockH := handler.NewBlockHandler(blockSvc)
+	blockH.RegisterRoutes(rg)
 
 	searchH := handler.NewSearchHandler()
 	rg.POST("/search/scan", searchH.Scan)
