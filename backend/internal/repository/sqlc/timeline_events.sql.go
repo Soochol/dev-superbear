@@ -12,13 +12,14 @@ import (
 )
 
 const createTimelineEvent = `-- name: CreateTimelineEvent :one
-INSERT INTO timeline_events (case_id, date, type, title, content, ai_analysis, data)
-VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, case_id, date, type, title, content, ai_analysis, data, created_at
+INSERT INTO timeline_events (case_id, date, day_offset, type, title, content, ai_analysis, data)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, case_id, date, type, title, content, ai_analysis, data, created_at, day_offset
 `
 
 type CreateTimelineEventParams struct {
 	CaseID     pgtype.UUID       `json:"case_id"`
 	Date       pgtype.Date       `json:"date"`
+	DayOffset  int32             `json:"day_offset"`
 	Type       TimelineEventType `json:"type"`
 	Title      string            `json:"title"`
 	Content    string            `json:"content"`
@@ -30,6 +31,7 @@ func (q *Queries) CreateTimelineEvent(ctx context.Context, arg CreateTimelineEve
 	row := q.db.QueryRow(ctx, createTimelineEvent,
 		arg.CaseID,
 		arg.Date,
+		arg.DayOffset,
 		arg.Type,
 		arg.Title,
 		arg.Content,
@@ -47,12 +49,62 @@ func (q *Queries) CreateTimelineEvent(ctx context.Context, arg CreateTimelineEve
 		&i.AiAnalysis,
 		&i.Data,
 		&i.CreatedAt,
+		&i.DayOffset,
 	)
 	return i, err
 }
 
+const deleteTimelineEventsByCase = `-- name: DeleteTimelineEventsByCase :exec
+DELETE FROM timeline_events WHERE case_id = $1
+`
+
+func (q *Queries) DeleteTimelineEventsByCase(ctx context.Context, caseID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteTimelineEventsByCase, caseID)
+	return err
+}
+
+const getRecentTimelineEvents = `-- name: GetRecentTimelineEvents :many
+SELECT id, case_id, date, type, title, content, ai_analysis, data, created_at, day_offset FROM timeline_events WHERE case_id = $1 ORDER BY date DESC, created_at DESC LIMIT $2
+`
+
+type GetRecentTimelineEventsParams struct {
+	CaseID pgtype.UUID `json:"case_id"`
+	Limit  int32       `json:"limit"`
+}
+
+func (q *Queries) GetRecentTimelineEvents(ctx context.Context, arg GetRecentTimelineEventsParams) ([]TimelineEvent, error) {
+	rows, err := q.db.Query(ctx, getRecentTimelineEvents, arg.CaseID, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TimelineEvent{}
+	for rows.Next() {
+		var i TimelineEvent
+		if err := rows.Scan(
+			&i.ID,
+			&i.CaseID,
+			&i.Date,
+			&i.Type,
+			&i.Title,
+			&i.Content,
+			&i.AiAnalysis,
+			&i.Data,
+			&i.CreatedAt,
+			&i.DayOffset,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listTimelineEventsByCase = `-- name: ListTimelineEventsByCase :many
-SELECT id, case_id, date, type, title, content, ai_analysis, data, created_at FROM timeline_events WHERE case_id = $1 ORDER BY date DESC
+SELECT id, case_id, date, type, title, content, ai_analysis, data, created_at, day_offset FROM timeline_events WHERE case_id = $1 ORDER BY date ASC, created_at ASC
 `
 
 func (q *Queries) ListTimelineEventsByCase(ctx context.Context, caseID pgtype.UUID) ([]TimelineEvent, error) {
@@ -74,6 +126,88 @@ func (q *Queries) ListTimelineEventsByCase(ctx context.Context, caseID pgtype.UU
 			&i.AiAnalysis,
 			&i.Data,
 			&i.CreatedAt,
+			&i.DayOffset,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listTimelineEventsByType = `-- name: ListTimelineEventsByType :many
+SELECT id, case_id, date, type, title, content, ai_analysis, data, created_at, day_offset FROM timeline_events WHERE case_id = $1 AND type = $2 ORDER BY date ASC, created_at ASC
+`
+
+type ListTimelineEventsByTypeParams struct {
+	CaseID pgtype.UUID       `json:"case_id"`
+	Type   TimelineEventType `json:"type"`
+}
+
+func (q *Queries) ListTimelineEventsByType(ctx context.Context, arg ListTimelineEventsByTypeParams) ([]TimelineEvent, error) {
+	rows, err := q.db.Query(ctx, listTimelineEventsByType, arg.CaseID, arg.Type)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TimelineEvent{}
+	for rows.Next() {
+		var i TimelineEvent
+		if err := rows.Scan(
+			&i.ID,
+			&i.CaseID,
+			&i.Date,
+			&i.Type,
+			&i.Title,
+			&i.Content,
+			&i.AiAnalysis,
+			&i.Data,
+			&i.CreatedAt,
+			&i.DayOffset,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listTimelineEventsWithPaging = `-- name: ListTimelineEventsWithPaging :many
+SELECT id, case_id, date, type, title, content, ai_analysis, data, created_at, day_offset FROM timeline_events WHERE case_id = $1 ORDER BY date ASC, created_at ASC LIMIT $2 OFFSET $3
+`
+
+type ListTimelineEventsWithPagingParams struct {
+	CaseID pgtype.UUID `json:"case_id"`
+	Limit  int32       `json:"limit"`
+	Offset int32       `json:"offset"`
+}
+
+func (q *Queries) ListTimelineEventsWithPaging(ctx context.Context, arg ListTimelineEventsWithPagingParams) ([]TimelineEvent, error) {
+	rows, err := q.db.Query(ctx, listTimelineEventsWithPaging, arg.CaseID, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TimelineEvent{}
+	for rows.Next() {
+		var i TimelineEvent
+		if err := rows.Scan(
+			&i.ID,
+			&i.CaseID,
+			&i.Date,
+			&i.Type,
+			&i.Title,
+			&i.Content,
+			&i.AiAnalysis,
+			&i.Data,
+			&i.CreatedAt,
+			&i.DayOffset,
 		); err != nil {
 			return nil, err
 		}
