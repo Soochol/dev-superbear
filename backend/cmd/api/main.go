@@ -12,6 +12,7 @@ import (
 	"github.com/dev-superbear/nexus-backend/internal/config"
 	"github.com/dev-superbear/nexus-backend/internal/dsl"
 	"github.com/dev-superbear/nexus-backend/internal/handler"
+	"github.com/dev-superbear/nexus-backend/internal/infra/kis"
 	"github.com/dev-superbear/nexus-backend/internal/middleware"
 	"github.com/dev-superbear/nexus-backend/internal/repository"
 	"github.com/dev-superbear/nexus-backend/internal/repository/sqlc"
@@ -130,4 +131,10 @@ func registerRoutes(rg *gin.RouterGroup, queries *sqlc.Queries, pool *pgxpool.Po
 	rg.GET("/cases/:id/monitors", monitorH.ListMonitors)
 	rg.PATCH("/cases/:id/monitors/:monitorId", monitorH.ToggleBlock)
 	rg.PATCH("/cases/:id/monitoring-status", monitorH.ToggleCaseMonitoring)
+
+	// Candle routes
+	kisClient := kis.NewClient(cfg.KISAppKey, cfg.KISAppSecret, cfg.KISBaseURL)
+	candleSvc := service.NewCandleService(kisClient)
+	candleH := handler.NewCandleHandler(candleSvc)
+	rg.GET("/candles/:symbol", candleH.GetCandles)
 }
