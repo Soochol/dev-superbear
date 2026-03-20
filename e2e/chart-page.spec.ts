@@ -5,7 +5,7 @@ test.describe("Chart Page", () => {
     await page.goto("/chart");
 
     // Verify "Select a stock" text visible (no stock selected)
-    await expect(page.getByText("Select a stock")).toBeVisible();
+    await expect(page.getByText("Select a stock", { exact: true })).toBeVisible();
 
     // Verify timeframe buttons visible
     const timeframes = ["1m", "5m", "15m", "1H", "1D", "1W", "1M"];
@@ -25,7 +25,7 @@ test.describe("Chart Page", () => {
     await page.goto("/chart?symbol=005930");
 
     // Verify topbar shows the symbol
-    await expect(page.getByText("005930")).toBeVisible();
+    await expect(page.getByText("005930").first()).toBeVisible();
   });
 
   test("E2E-3: sidebar tab switching", async ({ page }) => {
