@@ -5,20 +5,41 @@ export default defineConfig({
   timeout: 30000,
   retries: 0,
   use: {
-    baseURL: "http://localhost:3000",
     headless: true,
     screenshot: "only-on-failure",
   },
-  webServer: {
-    command: "npm run dev -- --port 3000",
-    port: 3000,
-    timeout: 30000,
-    reuseExistingServer: true,
-  },
+  webServer: [
+    {
+      command: "npm run dev -- --port 3000",
+      port: 3000,
+      timeout: 30000,
+      reuseExistingServer: true,
+    },
+    {
+      command:
+        "WATCHPACK_POLLING=true npx next dev --webpack --port 3001",
+      port: 3001,
+      timeout: 60000,
+      reuseExistingServer: true,
+      cwd: "./frontend",
+    },
+  ],
   projects: [
     {
-      name: "chromium",
-      use: { browserName: "chromium" },
+      name: "root-app",
+      use: {
+        browserName: "chromium",
+        baseURL: "http://localhost:3000",
+      },
+      testMatch: /landing\.spec\.ts/,
+    },
+    {
+      name: "frontend-app",
+      use: {
+        browserName: "chromium",
+        baseURL: "http://localhost:3001",
+      },
+      testMatch: /search\.spec\.ts/,
     },
   ],
 });

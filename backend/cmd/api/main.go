@@ -12,6 +12,7 @@ import (
 	"github.com/dev-superbear/nexus-backend/internal/handler"
 	"github.com/dev-superbear/nexus-backend/internal/middleware"
 	"github.com/dev-superbear/nexus-backend/internal/repository/sqlc"
+	"github.com/dev-superbear/nexus-backend/internal/service"
 )
 
 func main() {
@@ -91,6 +92,8 @@ func registerRoutes(rg *gin.RouterGroup, queries *sqlc.Queries, cfg *config.Conf
 	rg.GET("/blocks/:id", blockH.Get)
 	rg.DELETE("/blocks/:id", blockH.Delete)
 
-	searchH := handler.NewSearchHandler()
-	rg.POST("/search/scan", searchH.Scan)
+	searchSvc := service.NewSearchService(nil)
+	nlSvc := service.NewNLToDSLService()
+	searchH := handler.NewSearchHandler(searchSvc, nlSvc)
+	searchH.RegisterRoutes(rg)
 }
