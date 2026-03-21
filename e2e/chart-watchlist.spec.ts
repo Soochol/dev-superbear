@@ -1,6 +1,6 @@
 import { test, expect } from "./fixtures/chart.fixture";
 
-const BACKEND_URL = "http://localhost:8080";
+const BACKEND_URL = `http://localhost:${process.env.E2E_PORT_API ?? 3300}`;
 
 test.describe("Chart Watchlist — Backend Integration @critical", () => {
   test.beforeEach(async ({ request }) => {

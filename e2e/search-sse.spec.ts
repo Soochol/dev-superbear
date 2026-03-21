@@ -1,6 +1,6 @@
 import { test, expect } from "./fixtures/search.fixture";
 
-test.use({ baseURL: "http://localhost:3000" });
+test.use({ baseURL: `http://localhost:${process.env.E2E_PORT_ROOT ?? 3100}` });
 
 test.describe("NL Search SSE Streaming", { tag: "@critical" }, () => {
   test.beforeEach(async ({ searchPage }) => {
