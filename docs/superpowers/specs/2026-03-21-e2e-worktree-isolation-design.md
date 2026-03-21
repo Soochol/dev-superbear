@@ -30,7 +30,7 @@
 | PostgreSQL | **공용** (1개, 최초 실행 시 기동) | 불필요 (Docker 내부만) |
 | Redis | **공용** (1개, 최초 실행 시 기동) | 불필요 (Docker 내부만) |
 | API | **worktree별** 격리 | **1개 노출** (monitoring-api 테스트용) |
-| Worker | **worktree별** 격리 | 불필요 (Docker 내부만) |
+| Worker | **worktree별** 격리 | **1개 노출** (worker health 테스트용) |
 | Root App | **worktree별** 격리 | **1개 노출** (landing, chart, case 테스트) |
 | Frontend App | **worktree별** 격리 | **1개 노출** (search 테스트) |
 
@@ -48,13 +48,14 @@ Playwright → localhost:E2E_PORT_FRONT → frontend:3001      ↑
                                         └─── worktree별 네트워크 (superbear-e2e-XX) ───┘
 ```
 
-worktree당 호스트 노출 포트 **3개**:
+worktree당 호스트 노출 포트 **4개**:
 
 | 환경변수 | 기본값 (오프셋 0) | 용도 |
 |----------|------------------|------|
 | `E2E_PORT_ROOT` | 3100 | 루트 앱 (landing, chart, monitoring-visual 테스트) |
 | `E2E_PORT_FRONT` | 3200 | frontend 앱 (search 테스트) |
 | `E2E_PORT_API` | 3300 | API 직접 접근 (monitoring-api 테스트) |
+| `E2E_PORT_WORKER` | 3400 | Worker 직접 접근 (worker health 테스트) |
 
 ---
 
