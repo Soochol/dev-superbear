@@ -1,13 +1,18 @@
 import { test, expect } from "./fixtures/chart.fixture";
-import { interceptAllChartAPIs } from "./helpers/mock-candles";
 
+const BACKEND_URL = `http://localhost:${process.env.E2E_PORT_API ?? 3300}`;
 const TEST_SYMBOL = "005930";
 
 test.describe("Chart Indicator Panel @critical", () => {
-  test.beforeEach(async ({ chartPage }) => {
-    // Intercept ALL chart-related APIs to prevent Next.js dev error overlay
-    await interceptAllChartAPIs(chartPage.page, TEST_SYMBOL);
-    await chartPage.goto(TEST_SYMBOL);
+  test.beforeEach(async ({ chartPage, request }) => {
+    try {
+      const res = await request.get(`${BACKEND_URL}/api/v1/health`);
+      test.skip(!res.ok(), "Backend not running");
+    } catch {
+      test.skip(true, "Backend not reachable");
+    }
+
+    await chartPage.gotoAndWaitForCandles(TEST_SYMBOL);
     await expect(chartPage.canvas).toBeVisible({ timeout: 10_000 });
   });
 
@@ -125,7 +130,7 @@ test.describe("Chart Indicator Panel @critical", () => {
         expect(val).toBeGreaterThanOrEqual(0);
         expect(val).toBeLessThanOrEqual(100);
       }
-      // With oscillating mock data, RSI should produce varying values
+      // RSI should produce varying values with real market data
       const unique = new Set(rsiValues.map((v: number) => Math.round(v)));
       expect(unique.size).toBeGreaterThan(1);
     }
@@ -136,9 +141,10 @@ test.describe("Chart Indicator Panel @critical", () => {
     await chartPage.getIndicatorOption("rsi").click();
     await expect(chartPage.getIndicatorPanel("rsi")).toBeVisible();
 
-    // Switch timeframe
+    // Switch timeframe and wait for new data
+    const responsePromise = chartPage.waitForCandleResponse(TEST_SYMBOL);
     await chartPage.clickTimeframe("1W");
-    await chartPage.page.waitForTimeout(500);
+    await responsePromise;
 
     await expect(chartPage.getIndicatorPanel("rsi")).toBeVisible();
     await expect(chartPage.getIndicatorPanel("rsi").locator("canvas").first()).toBeVisible();
@@ -156,24 +162,10 @@ test.describe("Chart Indicator Panel @critical", () => {
   });
 
   test("IND-8: default MA20 and MA60 are active on load", async ({ chartPage }) => {
-    // Verify default active indicators include MA20 and MA60 via store state
-    const activeIndicators = await chartPage.page.evaluate(() => {
-      const chartStore = (window as any).__CHART_STORE__;
-      if (!chartStore) return null;
-      return chartStore.getState().activeIndicators;
-    });
-
-    if (activeIndicators) {
-      expect(activeIndicators).toContain("ma20");
-      expect(activeIndicators).toContain("ma60");
-    }
-
-    // Also verify via indicator selector checkmarks
+    // Verify default active indicators via indicator selector checkmarks
     await chartPage.openIndicatorSelector();
-    const ma20Option = chartPage.getIndicatorOption("ma20");
-    const ma60Option = chartPage.getIndicatorOption("ma60");
 
-    await expect(ma20Option).toContainText("✓");
-    await expect(ma60Option).toContainText("✓");
+    await expect(chartPage.getIndicatorOption("ma20")).toContainText("✓");
+    await expect(chartPage.getIndicatorOption("ma60")).toContainText("✓");
   });
 });

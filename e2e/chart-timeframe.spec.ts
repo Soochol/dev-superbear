@@ -1,16 +1,22 @@
 import { test, expect } from "./fixtures/chart.fixture";
-import { interceptCandlesWithMockData, generateMockCandles } from "./helpers/mock-candles";
 
+const BACKEND_URL = `http://localhost:${process.env.E2E_PORT_API ?? 3300}`;
 const TEST_SYMBOL = "005930";
 
 test.describe("Chart Timeframe Switching @critical", () => {
+  test.beforeEach(async ({ request }) => {
+    try {
+      const res = await request.get(`${BACKEND_URL}/api/v1/health`);
+      test.skip(!res.ok(), "Backend not running");
+    } catch {
+      test.skip(true, "Backend not reachable");
+    }
+  });
+
   test("TF-1: minute candles — 1m, 5m, 15m, 30m trigger correct API params", async ({
     chartPage,
   }) => {
-    await interceptCandlesWithMockData(chartPage.page, TEST_SYMBOL);
-    await chartPage.goto(TEST_SYMBOL);
-
-    // Wait for initial load
+    await chartPage.gotoAndWaitForCandles(TEST_SYMBOL);
     await expect(chartPage.canvas).toBeVisible({ timeout: 10_000 });
 
     const minuteFrames = ["1m", "5m", "15m", "30m"];
@@ -29,11 +35,9 @@ test.describe("Chart Timeframe Switching @critical", () => {
   test("TF-2: daily candles — 1W, 1M trigger correct API params", async ({
     chartPage,
   }) => {
-    await interceptCandlesWithMockData(chartPage.page, TEST_SYMBOL);
-    await chartPage.goto(TEST_SYMBOL);
+    await chartPage.gotoAndWaitForCandles(TEST_SYMBOL);
     await expect(chartPage.canvas).toBeVisible({ timeout: 10_000 });
 
-    // 1D is the default active timeframe, so start from 1W
     const dailyFrames = ["1W", "1M"];
     for (const tf of dailyFrames) {
       const responsePromise = chartPage.waitForCandleResponse(TEST_SYMBOL);
@@ -48,25 +52,30 @@ test.describe("Chart Timeframe Switching @critical", () => {
   test("TF-3: switching timeframe changes active button and deactivates previous", async ({
     chartPage,
   }) => {
-    await interceptCandlesWithMockData(chartPage.page, TEST_SYMBOL);
-    await chartPage.goto(TEST_SYMBOL);
+    await chartPage.gotoAndWaitForCandles(TEST_SYMBOL);
     await expect(chartPage.canvas).toBeVisible({ timeout: 10_000 });
 
     // Default: 1D active
     await expect(chartPage.getTimeframeButton("1D")).toHaveClass(/bg-nexus-accent/);
 
     // Switch to 1W
+    const res1W = chartPage.waitForCandleResponse(TEST_SYMBOL);
     await chartPage.clickTimeframe("1W");
+    await res1W;
     await expect(chartPage.getTimeframeButton("1W")).toHaveClass(/bg-nexus-accent/);
     await expect(chartPage.getTimeframeButton("1D")).not.toHaveClass(/bg-nexus-accent/);
 
     // Switch to 5m
+    const res5m = chartPage.waitForCandleResponse(TEST_SYMBOL);
     await chartPage.clickTimeframe("5m");
+    await res5m;
     await expect(chartPage.getTimeframeButton("5m")).toHaveClass(/bg-nexus-accent/);
     await expect(chartPage.getTimeframeButton("1W")).not.toHaveClass(/bg-nexus-accent/);
 
     // Switch to 1M
+    const res1M = chartPage.waitForCandleResponse(TEST_SYMBOL);
     await chartPage.clickTimeframe("1M");
+    await res1M;
     await expect(chartPage.getTimeframeButton("1M")).toHaveClass(/bg-nexus-accent/);
     await expect(chartPage.getTimeframeButton("5m")).not.toHaveClass(/bg-nexus-accent/);
   });
@@ -74,35 +83,25 @@ test.describe("Chart Timeframe Switching @critical", () => {
   test("TF-4: chart re-renders after timeframe switch with new data", async ({
     chartPage,
   }) => {
-    // Use different candle counts per period to verify data changes
-    let requestCount = 0;
+    const requests: string[] = [];
 
-    await chartPage.page.route(`**/api/v1/candles/${TEST_SYMBOL}*`, async (route) => {
-      requestCount++;
-      const url = new URL(route.request().url());
-      const period = url.searchParams.get("period") ?? "1D";
-
-      // Return different data lengths per timeframe to differentiate
-      const count = period.includes("m") || period.includes("H") ? 30 : 60;
-      const candles = generateMockCandles(count);
-
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({ data: { symbol: TEST_SYMBOL, candles } }),
-      });
+    chartPage.page.on("request", (req) => {
+      if (req.url().includes(`/api/v1/candles/${TEST_SYMBOL}`)) {
+        requests.push(req.url());
+      }
     });
 
-    await chartPage.goto(TEST_SYMBOL);
+    await chartPage.gotoAndWaitForCandles(TEST_SYMBOL);
     await expect(chartPage.canvas).toBeVisible({ timeout: 10_000 });
 
-    const initialRequestCount = requestCount;
+    const initialCount = requests.length;
 
     // Switch timeframe — new request should fire
+    const responsePromise = chartPage.waitForCandleResponse(TEST_SYMBOL);
     await chartPage.clickTimeframe("1W");
-    await chartPage.page.waitForTimeout(500);
+    await responsePromise;
 
-    expect(requestCount).toBeGreaterThan(initialRequestCount);
+    expect(requests.length).toBeGreaterThan(initialCount);
 
     // Canvas should still be visible (chart re-rendered)
     await expect(chartPage.canvas).toBeVisible();
@@ -112,8 +111,7 @@ test.describe("Chart Timeframe Switching @critical", () => {
   test("TF-5: hour candles — 1H, 4H trigger correct API params", async ({
     chartPage,
   }) => {
-    await interceptCandlesWithMockData(chartPage.page, TEST_SYMBOL);
-    await chartPage.goto(TEST_SYMBOL);
+    await chartPage.gotoAndWaitForCandles(TEST_SYMBOL);
     await expect(chartPage.canvas).toBeVisible({ timeout: 10_000 });
 
     const hourFrames = ["1H", "4H"];

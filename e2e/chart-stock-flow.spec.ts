@@ -1,14 +1,22 @@
 import { test, expect } from "./fixtures/chart.fixture";
-import { interceptAllChartAPIs } from "./helpers/mock-candles";
 
+const BACKEND_URL = `http://localhost:${process.env.E2E_PORT_API ?? 3300}`;
 const TEST_SYMBOL = "005930";
 
 test.describe("Chart Stock Flow @critical", () => {
+  test.beforeEach(async ({ request }) => {
+    try {
+      const res = await request.get(`${BACKEND_URL}/api/v1/health`);
+      test.skip(!res.ok(), "Backend not running");
+    } catch {
+      test.skip(true, "Backend not reachable");
+    }
+  });
+
   test("FLOW-1: topbar shows stock info when navigating with symbol", async ({
     chartPage,
   }) => {
-    await interceptAllChartAPIs(chartPage.page, TEST_SYMBOL);
-    await chartPage.goto(TEST_SYMBOL);
+    await chartPage.gotoAndWaitForCandles(TEST_SYMBOL);
 
     // Wait for chart to render
     await expect(chartPage.canvas).toBeVisible({ timeout: 10_000 });
@@ -35,8 +43,7 @@ test.describe("Chart Stock Flow @critical", () => {
   test("FLOW-3: bottom panel shows 3-column grid when stock is selected", async ({
     chartPage,
   }) => {
-    await interceptAllChartAPIs(chartPage.page, TEST_SYMBOL);
-    await chartPage.goto(TEST_SYMBOL);
+    await chartPage.gotoAndWaitForCandles(TEST_SYMBOL);
 
     // Wait for chart to render (ensures stock is loaded)
     await expect(chartPage.canvas).toBeVisible({ timeout: 10_000 });
@@ -51,8 +58,7 @@ test.describe("Chart Stock Flow @critical", () => {
   test("FLOW-4: selected stock appears in recent stocks tab", async ({
     chartPage,
   }) => {
-    await interceptAllChartAPIs(chartPage.page, TEST_SYMBOL);
-    await chartPage.goto(TEST_SYMBOL);
+    await chartPage.gotoAndWaitForCandles(TEST_SYMBOL);
     await expect(chartPage.canvas).toBeVisible({ timeout: 10_000 });
 
     // Open search modal and switch to recent tab

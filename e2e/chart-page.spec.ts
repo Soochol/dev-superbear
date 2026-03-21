@@ -1,6 +1,8 @@
 import { test, expect } from "./fixtures/chart.fixture";
 
-test.describe("Chart Page", () => {
+const BACKEND_URL = `http://localhost:${process.env.E2E_PORT_API ?? 3300}`;
+
+test.describe("Chart Page @smoke", () => {
   test("E2E-1: loads with default state", async ({ chartPage }) => {
     await chartPage.goto();
 
@@ -57,9 +59,15 @@ test.describe("Chart Page", () => {
     await expect(chartPage.page.getByRole("heading", { name: "종목 검색" })).toBeVisible();
   });
 
-  test("E2E-5: main chart renders canvas", async ({ chartPage }) => {
-    await chartPage.goto("005930");
-    const canvas = chartPage.canvas;
-    await expect(canvas).toBeVisible({ timeout: 10000 });
+  test("E2E-5: main chart renders canvas", async ({ chartPage, request }) => {
+    try {
+      const res = await request.get(`${BACKEND_URL}/api/v1/health`);
+      test.skip(!res.ok(), "Backend not running");
+    } catch {
+      test.skip(true, "Backend not reachable");
+    }
+
+    await chartPage.gotoAndWaitForCandles("005930");
+    await expect(chartPage.canvas).toBeVisible({ timeout: 10_000 });
   });
 });
