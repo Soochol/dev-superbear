@@ -46,6 +46,7 @@ services:
       - default
 
   frontend:
+    profiles: ["with-frontend"]
     build:
       context: ./frontend
       dockerfile: ../.claude/skills/e2e/templates/Dockerfile.frontend-app

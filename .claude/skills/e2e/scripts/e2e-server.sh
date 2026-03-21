@@ -76,11 +76,16 @@ compose_infra() {
 compose_worktree() {
   local worktree_name="$1"
   shift
+  local profile_args=()
+  if [[ -d "${PROJECT_DIR}/frontend" ]]; then
+    profile_args=(--profile with-frontend)
+  fi
   docker compose \
     --project-directory "${PROJECT_DIR}" \
     -f "${TEMPLATE_DIR}/docker-compose.test.yml" \
     -p "superbear-e2e-${worktree_name}" \
     --env-file "${PROJECT_DIR}/.env.e2e" \
+    "${profile_args[@]}" \
     "$@"
 }
 
@@ -153,11 +158,15 @@ cmd_up() {
     cmd_down
     exit 1
   }
-  wait_for_healthy "http://localhost:${E2E_PORT_FRONT}" "Frontend" || {
-    echo "Health check failed, tearing down..."
-    cmd_down
-    exit 1
-  }
+  if [[ -d "${PROJECT_DIR}/frontend" ]]; then
+    wait_for_healthy "http://localhost:${E2E_PORT_FRONT}" "Frontend" || {
+      echo "Health check failed, tearing down..."
+      cmd_down
+      exit 1
+    }
+  else
+    echo "Skipping Frontend health check (frontend/ not found)"
+  fi
 
   echo ""
   echo "=== E2E Environment Ready ==="
