@@ -10,9 +10,11 @@ interface Props {
   watchlistSymbols: Set<string>;
   onSelect: (item: SearchResult) => void;
   onToggleWatchlist: (item: SearchResult) => void;
+  error?: boolean;
+  onRetry?: () => void;
 }
 
-export function SearchContent({ title, items, watchlistSymbols, onSelect, onToggleWatchlist }: Props) {
+export function SearchContent({ title, items, watchlistSymbols, onSelect, onToggleWatchlist, error, onRetry }: Props) {
   const [filter, setFilter] = useState("");
 
   const normalizedFilter = filter.toLowerCase();
@@ -40,7 +42,19 @@ export function SearchContent({ title, items, watchlistSymbols, onSelect, onTogg
         />
       </div>
       <div className="flex-1 overflow-y-auto px-2 py-1">
-        {filtered.length > 0 ? (
+        {error ? (
+          <div className="flex flex-col items-center justify-center h-full gap-2">
+            <span className="text-nexus-text-muted text-sm">관심 종목을 불러오지 못했습니다</span>
+            {onRetry && (
+              <button
+                onClick={onRetry}
+                className="text-xs text-nexus-accent hover:text-nexus-accent/80 underline"
+              >
+                다시 시도
+              </button>
+            )}
+          </div>
+        ) : filtered.length > 0 ? (
           filtered.map((item) => (
             <SearchStockItem
               key={item.symbol}

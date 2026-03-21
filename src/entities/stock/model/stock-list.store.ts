@@ -10,8 +10,10 @@ interface StockListState {
 
   watchlist: SearchResult[];
   watchlistLoaded: boolean;
+  watchlistError: boolean;
   setWatchlist: (items: SearchResult[]) => void;
   setWatchlistLoaded: (v: boolean) => void;
+  setWatchlistError: (v: boolean) => void;
   addToWatchlist: (item: SearchResult) => void;
   removeFromWatchlist: (symbol: string) => void;
   isInWatchlist: (symbol: string) => boolean;
@@ -29,8 +31,10 @@ export const useStockListStore = create<StockListState>()((set, get) => ({
 
   watchlist: [],
   watchlistLoaded: false,
+  watchlistError: false,
   setWatchlist: (items) => set({ watchlist: items }),
   setWatchlistLoaded: (v) => set({ watchlistLoaded: v }),
+  setWatchlistError: (v) => set({ watchlistError: v }),
   addToWatchlist: (item) =>
     set((state) => {
       if (state.watchlist.some((w) => w.symbol === item.symbol)) return state;

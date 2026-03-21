@@ -18,7 +18,7 @@ const TAB_TITLES = {
 
 export function StockSearchModal() {
   const { isOpen, activeTab, closeModal, setActiveTab } = useSearchModalStore();
-  const { searchResults, watchlist, recentStocks, addToRecent, isInWatchlist, addToWatchlist, removeFromWatchlist, watchlistLoaded, setWatchlist, setWatchlistLoaded } =
+  const { searchResults, watchlist, recentStocks, addToRecent, isInWatchlist, addToWatchlist, removeFromWatchlist, watchlistLoaded, watchlistError, setWatchlist, setWatchlistLoaded, setWatchlistError } =
     useStockListStore();
   const setCurrentStock = useChartStore((s) => s.setCurrentStock);
 
@@ -36,16 +36,23 @@ export function StockSearchModal() {
     }
   }, [isOpen, handleEscape]);
 
+  const loadWatchlist = useCallback(() => {
+    setWatchlistError(false);
+    watchlistApi.fetchWatchlist().then((items) => {
+      setWatchlist(items);
+      setWatchlistLoaded(true);
+    }).catch((err) => {
+      logger.error("Failed to load watchlist", { error: err });
+      setWatchlistLoaded(true);
+      setWatchlistError(true);
+    });
+  }, [setWatchlist, setWatchlistLoaded, setWatchlistError]);
+
   useEffect(() => {
     if (isOpen && !watchlistLoaded) {
-      watchlistApi.fetchWatchlist().then((items) => {
-        setWatchlist(items);
-        setWatchlistLoaded(true);
-      }).catch((err) => {
-        logger.error("Failed to load watchlist", { error: err });
-      });
+      loadWatchlist();
     }
-  }, [isOpen, watchlistLoaded, setWatchlist, setWatchlistLoaded]);
+  }, [isOpen, watchlistLoaded, loadWatchlist]);
 
   const handleSelect = useCallback(
     (item: SearchResult) => {
@@ -105,6 +112,11 @@ export function StockSearchModal() {
           watchlistSymbols={watchlistSymbols}
           onSelect={handleSelect}
           onToggleWatchlist={handleToggleWatchlist}
+          error={activeTab === "watchlist" && watchlistError}
+          onRetry={activeTab === "watchlist" ? () => {
+            setWatchlistLoaded(false);
+            setWatchlistError(false);
+          } : undefined}
         />
       </div>
     </div>
