@@ -2,6 +2,7 @@ package claudecli_test
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -178,6 +179,28 @@ func TestParseStreamLine_AssistantNoMessage(t *testing.T) {
 	event, err := claudecli.ParseStreamLine([]byte(line))
 	assert.NoError(t, err)
 	assert.Nil(t, event)
+}
+
+func TestParseStreamLine_DSLInCodeBlock(t *testing.T) {
+	// LLM sometimes outputs DSL in a code block after the "DSL:" label.
+	text := "**DSL:**\n```\nscan where close >= 10000 and volume >= 500000\n```\n\n**EXPLANATION:** 종가 1만원 이상, 거래량 50만 이상"
+	line := fmt.Sprintf(`{"type":"assistant","message":{"content":[{"type":"text","text":%q}]}}`, text)
+	event, err := claudecli.ParseStreamLine([]byte(line))
+	require.NoError(t, err)
+	require.NotNil(t, event)
+	assert.Equal(t, llm.EventDSLReady, event.Type)
+	assert.Equal(t, "scan where close >= 10000 and volume >= 500000", event.DSL)
+	assert.Equal(t, "종가 1만원 이상, 거래량 50만 이상", event.Explanation)
+}
+
+func TestParseStreamLine_DSLInCodeBlockResult(t *testing.T) {
+	text := "**DSL:**\n```\nscan where trade_value >= 10000000000 sort by trade_value desc limit 50\n```\n\n**EXPLANATION:** 거래대금 100억 이상"
+	line := fmt.Sprintf(`{"type":"result","result":%q}`, text)
+	event, err := claudecli.ParseStreamLine([]byte(line))
+	require.NoError(t, err)
+	require.NotNil(t, event)
+	assert.Equal(t, llm.EventDSLReady, event.Type)
+	assert.Equal(t, "scan where trade_value >= 10000000000 sort by trade_value desc limit 50", event.DSL)
 }
 
 func TestParseStreamLine_ResultEmpty(t *testing.T) {
