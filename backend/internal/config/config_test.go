@@ -36,3 +36,18 @@ func TestLoad_LLMFromEnv(t *testing.T) {
 	assert.Equal(t, "claude-api", cfg.LLM.Provider)
 	assert.Equal(t, 10, cfg.LLM.MaxConcurrent)
 }
+
+func TestLoad_LLMNewFields(t *testing.T) {
+	os.Setenv("APP_ENV", "development")
+	os.Setenv("GEMINI_API_KEY", "test-gemini-key")
+	os.Setenv("LLM_MODEL", "gemini-2.0-flash")
+	defer func() {
+		os.Unsetenv("APP_ENV")
+		os.Unsetenv("GEMINI_API_KEY")
+		os.Unsetenv("LLM_MODEL")
+	}()
+
+	cfg := config.Load()
+	assert.Equal(t, "test-gemini-key", cfg.LLM.GeminiKey)
+	assert.Equal(t, "gemini-2.0-flash", cfg.LLM.Model)
+}

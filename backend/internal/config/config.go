@@ -29,6 +29,8 @@ type LLMConfig struct {
 	ClaudeCLIPath  string
 	MCPConfigPath  string
 	AnthropicKey   string
+	GeminiKey      string
+	Model          string
 	MaxConcurrent  int
 	TimeoutSeconds int
 }
@@ -66,6 +68,8 @@ func Load() *Config {
 		ClaudeCLIPath:  getEnv("CLAUDE_CLI_PATH", "claude"),
 		MCPConfigPath:  getEnv("MCP_CONFIG_PATH", ""),
 		AnthropicKey:   getEnv("ANTHROPIC_API_KEY", ""),
+		GeminiKey:      getEnv("GEMINI_API_KEY", ""),
+		Model:          getEnv("LLM_MODEL", ""),
 		MaxConcurrent:  maxConcurrent,
 		TimeoutSeconds: timeoutSec,
 	}
