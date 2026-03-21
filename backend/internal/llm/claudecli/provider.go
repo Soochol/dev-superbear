@@ -359,16 +359,40 @@ func parseResultMessage(msg *streamMessage) (*llm.Event, error) {
 }
 
 // extractDSL looks for "DSL:" and "EXPLANATION:" lines in the text.
+// Handles two LLM output patterns:
+//  1. Inline:  DSL: scan where volume > 1000000
+//  2. Code block:  DSL:\n```\nscan where volume > 1000000\n```
 func extractDSL(text string) (dsl, explanation string) {
 	lines := strings.Split(text, "\n")
+	dslNextLine := false // true when "DSL:" was found but value was empty (code block follows)
+
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
 		// Strip markdown bold markers: **DSL:** → DSL:
 		trimmed = strings.ReplaceAll(trimmed, "**", "")
+
+		if dslNextLine {
+			// Skip code fence markers.
+			if strings.HasPrefix(trimmed, "```") {
+				continue
+			}
+			// First non-fence line after empty DSL: label is the DSL itself.
+			if trimmed != "" {
+				dsl = strings.Trim(trimmed, "`")
+				dslNextLine = false
+			}
+			continue
+		}
+
 		if strings.HasPrefix(trimmed, "DSL:") {
-			dsl = strings.TrimSpace(strings.TrimPrefix(trimmed, "DSL:"))
-			// Remove backtick wrapping: `scan where ...` → scan where ...
-			dsl = strings.Trim(dsl, "`")
+			val := strings.TrimSpace(strings.TrimPrefix(trimmed, "DSL:"))
+			val = strings.Trim(val, "`")
+			if val != "" {
+				dsl = val
+			} else {
+				// DSL value on next line(s), possibly in a code block.
+				dslNextLine = true
+			}
 		} else if strings.HasPrefix(trimmed, "EXPLANATION:") {
 			explanation = strings.TrimSpace(strings.TrimPrefix(trimmed, "EXPLANATION:"))
 		}
