@@ -39,7 +39,7 @@ export default defineConfig({
     {
       name: "monitoring-api",
       use: {
-        baseURL: `http://localhost:${process.env.E2E_PORT_API ?? 3300}`,
+        baseURL: `http://localhost:${process.env.E2E_PORT_API ?? 8080}`,
       },
       testMatch: /monitoring-api\.spec\.ts/,
     },
