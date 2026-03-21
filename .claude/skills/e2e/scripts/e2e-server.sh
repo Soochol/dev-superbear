@@ -136,7 +136,7 @@ cmd_up() {
   compose_worktree "$worktree_name" up -d --build
 
   # 3. health check
-  wait_for_healthy "http://localhost:${E2E_PORT_API}/health" "API" || {
+  wait_for_healthy "http://localhost:${E2E_PORT_API}/api/v1/health" "API" || {
     echo "Health check failed, tearing down..."
     cmd_down
     exit 1
