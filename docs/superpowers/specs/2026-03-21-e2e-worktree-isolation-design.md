@@ -135,7 +135,7 @@ services:
       DATABASE_URL: postgresql://nexus:nexus@postgres:5432/nexus_test?sslmode=disable
       PORT: "8080"
       JWT_SECRET: test-secret
-      ALLOWED_ORIGINS: http://root-app:3000,http://frontend:3001
+      ALLOWED_ORIGINS: http://localhost:${E2E_PORT_ROOT:-3100},http://localhost:${E2E_PORT_FRONT:-3200}
       APP_ENV: development
       REDIS_ADDR: redis:6379
       KIS_APP_KEY: ${KIS_APP_KEY:-}
@@ -164,7 +164,8 @@ services:
     ports:
       - "${E2E_PORT_ROOT:-3100}:3000"
     environment:
-      NEXT_PUBLIC_API_URL: http://api:8080
+      NEXT_PUBLIC_API_URL: http://localhost:${E2E_PORT_API:-3300}
+      API_URL: http://api:8080
     networks:
       - default
 
@@ -175,7 +176,8 @@ services:
     ports:
       - "${E2E_PORT_FRONT:-3200}:3001"
     environment:
-      NEXT_PUBLIC_API_URL: http://api:8080
+      NEXT_PUBLIC_API_URL: http://localhost:${E2E_PORT_API:-3300}
+      API_URL: http://api:8080
     networks:
       - default
 
