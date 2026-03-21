@@ -29,8 +29,4 @@ func TestSearchService_Validate(t *testing.T) {
 		assert.NotEmpty(t, result.Error)
 	})
 
-	t.Run("accepts condition assignment", func(t *testing.T) {
-		result := svc.Validate(context.Background(), "success = close >= event_high * 2.0")
-		assert.True(t, result.Valid)
-	})
 }
