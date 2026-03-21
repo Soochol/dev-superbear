@@ -3,5 +3,8 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+RUN npx next build
 EXPOSE 3000
-CMD ["npx", "next", "dev", "--port", "3000"]
+CMD ["npx", "next", "start", "--port", "3000"]

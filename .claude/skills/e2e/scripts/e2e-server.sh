@@ -22,20 +22,21 @@ allocate_ports() {
   local offset=0
 
   if [[ "$name" != "main" ]]; then
-    offset=$(( $(echo -n "$name" | cksum | awk '{print $1}') % 9 + 1 ))
+    offset=$(( $(echo -n "$name" | cksum | awk '{print $1}') % 100 + 1 ))
   fi
 
-  local max_attempts=20
-  while (( offset < max_attempts )); do
-    local port_root=$(( 3100 + offset ))
-    local port_api=$(( 3300 + offset ))
-    local port_worker=$(( 3400 + offset ))
+  local max_attempts=50
+  local attempt=0
+  while (( attempt < max_attempts )); do
+    local port_root=$(( 10000 + offset + attempt ))
+    local port_api=$(( 10100 + offset + attempt ))
+    local port_worker=$(( 10200 + offset + attempt ))
 
     if ! ss -tlnp 2>/dev/null | grep -qE ":($port_root|$port_api|$port_worker) " ; then
       echo "${port_root} ${port_api} ${port_worker}"
       return 0
     fi
-    offset=$(( offset + 1 ))
+    attempt=$(( attempt + 1 ))
   done
 
   echo "ERROR: No available ports found after $max_attempts attempts" >&2
@@ -60,15 +61,7 @@ EOF
 }
 
 # --- docker compose 헬퍼 ---
-compose_infra() {
-  docker compose \
-    --project-directory "${PROJECT_DIR}" \
-    -f "${TEMPLATE_DIR}/docker-compose.infra.yml" \
-    -p superbear-infra \
-    "$@"
-}
-
-compose_worktree() {
+compose() {
   local worktree_name="$1"
   shift
   docker compose \
@@ -77,6 +70,17 @@ compose_worktree() {
     -p "superbear-e2e-${worktree_name}" \
     --env-file "${PROJECT_DIR}/.env.e2e" \
     "$@"
+}
+
+# --- orphan 컨테이너 정리 ---
+cleanup_orphans() {
+  local worktree_name="$1"
+  local orphans
+  orphans=$(docker ps -q --filter "label=superbear.worktree=${worktree_name}" 2>/dev/null || true)
+  if [[ -n "$orphans" ]]; then
+    echo "Cleaning up orphaned containers from previous run..."
+    echo "$orphans" | xargs -r docker rm -f 2>/dev/null || true
+  fi
 }
 
 # --- health check ---
@@ -101,11 +105,29 @@ wait_for_healthy() {
   return 1
 }
 
+# --- 자동 정리 (trap) ---
+WORKTREE_NAME=""
+AUTO_CLEANUP=false
+
+cleanup_on_exit() {
+  if $AUTO_CLEANUP && [[ -n "$WORKTREE_NAME" ]]; then
+    echo ""
+    echo "Cleaning up e2e environment..."
+    compose "$WORKTREE_NAME" down --remove-orphans --volumes 2>/dev/null || true
+    rm -f "${PROJECT_DIR}/.env.e2e"
+    echo "Cleanup complete"
+  fi
+}
+
+trap cleanup_on_exit EXIT INT TERM
+
 # --- 명령어 ---
 cmd_up() {
-  local worktree_name
-  worktree_name="$(detect_worktree)"
-  echo "Worktree: ${worktree_name}"
+  WORKTREE_NAME="$(detect_worktree)"
+  echo "Worktree: ${WORKTREE_NAME}"
+
+  # orphan 컨테이너 정리
+  cleanup_orphans "$WORKTREE_NAME"
 
   local env_file="${PROJECT_DIR}/.env.e2e"
   if [[ -f "$env_file" ]]; then
@@ -113,37 +135,27 @@ cmd_up() {
     source "$env_file"
   else
     local ports
-    ports="$(allocate_ports "$worktree_name")"
+    ports="$(allocate_ports "$WORKTREE_NAME")"
     read -r port_root port_api port_worker <<< "$ports"
-    write_env "$worktree_name" "$port_root" "$port_api" "$port_worker"
+    write_env "$WORKTREE_NAME" "$port_root" "$port_api" "$port_worker"
     E2E_PORT_ROOT="$port_root"
     E2E_PORT_API="$port_api"
     E2E_PORT_WORKER="$port_worker"
   fi
 
-  # 1. 공용 인프라 (이미 떠있으면 skip)
-  if ! docker compose -p superbear-infra ps --status running 2>/dev/null | grep -q "postgres"; then
-    echo "Starting shared infra..."
-    compose_infra up -d
-    compose_infra exec postgres sh -c 'until pg_isready -U nexus -d nexus_test; do sleep 1; done'
-    echo "Shared infra ready"
-  else
-    echo "Shared infra already running"
-  fi
+  # 모든 서비스 기동 (postgres, redis, api, worker, root-app)
+  echo "Starting all services (ports: root=${E2E_PORT_ROOT}, api=${E2E_PORT_API}, worker=${E2E_PORT_WORKER})..."
+  compose "$WORKTREE_NAME" up -d --build
 
-  # 2. worktree별 서비스
-  echo "Starting worktree services (ports: root=${E2E_PORT_ROOT}, api=${E2E_PORT_API}, worker=${E2E_PORT_WORKER})..."
-  compose_worktree "$worktree_name" up -d --build
-
-  # 3. health check
+  # health check
   wait_for_healthy "http://localhost:${E2E_PORT_API}/api/v1/health" "API" || {
     echo "Health check failed, tearing down..."
-    cmd_down
+    AUTO_CLEANUP=true
     exit 1
   }
   wait_for_healthy "http://localhost:${E2E_PORT_ROOT}" "Root App" || {
     echo "Health check failed, tearing down..."
-    cmd_down
+    AUTO_CLEANUP=true
     exit 1
   }
 
@@ -156,49 +168,44 @@ cmd_up() {
 }
 
 cmd_down() {
-  local worktree_name
-  worktree_name="$(detect_worktree)"
-  local all=false
+  WORKTREE_NAME="$(detect_worktree)"
 
-  if [[ "${1:-}" == "--all" ]]; then
-    all=true
-  fi
-
-  echo "Stopping worktree services (${worktree_name})..."
-  compose_worktree "$worktree_name" down --remove-orphans 2>/dev/null || true
-
-  if $all; then
-    echo "Stopping shared infra..."
-    compose_infra down --remove-orphans 2>/dev/null || true
-  fi
+  echo "Stopping all services (${WORKTREE_NAME})..."
+  compose "$WORKTREE_NAME" down --remove-orphans --volumes 2>/dev/null || true
 
   rm -f "${PROJECT_DIR}/.env.e2e"
   echo "Done"
 }
 
 cmd_status() {
-  echo "=== Shared Infra ==="
-  compose_infra ps 2>/dev/null || echo "Not running"
-  echo ""
-  echo "=== Worktree Services ($(detect_worktree)) ==="
-  local worktree_name
-  worktree_name="$(detect_worktree)"
-  compose_worktree "$worktree_name" ps 2>/dev/null || echo "Not running"
+  WORKTREE_NAME="$(detect_worktree)"
+
+  echo "=== E2E Services (${WORKTREE_NAME}) ==="
+  compose "$WORKTREE_NAME" ps 2>/dev/null || echo "Not running"
 
   if [[ -f "${PROJECT_DIR}/.env.e2e" ]]; then
     echo ""
     echo "=== Ports ==="
     cat "${PROJECT_DIR}/.env.e2e"
   fi
+
+  # orphan 감지
+  local orphans
+  orphans=$(docker ps -q --filter "label=superbear.e2e=true" 2>/dev/null || true)
+  if [[ -n "$orphans" ]]; then
+    echo ""
+    echo "=== All E2E Containers ==="
+    docker ps --filter "label=superbear.e2e=true" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null
+  fi
 }
 
 # --- main ---
 case "${1:-}" in
   up)     cmd_up ;;
-  down)   cmd_down "${2:-}" ;;
+  down)   cmd_down ;;
   status) cmd_status ;;
   *)
-    echo "Usage: e2e-server.sh {up|down [--all]|status}"
+    echo "Usage: e2e-server.sh {up|down|status}"
     exit 1
     ;;
 esac
