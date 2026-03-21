@@ -9,7 +9,7 @@ import (
 
 type WatchlistItem struct {
 	ID        int64     `json:"id"`
-	UserID    int64     `json:"userId"`
+	UserID    string     `json:"userId"`
 	Symbol    string    `json:"symbol"`
 	Name      string    `json:"name"`
 	CreatedAt time.Time `json:"createdAt"`
@@ -23,7 +23,7 @@ func NewWatchlistRepo(pool *pgxpool.Pool) *WatchlistRepo {
 	return &WatchlistRepo{pool: pool}
 }
 
-func (r *WatchlistRepo) GetByUser(ctx context.Context, userID int64) ([]WatchlistItem, error) {
+func (r *WatchlistRepo) GetByUser(ctx context.Context, userID string) ([]WatchlistItem, error) {
 	rows, err := r.pool.Query(ctx,
 		`SELECT id, user_id, symbol, name, created_at
 		 FROM watchlist WHERE user_id = $1 ORDER BY created_at DESC`, userID)
@@ -46,7 +46,7 @@ func (r *WatchlistRepo) GetByUser(ctx context.Context, userID int64) ([]Watchlis
 	return items, nil
 }
 
-func (r *WatchlistRepo) Add(ctx context.Context, userID int64, symbol, name string) (*WatchlistItem, error) {
+func (r *WatchlistRepo) Add(ctx context.Context, userID string, symbol, name string) (*WatchlistItem, error) {
 	var item WatchlistItem
 	err := r.pool.QueryRow(ctx,
 		`INSERT INTO watchlist (user_id, symbol, name)
@@ -61,7 +61,7 @@ func (r *WatchlistRepo) Add(ctx context.Context, userID int64, symbol, name stri
 	return &item, nil
 }
 
-func (r *WatchlistRepo) Remove(ctx context.Context, userID int64, symbol string) error {
+func (r *WatchlistRepo) Remove(ctx context.Context, userID string, symbol string) error {
 	_, err := r.pool.Exec(ctx,
 		`DELETE FROM watchlist WHERE user_id = $1 AND symbol = $2`, userID, symbol)
 	return err

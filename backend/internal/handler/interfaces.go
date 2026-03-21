@@ -20,7 +20,7 @@ type FinancialsFetcher interface {
 
 // WatchlistRepository abstracts watchlist persistence for testability.
 type WatchlistRepository interface {
-	GetByUser(ctx context.Context, userID int64) ([]repository.WatchlistItem, error)
-	Add(ctx context.Context, userID int64, symbol, name string) (*repository.WatchlistItem, error)
-	Remove(ctx context.Context, userID int64, symbol string) error
+	GetByUser(ctx context.Context, userID string) ([]repository.WatchlistItem, error)
+	Add(ctx context.Context, userID string, symbol, name string) (*repository.WatchlistItem, error)
+	Remove(ctx context.Context, userID string, symbol string) error
 }

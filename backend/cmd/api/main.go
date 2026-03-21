@@ -139,4 +139,16 @@ func registerRoutes(rg *gin.RouterGroup, queries *sqlc.Queries, pool *pgxpool.Po
 	candleSvc := service.NewCandleService(kisClient)
 	candleH := handler.NewCandleHandler(candleSvc)
 	rg.GET("/candles/:symbol", candleH.GetCandles)
+
+	// Stock search
+	stockRepo := repository.NewStockRepository(pool)
+	stockSearchH := handler.NewStockSearchHandler(stockRepo)
+	rg.GET("/stocks/search", stockSearchH.Search)
+
+	// Watchlist
+	watchlistRepo := repository.NewWatchlistRepo(pool)
+	watchlistH := handler.NewWatchlistHandler(watchlistRepo)
+	rg.GET("/watchlist", watchlistH.GetWatchlist)
+	rg.POST("/watchlist", watchlistH.AddToWatchlist)
+	rg.DELETE("/watchlist/:symbol", watchlistH.RemoveFromWatchlist)
 }

@@ -102,7 +102,7 @@ test.describe("Chart Page — Backend Integration @critical", () => {
     });
 
     await chartPage.goto();
-    await expect(chartPage.selectStockMessage).toBeVisible();
+    await expect(chartPage.searchTrigger).toContainText("종목을 검색하세요");
 
     // Give React time to settle — if a request were going to fire, it would have
     await chartPage.page.waitForTimeout(1_500);
