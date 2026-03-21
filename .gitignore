@@ -55,5 +55,9 @@ backend/coverage.*
 # Playwright
 test-results/
 playwright-report/
+.playwright-mcp/
 .dev-logs/
 .superpowers/
+
+# Claude
+skills-lock.json
