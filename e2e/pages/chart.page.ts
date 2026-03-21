@@ -13,6 +13,10 @@ export class ChartPage {
   readonly modalBackdrop: Locator;
   readonly searchInput: Locator;
 
+  // Bottom Panel
+  readonly bottomPanelEmpty: Locator;
+  readonly bottomPanelGrid: Locator;
+
   constructor(readonly page: Page) {
     this.canvas = page.locator("canvas").first();
     this.loadingIndicator = page.getByText("Loading chart data...");
@@ -20,6 +24,8 @@ export class ChartPage {
     this.indicatorSelectorBtn = page.getByTestId("indicator-selector-btn");
     this.modalBackdrop = page.getByTestId("search-modal-backdrop");
     this.searchInput = page.getByPlaceholder("종목명 또는 코드를 검색하세요...");
+    this.bottomPanelEmpty = page.getByTestId("bottom-panel-empty");
+    this.bottomPanelGrid = page.getByTestId("bottom-panel-grid");
   }
 
   async goto(symbol?: string) {

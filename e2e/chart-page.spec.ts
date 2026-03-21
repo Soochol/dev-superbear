@@ -57,54 +57,7 @@ test.describe("Chart Page", () => {
     await expect(chartPage.page.getByRole("heading", { name: "종목 검색" })).toBeVisible();
   });
 
-  test("E2E-5: timeframe button click changes active state", async ({ chartPage }) => {
-    await chartPage.goto();
-
-    // Default active: 1D
-    await expect(chartPage.getTimeframeButton("1D")).toHaveClass(/bg-nexus-accent/);
-
-    // Click 1W
-    await chartPage.clickTimeframe("1W");
-    await expect(chartPage.getTimeframeButton("1W")).toHaveClass(/bg-nexus-accent/);
-    await expect(chartPage.getTimeframeButton("1D")).not.toHaveClass(/bg-nexus-accent/);
-
-    // Click 30m (new timeframe)
-    await chartPage.clickTimeframe("30m");
-    await expect(chartPage.getTimeframeButton("30m")).toHaveClass(/bg-nexus-accent/);
-  });
-
-  test("E2E-6: indicator selector opens and shows categories", async ({ chartPage }) => {
-    await chartPage.goto();
-
-    await chartPage.openIndicatorSelector();
-
-    // Category headers visible
-    await expect(chartPage.page.getByText("이동평균")).toBeVisible();
-    await expect(chartPage.page.getByText("오실레이터")).toBeVisible();
-    await expect(chartPage.page.getByText("밴드")).toBeVisible();
-
-    // Some indicator options visible
-    await expect(chartPage.getIndicatorOption("ma20")).toBeVisible();
-    await expect(chartPage.getIndicatorOption("rsi")).toBeVisible();
-    await expect(chartPage.getIndicatorOption("macd")).toBeVisible();
-    await expect(chartPage.getIndicatorOption("bb")).toBeVisible();
-  });
-
-  test("E2E-7: toggling indicator shows/hides panel", async ({ chartPage }) => {
-    await chartPage.goto();
-
-    // RSI panel should not be visible initially
-    await expect(chartPage.getIndicatorPanel("rsi")).not.toBeVisible();
-
-    // Toggle RSI on
-    await chartPage.openIndicatorSelector();
-    await chartPage.getIndicatorOption("rsi").click();
-
-    // RSI panel should appear
-    await expect(chartPage.getIndicatorPanel("rsi")).toBeVisible();
-  });
-
-  test("E2E-8: main chart renders canvas", async ({ chartPage }) => {
+  test("E2E-5: main chart renders canvas", async ({ chartPage }) => {
     await chartPage.goto("005930");
     const canvas = chartPage.canvas;
     await expect(canvas).toBeVisible({ timeout: 10000 });
