@@ -1,8 +1,12 @@
-.PHONY: build run test lint migrate sqlc
+.PHONY: build build-mcp run test lint migrate sqlc
 
 build:
 	go build -o bin/api ./cmd/api
 	go build -o bin/worker ./cmd/worker
+	go build -o bin/mcp-server ./cmd/mcp-server
+
+build-mcp:
+	go build -o bin/mcp-server ./cmd/mcp-server
 
 run:
 	go run ./cmd/api

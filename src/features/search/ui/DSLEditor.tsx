@@ -12,7 +12,9 @@ import {
   autocompletion,
   type CompletionContext,
 } from "@codemirror/autocomplete";
+import { linter } from "@codemirror/lint";
 import { DSL_COMPLETIONS } from "../lib/dsl-completions";
+import { lintDSL } from "../lib/dsl-linter";
 import { useSearchStore } from "../model/search.store";
 
 const nexusDarkTheme = EditorView.theme({
@@ -35,6 +37,16 @@ const nexusDarkTheme = EditorView.theme({
     backgroundColor: "rgba(99, 102, 241, 0.2)",
   },
 });
+
+const dslLintExtension = linter((view) => {
+  const doc = view.state.doc.toString();
+  return lintDSL(doc).map((d) => ({
+    from: d.from,
+    to: d.to,
+    severity: d.severity,
+    message: d.message,
+  }));
+}, { delay: 300 });
 
 function dslAutoComplete(context: CompletionContext) {
   const word = context.matchBefore(/\w*/);
@@ -75,6 +87,7 @@ export function DSLEditor({
         EditorView.lineWrapping,
         phExtension(placeholder),
         autocompletion({ override: [dslAutoComplete] }),
+        dslLintExtension,
         EditorView.updateListener.of((update) => {
           if (update.docChanged && !readOnly) {
             setDslCode(update.state.doc.toString());

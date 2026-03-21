@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "nexus-dsl": {
+      "command": "./bin/mcp-server",
+      "env": {
+        "DATABASE_URL": "${DATABASE_URL}"
+      }
+    }
+  }
+}

@@ -13,6 +13,7 @@ import (
 	"github.com/dev-superbear/nexus-backend/internal/dsl"
 	"github.com/dev-superbear/nexus-backend/internal/handler"
 	"github.com/dev-superbear/nexus-backend/internal/infra/kis"
+	"github.com/dev-superbear/nexus-backend/internal/llm/claudecli"
 	"github.com/dev-superbear/nexus-backend/internal/middleware"
 	"github.com/dev-superbear/nexus-backend/internal/repository"
 	"github.com/dev-superbear/nexus-backend/internal/repository/sqlc"
@@ -100,8 +101,9 @@ func registerRoutes(rg *gin.RouterGroup, queries *sqlc.Queries, pool *pgxpool.Po
 	blockH := handler.NewBlockHandler(blockSvc)
 	blockH.RegisterRoutes(rg)
 
+	llmProvider := claudecli.New(cfg.LLM)
 	searchSvc := service.NewSearchService(dsl.NewExecutor(pool))
-	nlSvc := service.NewNLToDSLService()
+	nlSvc := service.NewNLToDSLService(llmProvider)
 	searchH := handler.NewSearchHandler(searchSvc, nlSvc)
 	searchH.RegisterRoutes(rg)
 
