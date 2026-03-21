@@ -39,9 +39,6 @@ func New(cfg config.LLMConfig) *Provider {
 	if cfg.TimeoutSeconds <= 0 {
 		cfg.TimeoutSeconds = 60
 	}
-	if cfg.MCPConfigPath == "" {
-		slog.Warn("MCPConfigPath is empty — claude CLI will run without MCP tools, NL-to-DSL will likely fail")
-	}
 	return &Provider{
 		cfg:       cfg,
 		sem:       semaphore.NewWeighted(int64(cfg.MaxConcurrent)),

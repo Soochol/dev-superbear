@@ -13,7 +13,11 @@ import (
 	"github.com/dev-superbear/nexus-backend/internal/dsl"
 	"github.com/dev-superbear/nexus-backend/internal/handler"
 	"github.com/dev-superbear/nexus-backend/internal/infra/kis"
+	"github.com/dev-superbear/nexus-backend/internal/llm"
+	"github.com/dev-superbear/nexus-backend/internal/llm/claudeapi"
 	"github.com/dev-superbear/nexus-backend/internal/llm/claudecli"
+	"github.com/dev-superbear/nexus-backend/internal/llm/gemini"
+	"github.com/dev-superbear/nexus-backend/internal/llm/tools"
 	"github.com/dev-superbear/nexus-backend/internal/middleware"
 	"github.com/dev-superbear/nexus-backend/internal/repository"
 	"github.com/dev-superbear/nexus-backend/internal/repository/sqlc"
@@ -77,6 +81,39 @@ func main() {
 	}
 }
 
+func newLLMProvider(cfg config.LLMConfig, toolExec *tools.Executor) llm.Provider {
+	switch cfg.Provider {
+	case "claude-cli":
+		if cfg.MCPConfigPath == "" {
+			slog.Error("claude-cli provider requires MCP_CONFIG_PATH")
+			os.Exit(1)
+		}
+		return claudecli.New(cfg)
+	case "claude-api":
+		if cfg.AnthropicKey == "" {
+			slog.Error("claude-api provider requires ANTHROPIC_API_KEY")
+			os.Exit(1)
+		}
+		if cfg.Model == "" {
+			cfg.Model = "claude-sonnet-4-20250514"
+		}
+		return claudeapi.New(cfg, toolExec)
+	case "gemini":
+		if cfg.GeminiKey == "" {
+			slog.Error("gemini provider requires GEMINI_API_KEY")
+			os.Exit(1)
+		}
+		if cfg.Model == "" {
+			cfg.Model = "gemini-2.0-flash"
+		}
+		return gemini.New(cfg, toolExec)
+	default:
+		slog.Error("unknown LLM provider", "provider", cfg.Provider)
+		os.Exit(1)
+		return nil
+	}
+}
+
 func registerRoutes(rg *gin.RouterGroup, queries *sqlc.Queries, pool *pgxpool.Pool, cfg *config.Config) {
 	caseH := handler.NewCaseHandler(queries)
 	rg.GET("/cases", caseH.List)
@@ -101,8 +138,11 @@ func registerRoutes(rg *gin.RouterGroup, queries *sqlc.Queries, pool *pgxpool.Po
 	blockH := handler.NewBlockHandler(blockSvc)
 	blockH.RegisterRoutes(rg)
 
-	llmProvider := claudecli.New(cfg.LLM)
-	searchSvc := service.NewSearchService(dsl.NewExecutor(pool))
+	dslExec := dsl.NewExecutor(pool)
+	toolExec := tools.NewExecutor(dslExec)
+	llmProvider := newLLMProvider(cfg.LLM, toolExec)
+
+	searchSvc := service.NewSearchService(dslExec)
 	nlSvc := service.NewNLToDSLService(llmProvider)
 	searchH := handler.NewSearchHandler(searchSvc, nlSvc)
 	searchH.RegisterRoutes(rg)
