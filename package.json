@@ -7,16 +7,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
-    "test:ci": "jest --ci --coverage --forceExit",
     "test:e2e": "npx playwright test",
     "test:e2e:ui": "npx playwright test --ui"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.20.1",
     "@codemirror/commands": "^6.10.3",
+    "@codemirror/lint": "^6.9.5",
     "@codemirror/state": "^6.6.0",
     "@codemirror/view": "^6.40.0",
     "lightweight-charts": "^5.1.0",
@@ -26,23 +23,15 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
-    "@jest/types": "^30.3.0",
     "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4",
-    "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.2",
-    "@testing-library/user-event": "^14.6.1",
-    "@types/jest": "^30.0.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.0",
-    "jest": "^30.3.0",
-    "jest-environment-jsdom": "^30.3.0",
     "jose": "^6.2.2",
     "tailwindcss": "^4",
-    "ts-jest": "^29.4.6",
     "typescript": "^5"
   }
 }

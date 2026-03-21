@@ -3,6 +3,7 @@ package config
 import (
 	"log/slog"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -20,6 +21,18 @@ type Config struct {
 	DARTApiKey         string
 	RedisAddr          string
 	RedisPassword      string
+	LLM                LLMConfig
+}
+
+type LLMConfig struct {
+	Provider       string
+	ClaudeCLIPath  string
+	MCPConfigPath  string
+	AnthropicKey   string
+	GeminiKey      string
+	Model          string
+	MaxConcurrent  int
+	TimeoutSeconds int
 }
 
 func Load() *Config {
@@ -48,6 +61,18 @@ func Load() *Config {
 	}
 	cfg.RedisAddr = getEnv("REDIS_ADDR", "localhost:6379")
 	cfg.RedisPassword = getEnv("REDIS_PASSWORD", "")
+	maxConcurrent, _ := strconv.Atoi(getEnv("LLM_MAX_CONCURRENT", "5"))
+	timeoutSec, _ := strconv.Atoi(getEnv("LLM_TIMEOUT_SECONDS", "60"))
+	cfg.LLM = LLMConfig{
+		Provider:       getEnv("LLM_PROVIDER", "claude-cli"),
+		ClaudeCLIPath:  getEnv("CLAUDE_CLI_PATH", "claude"),
+		MCPConfigPath:  getEnv("MCP_CONFIG_PATH", ""),
+		AnthropicKey:   getEnv("ANTHROPIC_API_KEY", ""),
+		GeminiKey:      getEnv("GEMINI_API_KEY", ""),
+		Model:          getEnv("LLM_MODEL", ""),
+		MaxConcurrent:  maxConcurrent,
+		TimeoutSeconds: timeoutSec,
+	}
 	return cfg
 }
 

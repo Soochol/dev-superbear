@@ -1,11 +1,8 @@
 import { apiClient } from "@/shared/api/client";
+import { API_BASE_URL } from "@/shared/config/constants";
+import { parseSSEBuffer } from "../lib/sse-parser";
+import type { SSEEvent } from "../model/types";
 import type { SearchResult } from "@/entities/search-result";
-
-interface NLSearchResponse {
-  dsl: string;
-  explanation: string;
-  results: SearchResult[];
-}
 
 interface DSLSearchResponse {
   results: SearchResult[];
@@ -21,11 +18,37 @@ interface ExplainResponse {
 }
 
 export const searchApi = {
-  async nlSearch(query: string): Promise<NLSearchResponse> {
-    return apiClient<NLSearchResponse>("/api/v1/search/nl-to-dsl", {
+  async *nlSearchStream(query: string): AsyncGenerator<SSEEvent> {
+    const response = await fetch(`${API_BASE_URL}/api/v1/search/nl-to-dsl`, {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({ query }),
     });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    if (!response.body) {
+      throw new Error("Server response has no body");
+    }
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const { events, remaining } = parseSSEBuffer(buffer);
+      buffer = remaining;
+
+      for (const event of events) {
+        yield event;
+      }
+    }
   },
 
   async dslSearch(dsl: string): Promise<DSLSearchResponse> {

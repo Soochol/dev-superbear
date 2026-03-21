@@ -96,19 +96,78 @@ func (e *Executor) Execute(ctx context.Context, dslCode string) ([]SearchResult,
 	return e.executeQuery(ctx, ast)
 }
 
-// allowedFields maps DSL field names to SQL expressions.
-var allowedFields = map[string]string{
-	"volume":      "d.volume",
-	"close":       "d.close",
-	"open":        "d.open",
-	"high":        "d.high",
-	"low":         "d.low",
-	"trade_value": "(d.close * d.volume)",
-	"change_pct":  "CASE WHEN prev.close > 0 THEN ((d.close - prev.close)::float / prev.close * 100) ELSE 0 END",
+// FieldInfo describes a single DSL field with its SQL mapping and metadata.
+type FieldInfo struct {
+	Name        string `json:"name"`
+	SQL         string `json:"-"`
+	Description string `json:"description"`
+	Unit        string `json:"unit"`
 }
 
-var allowedOps = map[string]string{
-	">": ">", "<": "<", ">=": ">=", "<=": "<=", "=": "=",
+// fieldRegistry is the single source of truth for all DSL fields.
+// Order is preserved for deterministic output.
+var fieldRegistry = []FieldInfo{
+	{Name: "close", SQL: "d.close", Description: "종가/현재가", Unit: "numeric, KRW"},
+	{Name: "open", SQL: "d.open", Description: "시가", Unit: "numeric, KRW"},
+	{Name: "high", SQL: "d.high", Description: "고가", Unit: "numeric, KRW"},
+	{Name: "low", SQL: "d.low", Description: "저가", Unit: "numeric, KRW"},
+	{Name: "volume", SQL: "d.volume", Description: "거래량", Unit: "integer, shares"},
+	{Name: "trade_value", SQL: "(d.close * d.volume)", Description: "거래대금", Unit: "numeric, close × volume"},
+	{Name: "change_pct", SQL: "CASE WHEN prev.close > 0 THEN ((d.close - prev.close)::float / prev.close * 100) ELSE 0 END", Description: "전일 대비 등락률", Unit: "numeric, %"},
+}
+
+// allowedFields is built from fieldRegistry at init time.
+var allowedFields map[string]string
+
+var allowedOps = []string{">", "<", ">=", "<=", "="}
+var allowedOpsMap map[string]string
+
+func init() {
+	allowedFields = make(map[string]string, len(fieldRegistry))
+	for _, f := range fieldRegistry {
+		allowedFields[f.Name] = f.SQL
+	}
+	allowedOpsMap = make(map[string]string, len(allowedOps))
+	for _, op := range allowedOps {
+		allowedOpsMap[op] = op
+	}
+}
+
+// AvailableFields returns the field registry (ordered).
+func (e *Executor) AvailableFields() []FieldInfo {
+	return fieldRegistry
+}
+
+// AllowedOps returns the list of supported comparison operators.
+func (e *Executor) AllowedOps() []string {
+	return allowedOps
+}
+
+// GrammarText returns the DSL grammar description, generated from the registry.
+func (e *Executor) GrammarText() string {
+	fieldNames := make([]string, len(fieldRegistry))
+	for i, f := range fieldRegistry {
+		fieldNames[i] = f.Name
+	}
+	return fmt.Sprintf(`DSL Grammar:
+  scan where <conditions> [sort by <field> [asc|desc]] [limit N]
+
+Conditions:
+  <field> <operator> <value>
+  Multiple conditions joined with AND (OR is NOT supported)
+
+Fields: %s
+
+Operators: %s
+
+Defaults:
+  limit: 50 (max: 500)
+  sort: volume DESC
+
+Example:
+  scan where volume > 1000000 and close > 50000 sort by trade_value desc limit 20`,
+		strings.Join(fieldNames, ", "),
+		strings.Join(allowedOps, ", "))
 }
 
 func (e *Executor) executeQuery(ctx context.Context, ast *parsedAST) ([]SearchResult, error) {
@@ -215,7 +274,7 @@ func (e *Executor) buildWhere(conditions []condition) (string, []any, error) {
 		if !ok {
 			return "", nil, fmt.Errorf("unknown field: %s", c.Field)
 		}
-		op, ok := allowedOps[c.Op]
+		op, ok := allowedOpsMap[c.Op]
 		if !ok {
 			return "", nil, fmt.Errorf("unknown operator: %s", c.Op)
 		}

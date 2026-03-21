@@ -24,7 +24,7 @@ test.describe("Monitoring API E2E", () => {
   });
 
   test("Worker health endpoint returns metrics", async ({ request }) => {
-    const res = await request.get("http://localhost:8081/api/health/workers");
+    const res = await request.get(`http://localhost:${process.env.E2E_PORT_WORKER ?? 3400}/api/health/workers`);
     expect(res.status()).toBe(200);
     const body = await res.json();
     expect(body.status).toBe("ok");

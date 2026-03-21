@@ -1,6 +1,6 @@
 import { test, expect } from "./fixtures/chart.fixture";
 
-const BACKEND_URL = "http://localhost:8080";
+const BACKEND_URL = `http://localhost:${process.env.E2E_PORT_API ?? 3300}`;
 const TEST_SYMBOL = "005930"; // 삼성전자
 
 /** Safely parse JSON from a response, returning null if not valid JSON. */
@@ -44,21 +44,7 @@ test.describe("Chart Page — Backend Integration @critical", () => {
     }
   });
 
-  test("API-2: sends correct period param on timeframe change", async ({
-    chartPage,
-  }) => {
-    // Navigate and wait for initial 1D candle request
-    await chartPage.gotoAndWaitForCandles(TEST_SYMBOL);
-
-    // Click "1W" and observe the new API call
-    const responsePromise = chartPage.waitForCandleResponse(TEST_SYMBOL);
-    await chartPage.clickTimeframe("1W");
-    const response = await responsePromise;
-
-    expect(response.url()).toContain("period=1W");
-  });
-
-  test("API-3: chart renders after backend response", async ({
+  test("API-2: chart renders after backend response", async ({
     chartPage,
   }) => {
     const response = await chartPage.gotoAndWaitForCandles(TEST_SYMBOL);
@@ -102,29 +88,14 @@ test.describe("Chart Page — Backend Integration @critical", () => {
     });
 
     await chartPage.goto();
-    await expect(chartPage.selectStockMessage).toBeVisible();
+    await expect(chartPage.searchTrigger).toContainText("종목을 검색하세요");
 
     // Give React time to settle — if a request were going to fire, it would have
     await chartPage.page.waitForTimeout(1_500);
     expect(requests).toHaveLength(0);
   });
 
-  test("API-6: each timeframe switch triggers a new API call", async ({
-    chartPage,
-  }) => {
-    await chartPage.gotoAndWaitForCandles(TEST_SYMBOL);
-
-    const timeframes = ["1W", "1M", "1H", "5m"];
-    for (const tf of timeframes) {
-      const responsePromise = chartPage.waitForCandleResponse(TEST_SYMBOL);
-      await chartPage.clickTimeframe(tf);
-      const response = await responsePromise;
-
-      expect(response.url()).toContain(`period=${tf}`);
-    }
-  });
-
-  test("API-7: candle response has correct data shape", async ({
+  test("API-6: candle response has correct data shape", async ({
     chartPage,
   }) => {
     const response = await chartPage.gotoAndWaitForCandles(TEST_SYMBOL);

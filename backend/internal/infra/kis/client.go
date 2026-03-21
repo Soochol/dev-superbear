@@ -13,8 +13,9 @@ import (
 )
 
 const (
-	trIDDailyChart   = "FHKST03010100"
-	trIDCurrentPrice = "FHKST01010100"
+	trIDDailyChart    = "FHKST03010100"
+	trIDIntradayChart = "FHKST03010200"
+	trIDCurrentPrice  = "FHKST01010100"
 )
 
 type Client struct {
@@ -144,6 +145,46 @@ func (c *Client) GetCandles(ctx context.Context, symbol, startDate, endDate, per
 	}
 
 	return NormalizeKISCandles(candleResp.Output2), nil
+}
+
+func (c *Client) GetIntradayCandles(ctx context.Context, symbol string) ([]NormalizedCandle, error) {
+	token, err := c.getAccessToken(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	params := url.Values{}
+	params.Set("FID_COND_MRKT_DIV_CODE", "J")
+	params.Set("FID_INPUT_ISCD", symbol)
+	params.Set("FID_INPUT_HOUR_1", "160000")
+	params.Set("FID_ETC_CLS_CODE", "")
+
+	reqURL := fmt.Sprintf("%s/uapi/domestic-stock/v1/quotations/inquire-time-itemchartprice?%s",
+		c.baseURL, params.Encode())
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create intraday candle request: %w", err)
+	}
+	req.Header = c.authHeaders(token)
+	req.Header.Set("tr_id", trIDIntradayChart)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("intraday candle request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("intraday candle request returned status %d", resp.StatusCode)
+	}
+
+	var candleResp CandleResponse
+	if err := json.NewDecoder(resp.Body).Decode(&candleResp); err != nil {
+		return nil, fmt.Errorf("decode intraday candle response: %w", err)
+	}
+
+	return NormalizeKISIntradayCandles(candleResp.Output2), nil
 }
 
 func (c *Client) GetCurrentPrice(ctx context.Context, symbol string) (*KISPriceResponse, error) {

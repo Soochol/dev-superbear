@@ -9,6 +9,11 @@ interface StockListState {
   setSelectedSymbol: (symbol: string | null) => void;
 
   watchlist: SearchResult[];
+  watchlistLoaded: boolean;
+  watchlistError: boolean;
+  setWatchlist: (items: SearchResult[]) => void;
+  setWatchlistLoaded: (v: boolean) => void;
+  setWatchlistError: (v: boolean) => void;
   addToWatchlist: (item: SearchResult) => void;
   removeFromWatchlist: (symbol: string) => void;
   isInWatchlist: (symbol: string) => boolean;
@@ -25,6 +30,11 @@ export const useStockListStore = create<StockListState>()((set, get) => ({
   setSelectedSymbol: (symbol) => set({ selectedSymbol: symbol }),
 
   watchlist: [],
+  watchlistLoaded: false,
+  watchlistError: false,
+  setWatchlist: (items) => set({ watchlist: items }),
+  setWatchlistLoaded: (v) => set({ watchlistLoaded: v }),
+  setWatchlistError: (v) => set({ watchlistError: v }),
   addToWatchlist: (item) =>
     set((state) => {
       if (state.watchlist.some((w) => w.symbol === item.symbol)) return state;
@@ -39,10 +49,7 @@ export const useStockListStore = create<StockListState>()((set, get) => ({
   recentStocks: [],
   addToRecent: (item) =>
     set((state) => {
-      const filtered = state.recentStocks.filter(
-        (r) => r.symbol !== item.symbol
-      );
-      const updated = [item, ...filtered].slice(0, 30);
-      return { recentStocks: updated };
+      const filtered = state.recentStocks.filter((r) => r.symbol !== item.symbol);
+      return { recentStocks: [item, ...filtered].slice(0, 30) };
     }),
 }));

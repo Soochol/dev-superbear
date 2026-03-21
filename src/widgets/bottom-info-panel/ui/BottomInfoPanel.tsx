@@ -10,7 +10,7 @@ export function BottomInfoPanel() {
 
   if (!currentStock) {
     return (
-      <div className="h-48 border-t border-nexus-border bg-nexus-surface flex items-center justify-center">
+      <div data-testid="bottom-panel-empty" className="h-48 border-t border-nexus-border bg-nexus-surface flex items-center justify-center">
         <span className="text-nexus-text-muted">Select a stock to view details</span>
       </div>
     );
@@ -18,7 +18,7 @@ export function BottomInfoPanel() {
 
   return (
     <div className="border-t border-nexus-border bg-nexus-surface">
-      <div className="grid grid-cols-3 divide-x divide-nexus-border min-h-[200px]">
+      <div data-testid="bottom-panel-grid" className="grid grid-cols-3 divide-x divide-nexus-border min-h-[200px]">
         <FinancialsPanel symbol={currentStock.symbol} />
         <AIFusionPanel symbol={currentStock.symbol} />
         <SectorComparePanel symbol={currentStock.symbol} />

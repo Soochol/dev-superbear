@@ -11,51 +11,35 @@ export default defineConfig({
     headless: true,
     screenshot: "only-on-failure",
   },
-  webServer: [
-    {
-      command: "npm run dev -- --port 3000",
-      port: 3000,
-      timeout: 30000,
-      reuseExistingServer: true,
-    },
-    {
-      command:
-        "WATCHPACK_POLLING=true npx next dev --webpack --port 3001",
-      port: 3001,
-      timeout: 60000,
-      reuseExistingServer: true,
-      cwd: "./frontend",
-    },
-  ],
   projects: [
     {
       name: "root-app",
       use: {
         browserName: "chromium",
-        baseURL: "http://localhost:3000",
+        baseURL: `http://localhost:${process.env.E2E_PORT_ROOT ?? 3000}`,
       },
-      testMatch: /landing\.spec\.ts/,
+      testMatch: /landing\.spec\.ts|search-sse\.spec\.ts/,
     },
     {
       name: "frontend-app",
       use: {
         browserName: "chromium",
-        baseURL: "http://localhost:3001",
+        baseURL: `http://localhost:${process.env.E2E_PORT_FRONT ?? 3000}`,
       },
-      testMatch: /search.*\.spec\.ts/,
+      testMatch: /search\.spec\.ts|search-visual\.spec\.ts/,
     },
     {
       name: "chart-app",
       use: {
         browserName: "chromium",
-        baseURL: "http://localhost:3000",
+        baseURL: `http://localhost:${process.env.E2E_PORT_ROOT ?? 3000}`,
       },
       testMatch: /chart.*\.spec\.ts/,
     },
     {
       name: "monitoring-api",
       use: {
-        baseURL: "http://localhost:8080",
+        baseURL: `http://localhost:${process.env.E2E_PORT_API ?? 8080}`,
       },
       testMatch: /monitoring-api\.spec\.ts/,
     },
@@ -63,7 +47,7 @@ export default defineConfig({
       name: "case-app",
       use: {
         browserName: "chromium",
-        baseURL: "http://localhost:3000",
+        baseURL: `http://localhost:${process.env.E2E_PORT_ROOT ?? 3000}`,
       },
       testMatch: /monitoring-visual\.spec\.ts/,
     },
