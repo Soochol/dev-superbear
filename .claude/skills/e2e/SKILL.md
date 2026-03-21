@@ -1,6 +1,13 @@
 ---
 name: e2e
 description: Worktree별 격리된 Docker 환경에서 E2E 테스트를 실행하는 자동화 스킬. 백엔드/프론트엔드 서버 기동, 테스트 실행, 정리를 한 번에 처리한다. /e2e 명령어로 실행하거나, E2E 테스트를 돌려야 할 때, worktree에서 서버를 띄워야 할 때 사용한다.
+hooks:
+  Stop:
+    - matcher: ""
+      hooks:
+        - type: command
+          command: "bash .claude/skills/e2e/scripts/e2e-server.sh down"
+          timeout: 30000
 ---
 
 # E2E Test Runner
@@ -35,13 +42,11 @@ Worktree별 완전 격리된 Docker 환경(postgres, redis, api, worker, fronten
 2. Skill("playwright-best-practices")을 호출하여 E2E 테스트를 실행한다.
    테스트 범위와 실행 방법은 해당 스킬에 위임한다.
 
-### Phase 3: 정리
+### Phase 3: 결과 보고
 
-테스트 성공/실패와 무관하게 반드시 실행:
+테스트 결과 요약을 출력한다.
 
-1. `scripts/e2e-server.sh down`을 실행하여 모든 서비스(postgres, redis, api, worker, frontend)를 종료하고 볼륨을 제거한다.
-
-2. 테스트 결과 요약을 출력한다.
+> **정리(down)는 Stop hook이 세션 종료 시 자동 실행한다.** 수동 정리가 필요하면 `scripts/e2e-server.sh down`을 직접 호출한다.
 
 ## Notes
 
