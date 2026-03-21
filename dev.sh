@@ -150,6 +150,15 @@ status() {
     echo ""
 }
 
+# ─── Follow backend logs ───
+follow_backend_logs() {
+    echo ""
+    log "Backend logs (Ctrl+C to stop all services):"
+    echo ""
+    trap 'echo ""; kill_all; ok "All services stopped."; exit 0' INT TERM
+    tail -f "$LOG_DIR/backend.log" 2>/dev/null
+}
+
 # ─── Main ───
 case "${1:-start}" in
     start)
@@ -159,6 +168,7 @@ case "${1:-start}" in
         start_backend
         start_frontend
         status
+        follow_backend_logs
         ;;
     stop)
         kill_all
@@ -171,6 +181,7 @@ case "${1:-start}" in
         start_backend
         start_frontend
         status
+        follow_backend_logs
         ;;
     db)
         start_db
