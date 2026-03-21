@@ -3,6 +3,7 @@ package mcp
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/dev-superbear/nexus-backend/internal/dsl"
 )
@@ -16,35 +17,33 @@ func NewServer(executor *dsl.Executor) *Server {
 }
 
 func (s *Server) HandleGetDSLGrammar() string {
-	return `DSL Grammar:
-  scan where <conditions> [sort by <field> [asc|desc]] [limit N]
-
-Conditions:
-  <field> <operator> <value>
-  Multiple conditions joined with AND (OR is NOT supported)
-
-Operators: >, <, >=, <=, =
-
-Defaults:
-  limit: 50 (max: 500)
-  sort: volume DESC
-
-Example:
-  scan where volume > 1000000 and close > 50000 sort by trade_value desc limit 20`
+	return s.executor.GrammarText()
 }
 
 func (s *Server) HandleListAvailableFields() string {
-	return `Available fields:
-  close       — 종가/현재가 (numeric, KRW)
-  open        — 시가 (numeric, KRW)
-  high        — 고가 (numeric, KRW)
-  low         — 저가 (numeric, KRW)
-  volume      — 거래량 (integer, shares)
-  trade_value — 거래대금 (numeric, close × volume)
-  change_pct  — 전일 대비 등락률 (numeric, %)
+	fields := s.executor.AvailableFields()
+	ops := s.executor.AllowedOps()
 
-All fields support operators: >, <, >=, <=, =
-All fields can be used in sort by clause.`
+	lines := make([]string, 0, len(fields)+3)
+	lines = append(lines, "Available fields:")
+
+	// Find max name length for alignment
+	maxLen := 0
+	for _, f := range fields {
+		if len(f.Name) > maxLen {
+			maxLen = len(f.Name)
+		}
+	}
+
+	for _, f := range fields {
+		padding := strings.Repeat(" ", maxLen-len(f.Name))
+		lines = append(lines, fmt.Sprintf("  %s%s — %s (%s)", f.Name, padding, f.Description, f.Unit))
+	}
+
+	lines = append(lines, "")
+	lines = append(lines, fmt.Sprintf("All fields support operators: %s", strings.Join(ops, ", ")))
+	lines = append(lines, "All fields can be used in sort by clause.")
+	return strings.Join(lines, "\n")
 }
 
 func (s *Server) HandleValidateDSL(dslCode string) (string, error) {
