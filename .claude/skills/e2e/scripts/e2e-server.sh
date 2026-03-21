@@ -25,17 +25,14 @@ allocate_ports() {
     offset=$(( $(echo -n "$name" | cksum | awk '{print $1}') % 9 + 1 ))
   fi
 
-  # 포트 충돌 검증 + fallback
   local max_attempts=20
   while (( offset < max_attempts )); do
     local port_root=$(( 3100 + offset ))
-    local port_front=$(( 3200 + offset ))
     local port_api=$(( 3300 + offset ))
     local port_worker=$(( 3400 + offset ))
 
-    # 4개 포트 모두 사용 가능한지 확인
-    if ! ss -tlnp 2>/dev/null | grep -qE ":($port_root|$port_front|$port_api|$port_worker) " ; then
-      echo "${port_root} ${port_front} ${port_api} ${port_worker}"
+    if ! ss -tlnp 2>/dev/null | grep -qE ":($port_root|$port_api|$port_worker) " ; then
+      echo "${port_root} ${port_api} ${port_worker}"
       return 0
     fi
     offset=$(( offset + 1 ))
@@ -49,14 +46,12 @@ allocate_ports() {
 write_env() {
   local worktree_name="$1"
   local port_root="$2"
-  local port_front="$3"
-  local port_api="$4"
-  local port_worker="$5"
+  local port_api="$3"
+  local port_worker="$4"
   local env_file="${PROJECT_DIR}/.env.e2e"
 
   cat > "$env_file" <<EOF
 E2E_PORT_ROOT=${port_root}
-E2E_PORT_FRONT=${port_front}
 E2E_PORT_API=${port_api}
 E2E_PORT_WORKER=${port_worker}
 WORKTREE_NAME=${worktree_name}
@@ -76,16 +71,11 @@ compose_infra() {
 compose_worktree() {
   local worktree_name="$1"
   shift
-  local profile_args=()
-  if [[ -d "${PROJECT_DIR}/frontend" ]]; then
-    profile_args=(--profile with-frontend)
-  fi
   docker compose \
     --project-directory "${PROJECT_DIR}" \
     -f "${TEMPLATE_DIR}/docker-compose.test.yml" \
     -p "superbear-e2e-${worktree_name}" \
     --env-file "${PROJECT_DIR}/.env.e2e" \
-    "${profile_args[@]}" \
     "$@"
 }
 
@@ -117,7 +107,6 @@ cmd_up() {
   worktree_name="$(detect_worktree)"
   echo "Worktree: ${worktree_name}"
 
-  # .env.e2e가 있으면 기존 포트 재사용
   local env_file="${PROJECT_DIR}/.env.e2e"
   if [[ -f "$env_file" ]]; then
     echo "Reusing existing .env.e2e"
@@ -125,10 +114,9 @@ cmd_up() {
   else
     local ports
     ports="$(allocate_ports "$worktree_name")"
-    read -r port_root port_front port_api port_worker <<< "$ports"
-    write_env "$worktree_name" "$port_root" "$port_front" "$port_api" "$port_worker"
+    read -r port_root port_api port_worker <<< "$ports"
+    write_env "$worktree_name" "$port_root" "$port_api" "$port_worker"
     E2E_PORT_ROOT="$port_root"
-    E2E_PORT_FRONT="$port_front"
     E2E_PORT_API="$port_api"
     E2E_PORT_WORKER="$port_worker"
   fi
@@ -144,7 +132,7 @@ cmd_up() {
   fi
 
   # 2. worktree별 서비스
-  echo "Starting worktree services (ports: root=${E2E_PORT_ROOT}, front=${E2E_PORT_FRONT}, api=${E2E_PORT_API}, worker=${E2E_PORT_WORKER})..."
+  echo "Starting worktree services (ports: root=${E2E_PORT_ROOT}, api=${E2E_PORT_API}, worker=${E2E_PORT_WORKER})..."
   compose_worktree "$worktree_name" up -d --build
 
   # 3. health check
@@ -158,20 +146,10 @@ cmd_up() {
     cmd_down
     exit 1
   }
-  if [[ -d "${PROJECT_DIR}/frontend" ]]; then
-    wait_for_healthy "http://localhost:${E2E_PORT_FRONT}" "Frontend" || {
-      echo "Health check failed, tearing down..."
-      cmd_down
-      exit 1
-    }
-  else
-    echo "Skipping Frontend health check (frontend/ not found)"
-  fi
 
   echo ""
   echo "=== E2E Environment Ready ==="
   echo "Root App:  http://localhost:${E2E_PORT_ROOT}"
-  echo "Frontend:  http://localhost:${E2E_PORT_FRONT}"
   echo "API:       http://localhost:${E2E_PORT_API}"
   echo "Worker:    http://localhost:${E2E_PORT_WORKER}"
   echo "============================="
@@ -194,7 +172,6 @@ cmd_down() {
     compose_infra down --remove-orphans 2>/dev/null || true
   fi
 
-  # .env.e2e 삭제
   rm -f "${PROJECT_DIR}/.env.e2e"
   echo "Done"
 }
