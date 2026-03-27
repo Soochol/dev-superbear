@@ -25,15 +25,15 @@ type mockWatchlistRepo struct {
 	removeErr error
 }
 
-func (m *mockWatchlistRepo) GetByUser(_ context.Context, _ int64) ([]repository.WatchlistItem, error) {
+func (m *mockWatchlistRepo) GetByUser(_ context.Context, _ string) ([]repository.WatchlistItem, error) {
 	return m.items, m.getErr
 }
 
-func (m *mockWatchlistRepo) Add(_ context.Context, _ int64, _, _ string) (*repository.WatchlistItem, error) {
+func (m *mockWatchlistRepo) Add(_ context.Context, _ string, _, _ string) (*repository.WatchlistItem, error) {
 	return m.item, m.addErr
 }
 
-func (m *mockWatchlistRepo) Remove(_ context.Context, _ int64, _ string) error {
+func (m *mockWatchlistRepo) Remove(_ context.Context, _ string, _ string) error {
 	return m.removeErr
 }
 
@@ -41,12 +41,12 @@ func TestWatchlistHandler(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	sampleItems := []repository.WatchlistItem{
-		{ID: 1, UserID: 1, Symbol: "005930", Name: "Samsung", CreatedAt: time.Now()},
-		{ID: 2, UserID: 1, Symbol: "035720", Name: "Kakao", CreatedAt: time.Now()},
+		{ID: 1, UserID: "00000000-0000-0000-0000-000000000001", Symbol: "005930", Name: "Samsung", CreatedAt: time.Now()},
+		{ID: 2, UserID: "00000000-0000-0000-0000-000000000001", Symbol: "035720", Name: "Kakao", CreatedAt: time.Now()},
 	}
 
 	sampleItem := &repository.WatchlistItem{
-		ID: 3, UserID: 1, Symbol: "000660", Name: "SK Hynix", CreatedAt: time.Now(),
+		ID: 3, UserID: "00000000-0000-0000-0000-000000000001", Symbol: "000660", Name: "SK Hynix", CreatedAt: time.Now(),
 	}
 
 	tests := []struct {

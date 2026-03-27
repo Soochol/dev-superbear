@@ -16,7 +16,7 @@ func NewWatchlistHandler(repo WatchlistRepository) *WatchlistHandler {
 }
 
 func (h *WatchlistHandler) GetWatchlist(c *gin.Context) {
-	userID := int64(1) // TODO: extract from auth middleware
+	userID := "00000000-0000-0000-0000-000000000001" // TODO: extract from auth middleware
 
 	items, err := h.repo.GetByUser(c.Request.Context(), userID)
 	if err != nil {
@@ -34,7 +34,7 @@ type addWatchlistRequest struct {
 }
 
 func (h *WatchlistHandler) AddToWatchlist(c *gin.Context) {
-	userID := int64(1) // TODO: extract from auth middleware
+	userID := "00000000-0000-0000-0000-000000000001" // TODO: extract from auth middleware
 
 	var req addWatchlistRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -53,7 +53,7 @@ func (h *WatchlistHandler) AddToWatchlist(c *gin.Context) {
 }
 
 func (h *WatchlistHandler) RemoveFromWatchlist(c *gin.Context) {
-	userID := int64(1) // TODO: extract from auth middleware
+	userID := "00000000-0000-0000-0000-000000000001" // TODO: extract from auth middleware
 	symbol := c.Param("symbol")
 
 	if err := h.repo.Remove(c.Request.Context(), userID, symbol); err != nil {
